@@ -101,6 +101,7 @@ public OnPluginStart()
 	HookConVarChange(specialRespawnIntervalConvar, CvarEvent_SpecialIntervalChange);
 	HookConVarChange(playerInfectedSwitchConvar, CvarEvent_PlayerSpecialSwitchChange);
 	
+	RegConsoleCmd("sm_it", Cmd_PlayTank, "Take tank");
 	RegConsoleCmd("sm_playtank", Cmd_PlayTank, "Take tank");
 	RegConsoleCmd("sm_taketank", Cmd_PlayTank, "Take tank");
 	RegConsoleCmd("sm_ammo", Cmd_GiveClientAmmo, "Give survivor ammo");
