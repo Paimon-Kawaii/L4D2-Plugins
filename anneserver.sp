@@ -6,13 +6,14 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
+#define VERSION "3.37.1"
 
 public Plugin myinfo =
 {
     name = "AnneServer",
     author = "Anne & 彩笔 & 我是派蒙啊",
     description = "修改server核心使玩家可以使用特感",
-    version = "3.36.5",
+    version = VERSION,
     url = "http://anne.paimeng.ltd/l4d2_plugins/anneserver.sp"
 };
 
