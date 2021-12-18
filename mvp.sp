@@ -126,7 +126,6 @@ bool IsValidClient(int client)
 	return client > 0 && client <= MaxClients && IsClientInGame(client);
 }
 
-
 void ShowMVPMsg()
 {
 	int players = 0;
