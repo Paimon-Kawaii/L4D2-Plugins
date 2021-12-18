@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 
+//插件初始化
 public OnPluginStart()
 {
 	RegConsoleCmd("sm_away", Cmd_AFKTurnClientToSpe, "Turn player to spectator");
