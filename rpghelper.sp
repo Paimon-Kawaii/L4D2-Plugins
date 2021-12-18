@@ -14,7 +14,7 @@ new String:createTable[512] = "create table if not exists `l4d2` (`steam_id` tex
 public void OnPluginStart()
 {
 	MYSQL_INIT();
-	RegConsoleCmd("sm_pw", MoneyCmd, "", 0);
+	//RegConsoleCmd("sm_pw", MoneyCmd, "", 0);
 }
 
 //玩家登录后初始化数据库
