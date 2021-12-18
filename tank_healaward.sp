@@ -170,7 +170,7 @@ public void GiveHealthByAtk()
 {
 	for(int client = 0; client <= MaxClients; client++)
 	{
-		PrintToChatAll("进入循环 %d", client);
+		//PrintToChatAll("进入循环 %d", client);
 		if(!IsPlayer(client)) continue;
 		GiveHealth(client, GetDamageAsPercent(damageList[client]) * tankHealReturn / 100);
 	}
