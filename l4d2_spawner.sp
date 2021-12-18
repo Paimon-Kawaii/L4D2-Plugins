@@ -111,8 +111,8 @@ public void OnCarWarning(Event:event, String:name[], bool:dont_broadcast)
 	float vPos[3] = 0.0;
 	float vAng[3] = 0.0;
 	L4D_GetRandomPZSpawnPosition(0, 1, 1, vPos);
-	L4D2_SpawnTank(vPos, vAng);
-	PrintToChatAll("\x04喜欢打车是吧!!!");
+	//L4D2_SpawnTank(vPos, vAng);
+	//PrintToChatAll("\x04喜欢打车是吧!!!");
 }
 
 public void OnRideStopped(Event:event, String:name[], bool:dont_broadcast)
