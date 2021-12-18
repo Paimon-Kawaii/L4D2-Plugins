@@ -105,7 +105,6 @@ public OnPluginStart()
 	RegConsoleCmd("sm_taketank", Cmd_PlayTank, "Take tank");
 	RegConsoleCmd("sm_ammo", Cmd_GiveClientAmmo, "Give survivor ammo");
 	RegConsoleCmd("sm_s", Cmd_AFKTurnClientToSpe, "Turn player to spectator");
-	RegConsoleCmd("sm_afk", Cmd_AFKTurnClientToSpe, "Turn player to spectator");
 	RegConsoleCmd("sm_spec", Cmd_AFKTurnClientToSpe, "Turn player to spectator");
 	RegConsoleCmd("sm_away", Cmd_AFKTurnClientToSpe, "Turn player to spectator");
 	RegConsoleCmd("sm_jg", Cmd_AFKTurnClientToSurvivor, "Turn player to survivor");
