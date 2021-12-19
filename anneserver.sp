@@ -1,4 +1,5 @@
 #pragma semicolon 1
+#pragma newdecls required
 
 #include <colors>
 #include <sdktools>
@@ -64,7 +65,7 @@ int
 	serverMaxSurvivorCount = 0;
 
 float
-	lastDisconnectTime;
+	lastDisconnectTime = 0.0;
 
 bool
 	isRoundStart = false,
@@ -930,7 +931,7 @@ bool IsSuivivorTeamFull()
 }
 
 //客户端是否是生还
-bool IsSurvivor(client)
+bool IsSurvivor(int client)
 {
 	if (IsValidClient(client) && GetClientTeam(client) == 2)
 		return true;
@@ -939,7 +940,7 @@ bool IsSurvivor(client)
 }
 
 //客户端是否是特感
-bool IsInfected(client)
+bool IsInfected(int client)
 {
 	if (IsValidClient(client) && GetClientTeam(client) == 3)
 		return true;
@@ -948,7 +949,7 @@ bool IsInfected(client)
 }
 
 //玩家是否倒地
-bool IsPlayerIncap(client)
+bool IsPlayerIncap(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_isIncapacitated", 4, 0) != 0;
 }
@@ -966,7 +967,7 @@ int GetTankFrustration(int tankClient)
 }
 
 //获得玩家血量
-int GetSurvivorPermHealth(client)
+int GetSurvivorPermHealth(int client)
 {
 	return GetEntProp(client, Prop_Send, "m_iHealth", 4, 0);
 }
