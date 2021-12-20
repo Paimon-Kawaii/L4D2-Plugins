@@ -8,7 +8,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "4.40.6"
+#define VERSION "4.41.2"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -30,6 +30,7 @@ enum Msgs
 	Msg_InfectedDisabled,
 	Msg_RoundStart,
 	Msg_JoinInfected,
+	Msg_JoinSINotice,
 	Msg_TakeTank,
 	Msg_Error,
 	Msg_Notice,
@@ -52,6 +53,7 @@ char
 		"{olive}[Paimon] {orange}玩家特感{lightgreen}已被{orange}禁止！",
 		"{olive}[Paimon] {lightgreen}对局已经{orange}开始{lightgreen}，{orange}禁止{lightgreen}加入特感！",
 		"{olive}[Paimon] {orange}%N {orange}加入{lightgreen}特感阵营！",
+		"{olive}[Paimon] {lightgreen}输入{orange} !taketank {lightgreen}或 {orange}!it {lightgreen}可接管tank(克局之前输入)",
 		"{olive}[Paimon] {orange}%N {lightgreen}已接管Tank！",
 		"{olive}[Paimon] {darkred}#检测到未知错误.即将重启地图",
 		"{olive}[Paimon] {lightgreen}请注意：本服内置{orange}内鬼插件{lightgreen}，使用{orange}!inf{lightgreen}加入特感\n{orange}内鬼模式{lightgreen}可在{orange}投票 >> 特殊操作{lightgreen}中关闭",
@@ -293,6 +295,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 		}
 		
 		CPrintToChatAll(messages[Msg_JoinInfected], client);
+		CPrintToChat(client, messages[Msg_JoinSINotice]);
 	}
 	
 	return Plugin_Continue;
@@ -781,6 +784,7 @@ public Action Cmd_AFKTurnClientTeam(int client, int args)
 				{
 					ChangeClientTeam(client, 3);
 					CPrintToChatAll(messages[Msg_JoinInfected], client);
+					CPrintToChat(client, messages[Msg_JoinSINotice]);
 				}
 			}
 		}
@@ -819,6 +823,7 @@ public Action Cmd_AFKTurnClientToInfected(int client, any args)
 	{
 		ChangeClientTeam(client, 3);
 		CPrintToChatAll(messages[Msg_JoinInfected], client);
+		CPrintToChat(client, messages[Msg_JoinSINotice]);
 	}
 	else CPrintToChat(client, messages[Msg_RoundStart]);
 }
