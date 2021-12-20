@@ -4,18 +4,22 @@
 #include <colors>
 #include <sdktools>
 #include <sourcemod>
+#include <adminmenu>
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "3.37.1"
+#define VERSION "4.40.6"
+#define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
 {
     name = "AnneServer",
     author = "Anne & 彩笔 & 我是派蒙啊",
-    description = "修改server核心使玩家可以使用特感",
+    description = "修改Server核心使玩家可以使用特感并整合了我的另一个插件ForceSpec",
     version = VERSION,
-    url = "http://anne.paimeng.ltd/l4d2_plugins/anneserver.sp"
+    url = "http://github.com/PaimonQwQ/L4D2-Plugins/anneserver.sp",
+    //another url to download = "http://anne.paimeng.ltd/l4d2_plugins/anneserver.sp",
+    //url of ForceSpec = "http://github.com/PaimonQwQ/L4D2-Plugins/l4d_forcespec.sp",
 };
 
 enum Msgs
@@ -35,28 +39,30 @@ enum Msgs
 	Msg_PlayerTankAI,
 	Msg_WillTakeTank,
 	Msg_CantTakeTank,
-	Msg_AlreadyInfected
+	Msg_AlreadyInfected,
+	Msg_ForceSpectated
 }
 
 char
 	messages[][] = 
 	{
 		"{olive}[Paimon] {lightgreen}请注意：\n若路人局遇{orange}内鬼嘲讽{lightgreen}，请直接{orange}投票送走{lightgreen}，事后我会补{orange}永久封禁{lightgreen}一个！",
-		"{olive}[Paimon] {orange}%N {lightgreen}正在爬进服务器",
-		"{olive}[Paimon] {orange}%N {lightgreen}离开服务器",
+		"{olive}[Paimon] {blue}%N {olive}正在爬进服务器",
+		"{olive}[Paimon] {blue}%N {olive}离开服务器",
 		"{olive}[Paimon] {orange}玩家特感{lightgreen}已被{orange}禁止！",
 		"{olive}[Paimon] {lightgreen}对局已经{orange}开始{lightgreen}，{orange}禁止{lightgreen}加入特感！",
-		"{olive}[Paimon] {orange}%N {lightgreen}加入{lightgreen}特感阵营！",
+		"{olive}[Paimon] {orange}%N {orange}加入{lightgreen}特感阵营！",
 		"{olive}[Paimon] {orange}%N {lightgreen}已接管Tank！",
-		"{olive}[Paimon] {red}#检测到未知错误.即将重启地图",
+		"{olive}[Paimon] {darkred}#检测到未知错误.即将重启地图",
 		"{olive}[Paimon] {lightgreen}请注意：本服内置{orange}内鬼插件{lightgreen}，使用{orange}!inf{lightgreen}加入特感\n{orange}内鬼模式{lightgreen}可在{orange}投票 >> 特殊操作{lightgreen}中关闭",
 		"{olive}[Paimon] {lightgreen}请勿{orange}长时间{lightgreen}占用特感！",
 		"{olive}[Paimon] {lightgreen}克已被{orange} %N {lightgreen}接管！",
 		"{olive}[Paimon] {lightgreen}克已{orange}AI{lightgreen}，{orange}禁止{lightgreen}接管！",
 		"{olive}[Paimon] {lightgreen}某笨比的克{orange}AI{lightgreen}了！",
-		"{olive}[Paimon] {orange}%N {lightgreen}将于{lightgreen}克局接管Tank！",
+		"{olive}[Paimon] {orange}%N {lightgreen}将于{orange}克局{lightgreen}接管Tank！",
 		"{olive}[Paimon] {orange}生还{lightgreen}和{orange}旁观{lightgreen}禁止接管Tank！",
-		"{olive}[Paimon] {lightgreen}你已经是{orange}特感方{lightgreen}了！"
+		"{olive}[Paimon] {olive}你已经是{orange}特感方{lightgreen}了！",
+		"{olive}[Paimon] 笨比{orange} %N {lightgreen}被{orange}管理{lightgreen}被强制旁观啦！"
 	};
 
 int
@@ -78,9 +84,14 @@ ConVar
 	specialRespawnIntervalConvar;
 
 Handle
+	AdminMenu = INVALID_HANDLE,
 	playerGhostHandle[MAXSIZE] = INVALID_HANDLE;
 
-public OnPluginStart()
+TopMenuObject
+	SpecMenuObj = INVALID_TOPMENUOBJECT,
+	PlayerCMDMenuObj = INVALID_TOPMENUOBJECT;
+
+public void OnPluginStart()
 {
 	AddCommandListener(Command_Jointeam, "jointeam");
 	AddCommandListener(Command_ChooseTeam, "chooseteam");
@@ -118,6 +129,9 @@ public OnPluginStart()
 	
 	RegAdminCmd("sm_restartmap", Cmd_RestartMap, ADMFLAG_GENERIC, "Restart map");
 	RegAdminCmd("sm_restart", Cmd_RestartServer, ADMFLAG_GENERIC, "Kick all clients and restart server");
+
+	if (LibraryExists("adminmenu") && (GetAdminTopMenu() != INVALID_HANDLE))
+		Event_OnAdminMenuReady(GetAdminTopMenu());
 }
 
 				/*	########################################
@@ -413,6 +427,30 @@ public Action Event_PlayerReplaceTankBot(Event event, const char[] name, bool do
 	}
 }
 
+//Admin准备事件
+public Action Event_OnAdminMenuReady(Handle topmenu)
+{
+	if(AdminMenu == topmenu)
+		return;
+	AdminMenu = topmenu;
+	PlayerCMDMenuObj = FindTopMenuCategory(AdminMenu, "PlayerCommands");
+	if(PlayerCMDMenuObj == INVALID_TOPMENUOBJECT) return;
+	SpecMenuObj = AddToTopMenu(AdminMenu, "spec_menu", TopMenuObject_Item, Handle_SetSpecMenuItem, PlayerCMDMenuObj);
+}
+
+//创建SpecMenu
+public Action Event_CreateSpecMenu(int client)
+{
+	Handle menu = CreateMenu(Handle_ExecSpecMenu);
+	SetMenuTitle(menu, "ForceSpec player:");
+	SetMenuExitBackButton(menu, true);
+	SetMenuExitButton(menu, true);
+	AddTargetsToMenu(menu, 0);
+	DisplayMenu(menu, client, MENU_DISPLAY_TIME);
+
+	return Plugin_Handled;
+}
+
 				/*	########################################
 							<==MyHookEvent:END
 				########################################	*/
@@ -621,6 +659,44 @@ public Action Timer_CheckAway(Handle timer, int client)
 				/*	########################################
 							<==Timer:END
 				########################################	*/
+
+
+				/*	########################################
+							HandleFunctions:START==>
+				########################################	*/
+
+//创建菜单内容
+public void Handle_SetSpecMenuItem(TopMenu topmenu, TopMenuAction action, TopMenuObject topobj_id, int client, char[] buffer, int maxlength)
+{
+	if(action == TopMenuAction_DisplayOption)
+		if (topobj_id == SpecMenuObj)
+			Format(buffer, maxlength, "ForceSpec player");
+	if (action == TopMenuAction_SelectOption)
+		if (topobj_id == SpecMenuObj)
+			Event_CreateSpecMenu(client);
+}
+
+//处理列表事件
+public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int item)
+{
+	char useridStr[255];
+	int target = -1, userid;
+	if(!IsValidClient(client)) return 0;
+	if(action != MenuAction_Select) return 0;
+	GetMenuItem(menu, item, useridStr, 255);
+	userid = StringToInt(useridStr, userid);
+	target = GetClientOfUserId(userid);
+	if(!IsValidClient(target) || IsFakeClient(target) || GetClientTeam(target) == 1) return 0;
+	CPrintToChatAll(messages[Msg_ForceSpectated], target);
+	ChangeClientTeam(target, 1);
+
+	return 1;
+}
+
+				/*	########################################
+							<==HandleFunctions:END
+				########################################	*/
+
 
 				/*	########################################
 							MyCmdHookEvent:START==>
