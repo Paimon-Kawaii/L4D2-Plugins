@@ -7,7 +7,7 @@
 #include <sdktools>
 #include <sourcemod>
 
-#define VERSION "0.3.3"
+#define VERSION "1.4.7"
 #define MENU_DISPLAY_TIME 15
 
 Handle
@@ -81,7 +81,7 @@ public int SpecMenuHandle(Menu menu, MenuAction action, int client, int item)
 	if(!IsValidClient(client)) return 0;
 	if(action != MenuAction_Select) return 0;
 	GetMenuItem(menu, item, useridStr, 255);
-	userid = StringToInt(useridStr, userid);
+	userid = StringToInt(useridStr);
 	target = GetClientOfUserId(userid);
 	if(!IsValidClient(target) || IsFakeClient(target) || GetClientTeam(target) == 1) return 0;
 	CPrintToChatAll("{olive}[Paimon] {orange}笨比 %N {lightgreen}被管理强制旁观啦！", target);
