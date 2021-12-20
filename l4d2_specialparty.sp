@@ -65,6 +65,8 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
 	PrintHintTextToAll("%N 离开安全屋", client);
 	CreateTimer(0.5, Timer_TurnOffDirector, 0, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(1.0, Timer_TurnOffDirector, 0, TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(2.0, Timer_TurnOffDirector, 0, TIMER_FLAG_NO_MAPCHANGE);
 	Prepare2SpawnHandle = CreateTimer(0.5, Timer_Prepare2Spawn, 0, TIMER_REPEAT);
 }
 
@@ -141,6 +143,10 @@ public void CvarEvent_SpecialIntervalChange(ConVar convar, const char[] oldValue
 public Action Timer_TurnOffDirector(Handle timer)
 {
 	SetConVarInt(FindConVar("director_no_specials"), 1, false, false);
+	for(int client = 1; client <= MaxClients; client++)
+		if(IsSI(client))
+			ForcePlayerSuicide(client);
+	return Plugin_Continue;
 }
 
 //准备生成特感
@@ -217,7 +223,7 @@ void SpawnInfected(bool[] survivors)
 			nav = L4D_GetLastKnownArea(client);
 			L4D_FindRandomSpot(nav, SIPos);
 			SIClient = L4D2_SpawnSpecial(infectedSpawnType, SIPos, SIAng);
-			CreateTimer(120.0, Timer_AutoTeleport, SIClient, TIMER_REPEAT);
+			//CreateTimer(120.0, Timer_AutoTeleport, SIClient, TIMER_REPEAT);
 			survivors[client] = false;
 		}
 }
