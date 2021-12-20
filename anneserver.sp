@@ -8,7 +8,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "4.41.2"
+#define VERSION "4.41.3"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -687,7 +687,7 @@ public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int ite
 	if(!IsValidClient(client)) return 0;
 	if(action != MenuAction_Select) return 0;
 	GetMenuItem(menu, item, useridStr, 255);
-	userid = StringToInt(useridStr, userid);
+	userid = StringToInt(useridStr);
 	target = GetClientOfUserId(userid);
 	if(!IsValidClient(target) || IsFakeClient(target) || GetClientTeam(target) == 1) return 0;
 	CPrintToChatAll(messages[Msg_ForceSpectated], target);
