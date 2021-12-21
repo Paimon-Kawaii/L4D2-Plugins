@@ -7,7 +7,7 @@
 #include <sdktools>
 #include <sourcemod>
 
-#define VERSION "1.4.7"
+#define VERSION "1.4.8"
 #define MENU_DISPLAY_TIME 15
 
 Handle
@@ -23,7 +23,8 @@ public Plugin myinfo =
     author = "我是派蒙啊",
     description = "为AdminMenu添加强迫玩家旁观操作",
     version = VERSION,
-    url = "http://anne.paimeng.ltd/l4d2_plugins/l4d_forcespec.sp"
+    url = "http://github.com/PaimonQwQ/L4D2-Plugins/l4d_forcespec.sp",
+    //another url to download = "http://anne.paimeng.ltd/l4d2_plugins/l4d_forcespec.sp"
 };
 
 public void OnPluginStart()
