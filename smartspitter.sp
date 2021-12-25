@@ -41,7 +41,7 @@ public Action Event_AbilityUse(Event event, const char[] name, bool dontBroadcas
 	return Plugin_Continue;
 }
 
-//只是由于输出计算贴贴结果，无其他作用
+//只是用于输出计算的贴贴结果，无其他作用
 /*
 * 注意：
 * 		计算结果可能与输出结果不符，原因是贴贴目标在口水方向上被其他生还挡住，实际结果没有问题。
