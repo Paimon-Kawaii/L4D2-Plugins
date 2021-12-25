@@ -1,10 +1,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#include <colors>
-#include <sdktools>
 #include <sourcemod>
-#include <adminmenu>
 #include <left4dhooks>
 
 #define MAXSIZE 33
@@ -47,18 +44,18 @@ public Action Event_AbilityUse(Event event, const char[] name, bool dontBroadcas
 * 		计算结果可能与输出结果不符，原因是贴贴目标在口水方向上被其他生还挡住，实际结果没有问题。
 *		口水不管多远都会跑过去吐到贴贴目标，所以即使旁边有人也不会去吐，斟酌使用。
 */
-public Action Event_AbilityUse2(Event event, const char[] name, bool dontBroadcast)
-{
-	char ability[32];
-	GetEventString(event, "ability", ability, 32);
-	int client = GetClientOfUserId(GetEventInt(event, "userid", 0));
-	if(GetEntProp(client, Prop_Send, "m_zombieClass") != 4 || !StrEqual(ability, "ability_spit")) return Plugin_Continue;
+// public Action Event_AbilityUse2(Event event, const char[] name, bool dontBroadcast)
+// {
+// 	char ability[32];
+// 	GetEventString(event, "ability", ability, 32);
+// 	int client = GetClientOfUserId(GetEventInt(event, "userid", 0));
+// 	if(GetEntProp(client, Prop_Send, "m_zombieClass") != 4 || !StrEqual(ability, "ability_spit")) return Plugin_Continue;
 	
-	int testtie = GetClientAimTarget(client);
-	PrintToChatAll("计算 %N like贴贴 结果 %N like贴贴", itietie, testtie);
+// 	int testtie = GetClientAimTarget(client);
+// 	PrintToChatAll("计算 %N like贴贴 结果 %N like贴贴", itietie, testtie);
 
-	return Plugin_Continue;
-}
+// 	return Plugin_Continue;
+// }
 
 //口水选择目标时，将目标替换为贴贴目标
 public Action L4D2_OnChooseVictim(int specialInfected, int &curTarget)
