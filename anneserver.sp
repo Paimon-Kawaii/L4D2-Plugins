@@ -8,23 +8,23 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "4.41.3"
+#define VERSION "4.45.9"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
 {
-    name = "AnneServer",
-    author = "Anne & 彩笔 & 我是派蒙啊",
-    description = "修改Server核心使玩家可以使用特感并整合了我的另一个插件ForceSpec",
-    version = VERSION,
-    url = "http://github.com/PaimonQwQ/L4D2-Plugins/anneserver.sp",
-    //another url to download = "http://anne.paimeng.ltd/l4d2_plugins/anneserver.sp",
-    //url of ForceSpec = "http://github.com/PaimonQwQ/L4D2-Plugins/l4d_forcespec.sp",
+	name = "AnneServer",
+	author = "Anne & 彩笔 & 我是派蒙啊",
+	description = "修改Server核心使玩家可以使用特感并整合了我的另一个插件ForceSpec",
+	version = VERSION,
+	url = "http://github.com/PaimonQwQ/L4D2-Plugins/anneserver.sp",
+	//another url to download = "http://anne.paimeng.ltd/l4d2_plugins/anneserver.sp",
+	//url of ForceSpec = "http://github.com/PaimonQwQ/L4D2-Plugins/l4d_forcespec.sp",
 };
 
 enum Msgs
 {
- 	Msg_Warn = 0,
+	Msg_Warn = 0,
 	Msg_Connected,
 	Msg_DisConnected,
 	Msg_InfectedDisabled,
@@ -41,7 +41,9 @@ enum Msgs
 	Msg_WillTakeTank,
 	Msg_CantTakeTank,
 	Msg_AlreadyInfected,
-	Msg_ForceSpectated
+	Msg_NotInfected,
+	Msg_ForceSpectated,
+	//Msg_BeenSetLowRate
 }
 
 char
@@ -53,7 +55,7 @@ char
 		"{olive}[Paimon] {orange}玩家特感{lightgreen}已被{orange}禁止！",
 		"{olive}[Paimon] {lightgreen}对局已经{orange}开始{lightgreen}，{orange}禁止{lightgreen}加入特感！",
 		"{olive}[Paimon] {orange}%N {orange}加入{lightgreen}特感阵营！",
-		"{olive}[Paimon] {lightgreen}输入{orange} !taketank {lightgreen}或 {orange}!it {lightgreen}可接管tank(克局之前输入)",
+		"{olive}[Paimon] {lightgreen}输入{orange} !cs {lightgreen}切换特感{orange} !it {lightgreen}接管tank(克局之前输入)",
 		"{olive}[Paimon] {orange}%N {lightgreen}已接管Tank！",
 		"{olive}[Paimon] {darkred}#检测到未知错误.即将重启地图",
 		"{olive}[Paimon] {lightgreen}请注意：本服内置{orange}内鬼插件{lightgreen}，使用{orange}!inf{lightgreen}加入特感\n{orange}内鬼模式{lightgreen}可在{orange}投票 >> 特殊操作{lightgreen}中关闭",
@@ -64,7 +66,9 @@ char
 		"{olive}[Paimon] {orange}%N {lightgreen}将于{orange}克局{lightgreen}接管Tank！",
 		"{olive}[Paimon] {orange}生还{lightgreen}和{orange}旁观{lightgreen}禁止接管Tank！",
 		"{olive}[Paimon] {olive}你已经是{orange}特感方{lightgreen}了！",
+		"{olive}[Paimon] {olive}你不是{orange}特感{lightgreen}，不能使用本功能！",
 		"{olive}[Paimon] 笨比{orange} %N {lightgreen}被{orange}管理{lightgreen}被强制旁观啦！"
+		//"{olive}[Paimon] {lightgreen}你被{orange}管理{lightgreen}设置为30tick了！"
 	};
 
 int
@@ -91,6 +95,7 @@ Handle
 
 TopMenuObject
 	SpecMenuObj = INVALID_TOPMENUOBJECT,
+	//RateMenuObj = INVALID_TOPMENUOBJECT,
 	PlayerCMDMenuObj = INVALID_TOPMENUOBJECT;
 
 public void OnPluginStart()
@@ -117,8 +122,11 @@ public void OnPluginStart()
 	HookConVarChange(playerInfectedSwitchConvar, CvarEvent_PlayerSpecialSwitchChange);
 	
 	RegConsoleCmd("sm_it", Cmd_PlayTank, "Take tank");
+	RegConsoleCmd("sm_c", Cmd_ChangeSIClass, "Change SI");
+	RegConsoleCmd("sm_cs", Cmd_ChangeSIClass, "Change SI");
 	RegConsoleCmd("sm_playtank", Cmd_PlayTank, "Take tank");
 	RegConsoleCmd("sm_taketank", Cmd_PlayTank, "Take tank");
+	RegConsoleCmd("sm_changesi", Cmd_ChangeSIClass, "Change SI");
 	RegConsoleCmd("sm_ammo", Cmd_GiveClientAmmo, "Give survivor ammo");
 	RegConsoleCmd("sm_s", Cmd_AFKTurnClientToSpe, "Turn player to spectator");
 	RegConsoleCmd("sm_spec", Cmd_AFKTurnClientToSpe, "Turn player to spectator");
@@ -157,16 +165,13 @@ public void OnMapStart()
 //玩家连接
 public void OnClientConnected(int client)
 {
-	if (!IsValidClient(client)) return;
-	
 	if (GetSurvivorCount() > serverMaxSurvivorCount)
 		CreateTimer(3.0, Timer_ReStartMap, 0, TIMER_FLAG_NO_MAPCHANGE);
 
-	if (!IsFakeClient(client))
-	{
-		CPrintToChatAll(messages[Msg_Connected], client);
-		playerFirstJoin[client] = true;
-	}
+	if (IsFakeClient(client)) return;
+	
+	CPrintToChatAll(messages[Msg_Connected], client);
+	playerFirstJoin[client] = true;
 }
 
 //玩家断开连接
@@ -251,7 +256,7 @@ public Action L4D_OnTryOfferingTankBot(int tank_index, bool &enterStasis)
 {
 	if (IsValidClient(tankPlayer) && L4D2Direct_GetTankPassedCount() < 2)
 	{
-		CreateTimer(3.0, Timer_ReplaceTank, tank_index, TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer(2.0, Timer_ReplaceTank, tank_index, TIMER_FLAG_NO_MAPCHANGE);
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -402,6 +407,7 @@ public Action Event_ResetSurvivors(Event event, const char[] name, bool dontBroa
 {
 	RestoreHealth();
 	ResetInventory();
+	ResetScoreBoard();
 	for (int i = 1; i < MaxClients; i++)
 		CloseGhostHandle(i);
 }
@@ -439,6 +445,7 @@ public Action Event_OnAdminMenuReady(Handle topmenu)
 	PlayerCMDMenuObj = FindTopMenuCategory(AdminMenu, "PlayerCommands");
 	if(PlayerCMDMenuObj == INVALID_TOPMENUOBJECT) return;
 	SpecMenuObj = AddToTopMenu(AdminMenu, "spec_menu", TopMenuObject_Item, Handle_SetSpecMenuItem, PlayerCMDMenuObj);
+	//RateMenuObj = AddToTopMenu(AdminMenu, "rate_menu", TopMenuObject_Item, Handle_SetRateMenuItem, PlayerCMDMenuObj);
 }
 
 //创建SpecMenu
@@ -449,6 +456,37 @@ public Action Event_CreateSpecMenu(int client)
 	SetMenuExitBackButton(menu, true);
 	SetMenuExitButton(menu, true);
 	AddTargetsToMenu(menu, 0);
+	DisplayMenu(menu, client, MENU_DISPLAY_TIME);
+
+	return Plugin_Handled;
+}
+
+// //创建RateMenu
+// public Action Event_CreateRateMenu(int client)
+// {
+// 	Handle menu = CreateMenu(Handle_ExecRateMenu);
+// 	SetMenuTitle(menu, "SetRate player:");
+// 	SetMenuExitBackButton(menu, true);
+// 	SetMenuExitButton(menu, true);
+// 	AddTargetsToMenu(menu, 0);
+// 	DisplayMenu(menu, client, MENU_DISPLAY_TIME);
+
+// 	return Plugin_Handled;
+// }
+
+//创建ClassMenu
+public Action Event_CreateClassMenu(int client)
+{
+	Handle menu = CreateMenu(Handle_ExecClassMenu);
+	SetMenuTitle(menu, "Choose class:");
+	SetMenuExitButton(menu, true);
+	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger
+	AddMenuItem(menu, "Smoker",   "Smoker");
+	AddMenuItem(menu, "Boomer",   "Boomer");
+	AddMenuItem(menu, "Hunter",   "Hunter");
+	AddMenuItem(menu, "Spitter", "Spitter");
+	AddMenuItem(menu, "Jockey",   "Jockey");
+	AddMenuItem(menu, "Charger", "Charger");
 	DisplayMenu(menu, client, MENU_DISPLAY_TIME);
 
 	return Plugin_Handled;
@@ -588,9 +626,9 @@ public Action Timer_AutoGive(Handle timer)
 			if (!IsPlayerAlive(client)) L4D_RespawnPlayer(client);
 			BypassAndExecuteCommand(client, "give", "pain_pills");
 			BypassAndExecuteCommand(client, "give", "health");
-			SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0, 0);
-			SetEntProp(client, Prop_Send, "m_currentReviveCount", 0, 4, 0);
-			SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", 0, 4, 0);
+			SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0);
+			SetEntProp(client, Prop_Send, "m_currentReviveCount", 0);
+			SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", 0);
 			GiveInventoryItems(client);
 		}
 	if (playerInfectedSwitch == 1)
@@ -626,16 +664,16 @@ public Action Timer_CheckTankFrustration(Handle timer, int tankClient)
 	if (GetTankFrustration(tankClient) <= 5 && L4D2Direct_GetTankPassedCount() <= 1)
 	{
 		tankPlayer = -1;
+		L4D2Direct_SetTankPassedCount(2);
 		SetTankFrustration(tankClient, 100);
 		PrintHintText(tankClient, "克已2控 请注意");
 		CPrintToChatAll("{red}<{olive}Tank Rage{red}> {olive}Tank Rage Meter {red}Refilled!");
-		L4D2Direct_SetTankPassedCount(2);
 	}
 	else if (L4D2Direct_GetTankPassedCount() >= 2 && GetTankFrustration(tankClient) == 5) 
 	{
-		SetTankFrustration(tankClient, 0);
 		CPrintToChatAll(messages[Msg_PlayerTankAI]);
-		L4D2Direct_TryOfferingTankBot(tankPlayer, true);
+		SetTankFrustration(tankClient, 0);
+		L4D_ReplaceWithBot(tankClient);
 		return Plugin_Stop;
 	}
 
@@ -668,7 +706,7 @@ public Action Timer_CheckAway(Handle timer, int client)
 							HandleFunctions:START==>
 				########################################	*/
 
-//创建菜单内容
+//创建Spec菜单内容
 public void Handle_SetSpecMenuItem(TopMenu topmenu, TopMenuAction action, TopMenuObject topobj_id, int client, char[] buffer, int maxlength)
 {
 	if(action == TopMenuAction_DisplayOption)
@@ -679,7 +717,18 @@ public void Handle_SetSpecMenuItem(TopMenu topmenu, TopMenuAction action, TopMen
 			Event_CreateSpecMenu(client);
 }
 
-//处理列表事件
+// //创建Rate菜单内容
+// public void Handle_SetRateMenuItem(TopMenu topmenu, TopMenuAction action, TopMenuObject topobj_id, int client, char[] buffer, int maxlength)
+// {
+// 	if(action == TopMenuAction_DisplayOption)
+// 		if (topobj_id == RateMenuObj)
+// 			Format(buffer, maxlength, "SetRate player");
+// 	if (action == TopMenuAction_SelectOption)
+// 		if (topobj_id == RateMenuObj)
+// 			Event_CreateRateMenu(client);
+// }
+
+//处理Spec列表事件
 public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int item)
 {
 	char useridStr[255];
@@ -693,6 +742,35 @@ public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int ite
 	CPrintToChatAll(messages[Msg_ForceSpectated], target);
 	ChangeClientTeam(target, 1);
 
+	return 1;
+}
+
+// //处理Rate列表事件
+// public int Handle_ExecRateMenu(Menu menu, MenuAction action, int client, int item)
+// {
+// 	char useridStr[255];
+// 	int target = -1, userid;
+// 	if(!IsValidClient(client)) return 0;
+// 	if(action != MenuAction_Select) return 0;
+// 	GetMenuItem(menu, item, useridStr, 255);
+// 	userid = StringToInt(useridStr);
+// 	target = GetClientOfUserId(userid);
+// 	if(!IsValidClient(target) || IsFakeClient(target) || GetClientTeam(target) == 1) return 0;
+// 	CPrintToChat(target, messages[Msg_BeenSetLowRate]);
+// 	SetLowRates(target);
+
+// 	return 1;
+// }
+
+//处理Class列表事件
+public int Handle_ExecClassMenu(Menu menu, MenuAction action, int client, int item)
+{
+	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger
+	if(!IsValidClient(client)) return 0;
+	if(action != MenuAction_Select) return 0;
+	if(item > 5) return 0;
+	L4D_SetClass(client, item + 1);
+	
 	return 1;
 }
 
@@ -733,7 +811,19 @@ public Action Cmd_PlayTank(int client, any args)
 		}
 	}
 	else CPrintToChat(client, messages[Msg_CantTakeTank]);
-	return;
+}
+
+//玩家更换特感命令
+public Action Cmd_ChangeSIClass(int client, any args)
+{
+	if (!IsValidClient(client) || 
+		((IsGhost(client) || playerGhostHandle[client] == INVALID_HANDLE) && 
+		GetClientTeam(client) == 3) || IsTank(client)) return;
+
+	if(GetClientTeam(client) == 3)
+		Event_CreateClassMenu(client);
+	else
+		CPrintToChat(client, messages[Msg_NotInfected]);
 }
 
 //给予玩家子弹
@@ -893,7 +983,7 @@ void CrashServer()
 //设置玩家
 void SetSurvivorPermHealth(int client, int health)
 {
-	SetEntProp(client, Prop_Send, "m_iHealth", health, 4, 0);
+	SetEntProp(client, Prop_Send, "m_iHealth", health);
 }
 
 //重置玩家血量
@@ -903,9 +993,9 @@ void RestoreHealth()
 		if (IsSurvivor(client))
 		{
 			BypassAndExecuteCommand(client, "give", "health");
-			SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0, 0);
-			SetEntProp(client, Prop_Send, "m_currentReviveCount", 0, 4, 0);
-			SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", 0, 4, 0);
+			SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0);
+			SetEntProp(client, Prop_Send, "m_currentReviveCount", 0);
+			SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", 0);
 		}
 }
 
@@ -983,20 +1073,42 @@ void CloseGhostHandle(int client)
 //设置Tank控制权
 void SetTankFrustration(int tankClient, int frustration)
 {
-    if (frustration < 0 || frustration > 100) return;
-    
-    SetEntProp(tankClient, Prop_Send, "m_frustration", 100 - frustration);
+	if (frustration < 0 || frustration > 100) return;
+	
+	SetEntProp(tankClient, Prop_Send, "m_frustration", 100 - frustration);
 }
+
+//清空计分板
+void ResetScoreBoard()
+{
+	for (int client = 1; client < MaxClients; client++)
+		if(IsValidClient(client))
+			SetEntProp(client, Prop_Send, "m_iScore", 0);
+}
+
+// //设置客户端TickRate
+// void SetLowRates(int client)
+// {
+//	 SendConVarValue(client, FindConVar("sv_mincmdrate"), "30");
+//	 SendConVarValue(client, FindConVar("sv_maxcmdrate"), "30");
+//	 SendConVarValue(client, FindConVar("sv_minupdaterate"), "30");
+//	 SendConVarValue(client, FindConVar("sv_maxupdaterate"), "30");
+//	 SendConVarValue(client, FindConVar("sv_minrate"), "10000");
+//	 SendConVarValue(client, FindConVar("sv_maxrate"), "10000");
+
+//	 SetClientInfo(client, "cl_updaterate", "30");
+//	 SetClientInfo(client, "cl_cmdrate", "30");
+// }
 
 //玩家是否被控
 bool IsPinned(int client)
 {
 	if (IsSurvivor(client))
-		if (GetEntPropEnt(client, Prop_Send, "m_tongueOwner", 0) > 0    ||
-			GetEntPropEnt(client, Prop_Send, "m_carryAttacker", 0) > 0  ||
-			GetEntPropEnt(client, Prop_Send, "m_pounceAttacker", 0) > 0 ||
-			GetEntPropEnt(client, Prop_Send, "m_pummelAttacker", 0) > 0 ||
-			GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker", 0) > 0)
+		if (GetEntPropEnt(client, Prop_Send, "m_tongueOwner") > 0	||
+			GetEntPropEnt(client, Prop_Send, "m_carryAttacker") > 0  ||
+			GetEntPropEnt(client, Prop_Send, "m_pounceAttacker") > 0 ||
+			GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") > 0 ||
+			GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") > 0)
 			return true;
 	return false;
 }
@@ -1029,10 +1141,25 @@ bool IsInfected(int client)
 	return false;
 }
 
+//客户端是否是灵魂
+bool IsGhost(int client)
+{
+	return GetEntProp(client, Prop_Send, "m_isGhost") == 0;
+}
+
+//客户端是否为Tank
+bool IsTank(int client)
+{
+	if(IsValidClient(client) && GetEntProp(client, Prop_Send, "m_zombieClass") == 8)
+		return true;
+
+	return false;
+}
+
 //玩家是否倒地
 bool IsPlayerIncap(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_isIncapacitated", 4, 0) != 0;
+	return GetEntProp(client, Prop_Send, "m_isIncapacitated") != 0;
 }
 
 //Client是否正确
@@ -1043,14 +1170,14 @@ bool IsValidClient(int client)
 
 //设置Tank控制权
 int GetTankFrustration(int tankClient)
-{    
-    return 100 - GetEntProp(tankClient, Prop_Send, "m_frustration");
+{	
+	return 100 - GetEntProp(tankClient, Prop_Send, "m_frustration");
 }
 
 //获得玩家血量
 int GetSurvivorPermHealth(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_iHealth", 4, 0);
+	return GetEntProp(client, Prop_Send, "m_iHealth");
 }
 
 //获得Bot生还
