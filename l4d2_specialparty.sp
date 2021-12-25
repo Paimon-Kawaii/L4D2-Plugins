@@ -213,7 +213,7 @@ void SpawnInfected(bool[] survivors)
 	int nav, SIClient;
 	float SIPos[3];
 	float SIAng[3];
-	for(int client = 0; client <= MaxClients; client++)
+	for(int client = 1; client <= MaxClients; client++)
 		if(survivors[client])
 		{
 			nav = 0;
