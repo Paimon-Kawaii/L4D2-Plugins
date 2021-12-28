@@ -8,7 +8,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "4.45.9"
+#define VERSION "4.46.1"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -42,8 +42,7 @@ enum Msgs
 	Msg_CantTakeTank,
 	Msg_AlreadyInfected,
 	Msg_NotInfected,
-	Msg_ForceSpectated,
-	//Msg_BeenSetLowRate
+	Msg_ForceSpectated
 }
 
 char
@@ -57,7 +56,7 @@ char
 		"{olive}[Paimon] {orange}%N {orange}加入{lightgreen}特感阵营！",
 		"{olive}[Paimon] {lightgreen}输入{orange} !cs {lightgreen}切换特感{orange} !it {lightgreen}接管tank(克局之前输入)",
 		"{olive}[Paimon] {orange}%N {lightgreen}已接管Tank！",
-		"{olive}[Paimon] {darkred}#检测到未知错误.即将重启地图",
+		"{olive}[Paimon] {red}#检测到未知错，即将重启地图！",
 		"{olive}[Paimon] {lightgreen}请注意：本服内置{orange}内鬼插件{lightgreen}，使用{orange}!inf{lightgreen}加入特感\n{orange}内鬼模式{lightgreen}可在{orange}投票 >> 特殊操作{lightgreen}中关闭",
 		"{olive}[Paimon] {lightgreen}请勿{orange}长时间{lightgreen}占用特感！",
 		"{olive}[Paimon] {lightgreen}克已被{orange} %N {lightgreen}接管！",
@@ -67,8 +66,7 @@ char
 		"{olive}[Paimon] {orange}生还{lightgreen}和{orange}旁观{lightgreen}禁止接管Tank！",
 		"{olive}[Paimon] {olive}你已经是{orange}特感方{lightgreen}了！",
 		"{olive}[Paimon] {olive}你不是{orange}特感{lightgreen}，不能使用本功能！",
-		"{olive}[Paimon] 笨比{orange} %N {lightgreen}被{orange}管理{lightgreen}被强制旁观啦！"
-		//"{olive}[Paimon] {lightgreen}你被{orange}管理{lightgreen}设置为30tick了！"
+		"{olive}[Paimon] 笨比{orange} %N {lightgreen}被{orange}管理{lightgreen}强制旁观啦！"
 	};
 
 int
@@ -445,7 +443,6 @@ public Action Event_OnAdminMenuReady(Handle topmenu)
 	PlayerCMDMenuObj = FindTopMenuCategory(AdminMenu, "PlayerCommands");
 	if(PlayerCMDMenuObj == INVALID_TOPMENUOBJECT) return;
 	SpecMenuObj = AddToTopMenu(AdminMenu, "spec_menu", TopMenuObject_Item, Handle_SetSpecMenuItem, PlayerCMDMenuObj);
-	//RateMenuObj = AddToTopMenu(AdminMenu, "rate_menu", TopMenuObject_Item, Handle_SetRateMenuItem, PlayerCMDMenuObj);
 }
 
 //创建SpecMenu
@@ -460,19 +457,6 @@ public Action Event_CreateSpecMenu(int client)
 
 	return Plugin_Handled;
 }
-
-// //创建RateMenu
-// public Action Event_CreateRateMenu(int client)
-// {
-// 	Handle menu = CreateMenu(Handle_ExecRateMenu);
-// 	SetMenuTitle(menu, "SetRate player:");
-// 	SetMenuExitBackButton(menu, true);
-// 	SetMenuExitButton(menu, true);
-// 	AddTargetsToMenu(menu, 0);
-// 	DisplayMenu(menu, client, MENU_DISPLAY_TIME);
-
-// 	return Plugin_Handled;
-// }
 
 //创建ClassMenu
 public Action Event_CreateClassMenu(int client)
@@ -717,17 +701,6 @@ public void Handle_SetSpecMenuItem(TopMenu topmenu, TopMenuAction action, TopMen
 			Event_CreateSpecMenu(client);
 }
 
-// //创建Rate菜单内容
-// public void Handle_SetRateMenuItem(TopMenu topmenu, TopMenuAction action, TopMenuObject topobj_id, int client, char[] buffer, int maxlength)
-// {
-// 	if(action == TopMenuAction_DisplayOption)
-// 		if (topobj_id == RateMenuObj)
-// 			Format(buffer, maxlength, "SetRate player");
-// 	if (action == TopMenuAction_SelectOption)
-// 		if (topobj_id == RateMenuObj)
-// 			Event_CreateRateMenu(client);
-// }
-
 //处理Spec列表事件
 public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int item)
 {
@@ -744,23 +717,6 @@ public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int ite
 
 	return 1;
 }
-
-// //处理Rate列表事件
-// public int Handle_ExecRateMenu(Menu menu, MenuAction action, int client, int item)
-// {
-// 	char useridStr[255];
-// 	int target = -1, userid;
-// 	if(!IsValidClient(client)) return 0;
-// 	if(action != MenuAction_Select) return 0;
-// 	GetMenuItem(menu, item, useridStr, 255);
-// 	userid = StringToInt(useridStr);
-// 	target = GetClientOfUserId(userid);
-// 	if(!IsValidClient(target) || IsFakeClient(target) || GetClientTeam(target) == 1) return 0;
-// 	CPrintToChat(target, messages[Msg_BeenSetLowRate]);
-// 	SetLowRates(target);
-
-// 	return 1;
-// }
 
 //处理Class列表事件
 public int Handle_ExecClassMenu(Menu menu, MenuAction action, int client, int item)
@@ -1086,20 +1042,6 @@ void ResetScoreBoard()
 			SetEntProp(client, Prop_Send, "m_iScore", 0);
 }
 
-// //设置客户端TickRate
-// void SetLowRates(int client)
-// {
-//	 SendConVarValue(client, FindConVar("sv_mincmdrate"), "30");
-//	 SendConVarValue(client, FindConVar("sv_maxcmdrate"), "30");
-//	 SendConVarValue(client, FindConVar("sv_minupdaterate"), "30");
-//	 SendConVarValue(client, FindConVar("sv_maxupdaterate"), "30");
-//	 SendConVarValue(client, FindConVar("sv_minrate"), "10000");
-//	 SendConVarValue(client, FindConVar("sv_maxrate"), "10000");
-
-//	 SetClientInfo(client, "cl_updaterate", "30");
-//	 SetClientInfo(client, "cl_cmdrate", "30");
-// }
-
 //玩家是否被控
 bool IsPinned(int client)
 {
@@ -1170,7 +1112,7 @@ bool IsValidClient(int client)
 
 //设置Tank控制权
 int GetTankFrustration(int tankClient)
-{	
+{
 	return 100 - GetEntProp(tankClient, Prop_Send, "m_frustration");
 }
 
