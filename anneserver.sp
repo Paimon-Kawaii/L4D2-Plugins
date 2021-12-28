@@ -405,7 +405,6 @@ public Action Event_ResetSurvivors(Event event, const char[] name, bool dontBroa
 {
 	RestoreHealth();
 	ResetInventory();
-	ResetScoreBoard();
 	for (int i = 1; i < MaxClients; i++)
 		CloseGhostHandle(i);
 }
@@ -1032,14 +1031,6 @@ void SetTankFrustration(int tankClient, int frustration)
 	if (frustration < 0 || frustration > 100) return;
 	
 	SetEntProp(tankClient, Prop_Send, "m_frustration", 100 - frustration);
-}
-
-//清空计分板
-void ResetScoreBoard()
-{
-	for (int client = 1; client < MaxClients; client++)
-		if(IsValidClient(client))
-			SetEntProp(client, Prop_Send, "m_iScore", 0);
 }
 
 //玩家是否被控
