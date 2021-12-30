@@ -8,7 +8,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "4.46.1"
+#define VERSION "5.48.9"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -41,7 +41,7 @@ enum Msgs
 	Msg_WillTakeTank,
 	Msg_CantTakeTank,
 	Msg_AlreadyInfected,
-	Msg_NotInfected,
+	Msg_UnableToUse,
 	Msg_ForceSpectated
 }
 
@@ -65,7 +65,7 @@ char
 		"{olive}[Paimon] {orange}%N {lightgreen}将于{orange}克局{lightgreen}接管Tank！",
 		"{olive}[Paimon] {orange}生还{lightgreen}和{orange}旁观{lightgreen}禁止接管Tank！",
 		"{olive}[Paimon] {olive}你已经是{orange}特感方{lightgreen}了！",
-		"{olive}[Paimon] {olive}你不是{orange}特感{lightgreen}，不能使用本功能！",
+		"{olive}[Paimon] {orange}旁观{lightgreen}不能使用本功能！",
 		"{olive}[Paimon] 笨比{orange} %N {lightgreen}被{orange}管理{lightgreen}强制旁观啦！"
 	};
 
@@ -120,11 +120,11 @@ public void OnPluginStart()
 	HookConVarChange(playerInfectedSwitchConvar, CvarEvent_PlayerSpecialSwitchChange);
 	
 	RegConsoleCmd("sm_it", Cmd_PlayTank, "Take tank");
-	RegConsoleCmd("sm_c", Cmd_ChangeSIClass, "Change SI");
-	RegConsoleCmd("sm_cs", Cmd_ChangeSIClass, "Change SI");
+	RegConsoleCmd("sm_c", Cmd_ChangeClass, "Change SI");
+	RegConsoleCmd("sm_cs", Cmd_ChangeClass, "Change SI");
 	RegConsoleCmd("sm_playtank", Cmd_PlayTank, "Take tank");
 	RegConsoleCmd("sm_taketank", Cmd_PlayTank, "Take tank");
-	RegConsoleCmd("sm_changesi", Cmd_ChangeSIClass, "Change SI");
+	RegConsoleCmd("sm_changeclass", Cmd_ChangeClass, "Change SI");
 	RegConsoleCmd("sm_ammo", Cmd_GiveClientAmmo, "Give survivor ammo");
 	RegConsoleCmd("sm_s", Cmd_AFKTurnClientToSpe, "Turn player to spectator");
 	RegConsoleCmd("sm_spec", Cmd_AFKTurnClientToSpe, "Turn player to spectator");
@@ -158,6 +158,7 @@ public void OnMapStart()
 				CloseGhostHandle(client);
 			SetPlayerMode(client, GetClientTeam(client));
 		}
+	CheckModel();
 }
 
 //玩家连接
@@ -228,8 +229,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
 public void L4D_OnEnterGhostState(int client)
 {
 	if (!IsValidClient(client)) return;
-
 	CloseGhostHandle(client);
+	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 	playerGhostHandle[client] = CreateTimer(60.0, Timer_PlayerTakeGhost, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
@@ -239,6 +240,7 @@ public Action L4D_OnMaterializeFromGhost(int client)
 	if (!IsValidClient(client)) return;
 	
 	CloseGhostHandle(client);
+	SetEntityMoveType(client, MOVETYPE_WALK);
 }
 
 //玩家离开安全屋
@@ -252,6 +254,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 //接管克事件
 public Action L4D_OnTryOfferingTankBot(int tank_index, bool &enterStasis)
 {
+	tankPlayer = IsValidClient(tankPlayer) ? tankPlayer : GetRandomInfected();
 	if (IsValidClient(tankPlayer) && L4D2Direct_GetTankPassedCount() < 2)
 	{
 		CreateTimer(2.0, Timer_ReplaceTank, tank_index, TIMER_FLAG_NO_MAPCHANGE);
@@ -405,7 +408,8 @@ public Action Event_ResetSurvivors(Event event, const char[] name, bool dontBroa
 {
 	RestoreHealth();
 	ResetInventory();
-	for (int i = 1; i < MaxClients; i++)
+
+	for (int i = 1; i <= MaxClients; i++)
 		CloseGhostHandle(i);
 }
 
@@ -461,15 +465,36 @@ public Action Event_CreateSpecMenu(int client)
 public Action Event_CreateClassMenu(int client)
 {
 	Handle menu = CreateMenu(Handle_ExecClassMenu);
-	SetMenuTitle(menu, "Choose class:");
+	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger 7=Witch(Unsafe) 8=Tank
+	if(GetClientTeam(client) == 3)
+	{
+		SetMenuTitle(menu, "Choose zombie:");
+		AddMenuItem(menu, "Smoker",   "Smoker");
+		AddMenuItem(menu, "Boomer",   "Boomer");
+		AddMenuItem(menu, "Hunter",   "Hunter");
+		AddMenuItem(menu, "Spitter", "Spitter");
+		AddMenuItem(menu, "Jockey",   "Jockey");
+		AddMenuItem(menu, "Charger", "Charger");
+		if(GetUserAdmin(client) != INVALID_ADMIN_ID)
+		{
+			AddMenuItem(menu, "None", "None");
+			AddMenuItem(menu, "Tank", "Tank");
+		}
+	}
+	else
+	{
+		SetMenuTitle(menu, "Choose survivor:");
+		AddMenuItem(menu, "models/survivors/survivor_gambler.mdl", "Nick");
+		AddMenuItem(menu, "models/survivors/survivor_producer.mdl", "Rochelle");
+		AddMenuItem(menu, "models/survivors/survivor_coach.mdl", "Coach");
+		AddMenuItem(menu, "models/survivors/survivor_mechanic.mdl", "Ellis");
+		AddMenuItem(menu, "models/survivors/survivor_namvet.mdl", "Bill");
+		AddMenuItem(menu, "models/survivors/survivor_teenangst.mdl", "Zoey");
+		AddMenuItem(menu, "models/survivors/survivor_biker.mdl", "Francis");
+		AddMenuItem(menu, "models/survivors/survivor_manager.mdl", "Louis");
+	}
+	SetMenuPagination(menu, MENU_NO_PAGINATION);
 	SetMenuExitButton(menu, true);
-	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger
-	AddMenuItem(menu, "Smoker",   "Smoker");
-	AddMenuItem(menu, "Boomer",   "Boomer");
-	AddMenuItem(menu, "Hunter",   "Hunter");
-	AddMenuItem(menu, "Spitter", "Spitter");
-	AddMenuItem(menu, "Jockey",   "Jockey");
-	AddMenuItem(menu, "Charger", "Charger");
 	DisplayMenu(menu, client, MENU_DISPLAY_TIME);
 
 	return Plugin_Handled;
@@ -720,11 +745,22 @@ public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int ite
 //处理Class列表事件
 public int Handle_ExecClassMenu(Menu menu, MenuAction action, int client, int item)
 {
-	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger
+	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger 7=Witch(Unsafe) 8=Tank
 	if(!IsValidClient(client)) return 0;
 	if(action != MenuAction_Select) return 0;
-	if(item > 5) return 0;
-	L4D_SetClass(client, item + 1);
+	if(GetClientTeam(client) == 3)
+	{
+		if(item < 8 && item != 6)
+			L4D_SetClass(client, item + 1);
+	}
+	else
+	{
+		char model[64];
+		GetMenuItem(menu, item, model, 64);
+
+		SetEntProp(client, Prop_Send, "m_survivorCharacter", item);
+		SetEntityModel(client, model);
+	}
 	
 	return 1;
 }
@@ -769,16 +805,17 @@ public Action Cmd_PlayTank(int client, any args)
 }
 
 //玩家更换特感命令
-public Action Cmd_ChangeSIClass(int client, any args)
+public Action Cmd_ChangeClass(int client, any args)
 {
-	if (!IsValidClient(client) || 
+	if (!IsValidClient(client) ||  IsTank(client) || 
 		((IsGhost(client) || playerGhostHandle[client] == INVALID_HANDLE) && 
-		GetClientTeam(client) == 3) || IsTank(client)) return;
+		GetClientTeam(client) == 3) ||
+		(!IsPlayerAlive(client) && GetClientTeam(client) == 2)) return;
 
-	if(GetClientTeam(client) == 3)
+	if(GetClientTeam(client) != 1)
 		Event_CreateClassMenu(client);
 	else
-		CPrintToChat(client, messages[Msg_NotInfected]);
+		CPrintToChat(client, messages[Msg_UnableToUse]);
 }
 
 //给予玩家子弹
@@ -894,6 +931,27 @@ public Action Cmd_RestartServer(int client, any args)
 							OtherFunctions:START==>
 				########################################	*/
 
+//检查模型
+void CheckModel()
+{
+	if (!IsModelPrecached("models/survivors/survivor_teenangst.mdl"))
+		PrecacheModel("models/survivors/survivor_teenangst.mdl");
+	if (!IsModelPrecached("models/survivors/survivor_biker.mdl"))
+		PrecacheModel("models/survivors/survivor_biker.mdl");
+	if (!IsModelPrecached("models/survivors/survivor_manager.mdl"))
+		PrecacheModel("models/survivors/survivor_manager.mdl");
+	if (!IsModelPrecached("models/survivors/survivor_namvet.mdl"))
+		PrecacheModel("models/survivors/survivor_namvet.mdl");
+	if (!IsModelPrecached("models/survivors/survivor_gambler.mdl"))
+		PrecacheModel("models/survivors/survivor_gambler.mdl");
+	if (!IsModelPrecached("models/survivors/survivor_coach.mdl"))
+		PrecacheModel("models/survivors/survivor_coach.mdl");
+	if (!IsModelPrecached("models/survivors/survivor_mechanic.mdl"))
+		PrecacheModel("models/survivors/survivor_mechanic.mdl");
+	if (!IsModelPrecached("models/survivors/survivor_producer.mdl"))
+		PrecacheModel("models/survivors/survivor_producer.mdl");
+}
+
 //设置玩家为生还
 void ChangePlayerSurvivor(int client)
 {
@@ -987,8 +1045,12 @@ void GiveInventoryItems(int client)
 		for (int i = 0; i < 1; i++)
 			DeleteInventoryItem(client, i);
 
-		BypassAndExecuteCommand(client, "give", "smg_silenced");
+		BypassAndExecuteCommand(client, "give", "shotgun_chrome");
 		BypassAndExecuteCommand(client, "give", "pistol_magnum");
+
+		SetEntProp(client, Prop_Send, "m_bAutoAimTarget", 1);
+		SetEntProp(client, Prop_Send, "m_bAllowAutoMovement", 1);
+		SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", 1.2);
 	}
 	else BypassAndExecuteCommand(client, "give", "melee");
 }
@@ -996,21 +1058,10 @@ void GiveInventoryItems(int client)
 //切换玩家模式
 void SetPlayerMode(int client, int team)
 {
-	switch(team)
-	{
-		case 1:
-		{
-			SendConVarValue(client, FindConVar("mp_gamemode"), "versus");
-		}
-		case 2:
-		{
-			SendConVarValue(client, FindConVar("mp_gamemode"), "coop");
-		}
-		case 3:
-		{
-			SendConVarValue(client, FindConVar("mp_gamemode"), "versus");
-		}
-	}
+	if(team == 2)
+		SendConVarValue(client, FindConVar("mp_gamemode"), "coop");
+	else
+		SendConVarValue(client, FindConVar("mp_gamemode"), "versus");
 }
 
 //关闭处死玩家特感Handle
@@ -1147,12 +1198,21 @@ int GetPlayerSurvivorCount()
 }
 ***/
 
+//随机获得玩家特感Client
+int GetRandomInfected()
+{
+	for (int i = 1; i <= MaxClients; i++)
+		if (IsInfected(i) && !IsFakeClient(i)  && GetRandomInt(0, 5) > 3)
+			return i;
+	return -1;
+}
+
 //获得玩家特感数量
 int GetPlayerInfectedCount()
 {
 	int humans = 0;
 	for (int i = 1; i <= MaxClients; i++)
-		if (!IsFakeClient(i) && IsInfected(i))
+		if (IsInfected(i) && !IsFakeClient(i))
 			humans++;
 	
 	return humans;
