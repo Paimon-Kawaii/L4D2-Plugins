@@ -8,7 +8,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "5.48.9"
+#define VERSION "5.49.2"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -56,7 +56,7 @@ char
 		"{olive}[Paimon] {orange}%N {orange}加入{lightgreen}特感阵营！",
 		"{olive}[Paimon] {lightgreen}输入{orange} !cs {lightgreen}切换特感{orange} !it {lightgreen}接管tank(克局之前输入)",
 		"{olive}[Paimon] {orange}%N {lightgreen}已接管Tank！",
-		"{olive}[Paimon] {red}#检测到未知错，即将重启地图！",
+		"{olive}[Paimon] {red}#检测到未知错误，即将重启地图！",
 		"{olive}[Paimon] {lightgreen}请注意：本服内置{orange}内鬼插件{lightgreen}，使用{orange}!inf{lightgreen}加入特感\n{orange}内鬼模式{lightgreen}可在{orange}投票 >> 特殊操作{lightgreen}中关闭",
 		"{olive}[Paimon] {lightgreen}请勿{orange}长时间{lightgreen}占用特感！",
 		"{olive}[Paimon] {lightgreen}克已被{orange} %N {lightgreen}接管！",
@@ -350,7 +350,7 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
 		tankPlayer = -1;
 		if (playerInfectedSwitch == 1)
 			SetConVarInt(FindConVar("director_no_specials"), 0, false, false);
-		for (int i = 1; i < MaxClients; i++)
+		for (int i = 1; i <= MaxClients; i++)
 			CloseGhostHandle(i);
 	}
 
@@ -440,11 +440,11 @@ public Action Event_PlayerReplaceTankBot(Event event, const char[] name, bool do
 //Admin准备事件
 public Action Event_OnAdminMenuReady(Handle topmenu)
 {
-	if(AdminMenu == topmenu)
+	if (AdminMenu == topmenu)
 		return;
 	AdminMenu = topmenu;
 	PlayerCMDMenuObj = FindTopMenuCategory(AdminMenu, "PlayerCommands");
-	if(PlayerCMDMenuObj == INVALID_TOPMENUOBJECT) return;
+	if (PlayerCMDMenuObj == INVALID_TOPMENUOBJECT) return;
 	SpecMenuObj = AddToTopMenu(AdminMenu, "spec_menu", TopMenuObject_Item, Handle_SetSpecMenuItem, PlayerCMDMenuObj);
 }
 
@@ -466,7 +466,7 @@ public Action Event_CreateClassMenu(int client)
 {
 	Handle menu = CreateMenu(Handle_ExecClassMenu);
 	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger 7=Witch(Unsafe) 8=Tank
-	if(GetClientTeam(client) == 3)
+	if (GetClientTeam(client) == 3)
 	{
 		SetMenuTitle(menu, "Choose zombie:");
 		AddMenuItem(menu, "Smoker",   "Smoker");
@@ -475,7 +475,7 @@ public Action Event_CreateClassMenu(int client)
 		AddMenuItem(menu, "Spitter", "Spitter");
 		AddMenuItem(menu, "Jockey",   "Jockey");
 		AddMenuItem(menu, "Charger", "Charger");
-		if(GetUserAdmin(client) != INVALID_ADMIN_ID)
+		if (GetUserAdmin(client) != INVALID_ADMIN_ID)
 		{
 			AddMenuItem(menu, "None", "None");
 			AddMenuItem(menu, "Tank", "Tank");
@@ -717,7 +717,7 @@ public Action Timer_CheckAway(Handle timer, int client)
 //创建Spec菜单内容
 public void Handle_SetSpecMenuItem(TopMenu topmenu, TopMenuAction action, TopMenuObject topobj_id, int client, char[] buffer, int maxlength)
 {
-	if(action == TopMenuAction_DisplayOption)
+	if (action == TopMenuAction_DisplayOption)
 		if (topobj_id == SpecMenuObj)
 			Format(buffer, maxlength, "ForceSpec player");
 	if (action == TopMenuAction_SelectOption)
@@ -730,12 +730,12 @@ public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int ite
 {
 	char useridStr[255];
 	int target = -1, userid;
-	if(!IsValidClient(client)) return 0;
-	if(action != MenuAction_Select) return 0;
+	if (!IsValidClient(client)) return 0;
+	if (action != MenuAction_Select) return 0;
 	GetMenuItem(menu, item, useridStr, 255);
 	userid = StringToInt(useridStr);
 	target = GetClientOfUserId(userid);
-	if(!IsValidClient(target) || IsFakeClient(target) || GetClientTeam(target) == 1) return 0;
+	if (!IsValidClient(target) || IsFakeClient(target) || GetClientTeam(target) == 1) return 0;
 	CPrintToChatAll(messages[Msg_ForceSpectated], target);
 	ChangeClientTeam(target, 1);
 
@@ -746,11 +746,11 @@ public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int ite
 public int Handle_ExecClassMenu(Menu menu, MenuAction action, int client, int item)
 {
 	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger 7=Witch(Unsafe) 8=Tank
-	if(!IsValidClient(client)) return 0;
-	if(action != MenuAction_Select) return 0;
-	if(GetClientTeam(client) == 3)
+	if (!IsValidClient(client)) return 0;
+	if (action != MenuAction_Select) return 0;
+	if (GetClientTeam(client) == 3)
 	{
-		if(item < 8 && item != 6)
+		if (item < 8 && item != 6)
 			L4D_SetClass(client, item + 1);
 	}
 	else
@@ -812,7 +812,7 @@ public Action Cmd_ChangeClass(int client, any args)
 		GetClientTeam(client) == 3) ||
 		(!IsPlayerAlive(client) && GetClientTeam(client) == 2)) return;
 
-	if(GetClientTeam(client) != 1)
+	if (GetClientTeam(client) != 1)
 		Event_CreateClassMenu(client);
 	else
 		CPrintToChat(client, messages[Msg_UnableToUse]);
@@ -1058,7 +1058,7 @@ void GiveInventoryItems(int client)
 //切换玩家模式
 void SetPlayerMode(int client, int team)
 {
-	if(team == 2)
+	if (team == 2)
 		SendConVarValue(client, FindConVar("mp_gamemode"), "coop");
 	else
 		SendConVarValue(client, FindConVar("mp_gamemode"), "versus");
@@ -1100,7 +1100,7 @@ bool IsPinned(int client)
 //生还是否满员
 bool IsSuivivorTeamFull()
 {
-	for (int i = 1; i < MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++)
 		if (IsValidClient(i) && GetClientTeam(i) == 2 && IsPlayerAlive(i) && IsFakeClient(i))
 			return false;
 			
@@ -1134,7 +1134,7 @@ bool IsGhost(int client)
 //客户端是否为Tank
 bool IsTank(int client)
 {
-	if(IsValidClient(client) && GetEntProp(client, Prop_Send, "m_zombieClass") == 8)
+	if (IsValidClient(client) && GetEntProp(client, Prop_Send, "m_zombieClass") == 8)
 		return true;
 
 	return false;
