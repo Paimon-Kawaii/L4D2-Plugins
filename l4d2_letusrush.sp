@@ -49,7 +49,7 @@ public void Event_PlayerUse(Event event, const char[] name, bool dontBroadcast)
 		AcceptEntityInput(entity, "Lock");
 		AcceptEntityInput(entity, "Open");
 		SetEntProp(entity, Prop_Data, "m_hasUnlockSequence", 1);
-		PrintHintTextToAll("你还不能进屋，附近有特感在游荡！");
+		PrintHintTextToAll("你现在不能进屋，附近有特感在游荡！");
 	}
 	else if(HasSurvivorOutside())
 	{
