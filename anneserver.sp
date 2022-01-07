@@ -787,12 +787,8 @@ public Action Cmd_PlayTank(int client, any args)
 	if (IsInfected(client))
 	{
 		if (tankPlayer != -1)
-		{
 			CPrintToChat(client, messages[Msg_TankBeenTaken], tankPlayer);
-			return;
-		}
-		
-		if (L4D2_IsTankInPlay() &&  tankPlayer == -1)
+		else if (L4D2_IsTankInPlay())
 			CPrintToChat(client, messages[Msg_TankAI]);
 		else
 		{
