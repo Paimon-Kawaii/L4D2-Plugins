@@ -8,7 +8,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "5.49.2"
+#define VERSION "5.50.4"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -168,7 +168,7 @@ public void OnClientConnected(int client)
 		CreateTimer(3.0, Timer_ReStartMap, 0, TIMER_FLAG_NO_MAPCHANGE);
 
 	if (IsFakeClient(client)) return;
-	
+
 	CPrintToChatAll(messages[Msg_Connected], client);
 	playerFirstJoin[client] = true;
 }
@@ -353,7 +353,6 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
 		for (int i = 1; i <= MaxClients; i++)
 			CloseGhostHandle(i);
 	}
-
 }
 
 //秒妹加血
@@ -475,7 +474,7 @@ public Action Event_CreateClassMenu(int client)
 		AddMenuItem(menu, "Spitter", "Spitter");
 		AddMenuItem(menu, "Jockey",   "Jockey");
 		AddMenuItem(menu, "Charger", "Charger");
-		if (GetUserAdmin(client) != INVALID_ADMIN_ID)
+		if (GetUserFlagBits(client) != 0)
 		{
 			AddMenuItem(menu, "None", "None");
 			AddMenuItem(menu, "Tank", "Tank");
