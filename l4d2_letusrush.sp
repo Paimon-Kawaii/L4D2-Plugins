@@ -5,7 +5,7 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define VERSION "1.5.5"
+#define VERSION "1.6.3"
 
 public Plugin myinfo =
 {
@@ -35,14 +35,18 @@ public void Event_PlayerUse(Event event, const char[] name, bool dontBroadcast)
 
 	if(L4D_IsInFirstCheckpoint(client))
 	{
-		AcceptEntityInput(entity, "Lock");
 		AcceptEntityInput(entity, "Open");
-		SetEntProp(entity, Prop_Data, "m_hasUnlockSequence", 1);
+		AcceptEntityInput(entity, "Kill", -1, -1, 0);
+		return;
 	}
+
+	AcceptEntityInput(entity, "Lock");
+	AcceptEntityInput(entity, "Open");
+	SetEntProp(entity, Prop_Data, "m_hasUnlockSequence", 1);
 
 	if(L4D2_IsTankInPlay() || HasSIBotAlive())
 		PrintHintTextToAll("你现在不能进屋，附近有特感在游荡(ノдヽ)");
-	else if(HasSurvivorOutside())
+	else if(SurvivorOutsideClient() != client && SurvivorOutsideClient() != -1)
 		PrintHintTextToAll("等等(救救)队友吧求求你了(▼皿▼#)");
 	else if(!L4D_IsInLastCheckpoint(client))
 		PrintHintTextToAll("你只能在屋内关门(≧∀≦)♪");
@@ -69,10 +73,10 @@ bool HasSIBotAlive()
 	return false;
 }
 
-bool HasSurvivorOutside()
+int SurvivorOutsideClient()
 {
 	for(int client = 1; client <= MaxClients; client++)
 		if(IsValidClient(client) && IsPlayerAlive(client) && GetClientTeam(client) == 2 && !L4D_IsInLastCheckpoint(client))
-			return true;
-	return false;
+			return client;
+	return -1;
 }
