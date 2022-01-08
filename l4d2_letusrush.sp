@@ -5,8 +5,7 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define MAXSIZE 33
-#define VERSION "1.5.2"
+#define VERSION "1.5.5"
 
 public Plugin myinfo =
 {
@@ -16,7 +15,6 @@ public Plugin myinfo =
 	version = VERSION,
 	url = "http://github.com/PaimonQwQ/L4D2-Plugins/l4d2_letsrush.sp",
 };
-
 
 public void OnPluginStart()
 {
@@ -35,29 +33,19 @@ public void Event_PlayerUse(Event event, const char[] name, bool dontBroadcast)
 	if(StrContains(entName, "prop_door_rotating_checkpoint", false) == -1)
 		return;
 
-	if(!L4D_IsInLastCheckpoint(client))
+	if(L4D_IsInFirstCheckpoint(client))
 	{
 		AcceptEntityInput(entity, "Lock");
 		AcceptEntityInput(entity, "Open");
 		SetEntProp(entity, Prop_Data, "m_hasUnlockSequence", 1);
-
-		return;
 	}
 
 	if(L4D2_IsTankInPlay() || HasSIBotAlive())
-	{
-		AcceptEntityInput(entity, "Lock");
-		AcceptEntityInput(entity, "Open");
-		SetEntProp(entity, Prop_Data, "m_hasUnlockSequence", 1);
-		PrintHintTextToAll("你现在不能进屋，附近有特感在游荡！");
-	}
+		PrintHintTextToAll("你现在不能进屋，附近有特感在游荡(ノдヽ)");
 	else if(HasSurvivorOutside())
-	{
-		AcceptEntityInput(entity, "Lock");
-		AcceptEntityInput(entity, "Open");
-		SetEntProp(entity, Prop_Data, "m_hasUnlockSequence", 1);
-		PrintHintTextToAll("救救队友吧求求你了>x<");
-	}
+		PrintHintTextToAll("等等(救救)队友吧求求你了(▼皿▼#)");
+	else if(!L4D_IsInLastCheckpoint(client))
+		PrintHintTextToAll("你只能在屋内关门(≧∀≦)♪");
 	else
 	{
 		SetEntProp(entity, Prop_Data, "m_hasUnlockSequence", 0);
