@@ -8,7 +8,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "5.50.4"
+#define VERSION "5.50.8"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -213,6 +213,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
 		&& GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1) 
 		buttons &= ~IN_JUMP;
 
+	if (IsSurvivor(client) && IsFakeClient(client) && IsPlayerAlive(client))
+		if (GetEntityMoveType(client) != MOVETYPE_LADDER)
+			SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", 1.0);
+		else SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", 4.0);
+
 	return Plugin_Continue;
 }
 
@@ -230,8 +235,8 @@ public void L4D_OnEnterGhostState(int client)
 {
 	if (!IsValidClient(client)) return;
 	CloseGhostHandle(client);
-	SetEntityMoveType(client, MOVETYPE_NOCLIP);
 	playerGhostHandle[client] = CreateTimer(60.0, Timer_PlayerTakeGhost, client, TIMER_FLAG_NO_MAPCHANGE);
+	Event_CreateClipMenu(client);
 }
 
 //玩家灵魂复活
@@ -492,6 +497,21 @@ public Action Event_CreateClassMenu(int client)
 		AddMenuItem(menu, "models/survivors/survivor_biker.mdl", "Francis");
 		AddMenuItem(menu, "models/survivors/survivor_manager.mdl", "Louis");
 	}
+	SetMenuPagination(menu, MENU_NO_PAGINATION);
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, MENU_DISPLAY_TIME);
+
+	return Plugin_Handled;
+}
+
+//创建ClipMenu
+public Action Event_CreateClipMenu(int client)
+{
+	if (GetClientTeam(client) != 3) return Plugin_Handled;
+	Handle menu = CreateMenu(Handle_ExecClipMenu);
+	SetMenuTitle(menu, "Noclip status:");
+	AddMenuItem(menu, "NOCLIP",   "On");
+	AddMenuItem(menu, "WLAK",   "Off");
 	SetMenuPagination(menu, MENU_NO_PAGINATION);
 	SetMenuExitButton(menu, true);
 	DisplayMenu(menu, client, MENU_DISPLAY_TIME);
@@ -761,6 +781,18 @@ public int Handle_ExecClassMenu(Menu menu, MenuAction action, int client, int it
 		SetEntityModel(client, model);
 	}
 	
+	return 1;
+}
+
+//处理Clip列表事件
+public int Handle_ExecClipMenu(Menu menu, MenuAction action, int client, int item)
+{
+	if (!IsValidClient(client)) return 0;
+	if (action != MenuAction_Select) return 0;
+	if(playerGhostHandle[client] == INVALID_HANDLE) return 0;
+	if(item == 0) SetEntityMoveType(client, MOVETYPE_NOCLIP);
+	if(item == 1) SetEntityMoveType(client, MOVETYPE_WALK);
+
 	return 1;
 }
 
