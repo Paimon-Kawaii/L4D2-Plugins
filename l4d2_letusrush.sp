@@ -5,7 +5,7 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define VERSION "1.7.4"
+#define VERSION "1.7.5"
 
 public Plugin myinfo =
 {
@@ -19,21 +19,6 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
 	HookEvent("player_use", Event_PlayerUse);
-	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
-}
-
-public void Event_RoundStart(Event hEvent, const char[] eName, bool dontBroadcast)
-{
-	int EntityCount = GetEntityCount();
-	char EdictClassName[128];
-	for (int i = 0; i <= EntityCount; i++)
-		if (IsValidEntity(i))
-		{
-			GetEdictClassname(i, EdictClassName, 128);
-			if (StrContains(EdictClassName, "prop_door_rotating_checkpoint", false) != -1 
-					&& GetEntProp(i, Prop_Send, "m_bLocked", 4) == 1) 
-				AcceptEntityInput(i, "Kill", -1, -1, 0);
-		}
 }
 
 public void Event_PlayerUse(Event event, const char[] name, bool dontBroadcast)
