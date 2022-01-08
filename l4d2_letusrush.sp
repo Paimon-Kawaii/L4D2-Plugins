@@ -26,19 +26,12 @@ public void Event_PlayerUse(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	int entity = GetEventInt(event, "targetid");
 
-	if(!IsValidEntity(entity)) return;
+	if(!IsValidEntity(entity) || L4D_IsInFirstCheckpoint(client)) return;
 
 	char entName[128];
 	GetEdictClassname(entity, entName, sizeof(entName));
 	if(StrContains(entName, "prop_door_rotating_checkpoint", false) == -1)
 		return;
-
-	if(L4D_IsInFirstCheckpoint(client))
-	{
-		AcceptEntityInput(entity, "Open");
-		AcceptEntityInput(entity, "Kill", -1, -1, 0);
-		return;
-	}
 
 	AcceptEntityInput(entity, "Lock");
 	AcceptEntityInput(entity, "Open");
