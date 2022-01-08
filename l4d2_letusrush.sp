@@ -5,7 +5,9 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define VERSION "1.7.5"
+#define VERSION "1.8.3"
+
+int firstdoor = -1;
 
 public Plugin myinfo =
 {
@@ -19,6 +21,30 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
 	HookEvent("player_use", Event_PlayerUse);
+	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
+}
+
+public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
+{
+	if(IsValidEntity(firstdoor))
+	{
+		AcceptEntityInput(firstdoor, "Kill");
+		firstdoor = -1;
+	}
+}
+
+public void Event_RoundStart(Event hEvent, const char[] eName, bool dontBroadcast)
+{
+	int EntityCount = GetEntityCount();
+	char EdictClassName[128];
+	for (int i = 0; i <= EntityCount; i++)
+		if (IsValidEntity(i))
+		{
+			GetEdictClassname(i, EdictClassName, 128);
+			if (StrContains(EdictClassName, "prop_door_rotating_checkpoint", false) != -1 
+					&& GetEntProp(i, Prop_Send, "m_bLocked", 4) == 1)
+				firstdoor = i;
+		}
 }
 
 public void Event_PlayerUse(Event event, const char[] name, bool dontBroadcast)
@@ -26,7 +52,7 @@ public void Event_PlayerUse(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	int entity = GetEventInt(event, "targetid");
 
-	if(!IsValidEntity(entity) || L4D_IsInFirstCheckpoint(client)) return;
+	if(!IsValidEntity(entity) || entity == firstdoor) return;
 
 	char entName[128];
 	GetEdictClassname(entity, entName, sizeof(entName));
