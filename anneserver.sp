@@ -3,12 +3,13 @@
 
 #include <colors>
 #include <sdktools>
+#include <l4d2tools>
 #include <sourcemod>
 #include <adminmenu>
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "5.50.8"
+#define VERSION "6.52.7"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -43,7 +44,7 @@ enum Msgs
 	Msg_AlreadyInfected,
 	Msg_UnableToUse,
 	Msg_ForceSpectated
-}
+};
 
 char
 	messages[][] = 
@@ -93,7 +94,6 @@ Handle
 
 TopMenuObject
 	SpecMenuObj = INVALID_TOPMENUOBJECT,
-	//RateMenuObj = INVALID_TOPMENUOBJECT,
 	PlayerCMDMenuObj = INVALID_TOPMENUOBJECT;
 
 public void OnPluginStart()
@@ -154,7 +154,7 @@ public void OnMapStart()
 	for (int client = 1; client <= MaxClients; client++)
 		if (IsValidClient(client) && !IsFakeClient(client))
 		{
-			if (GetClientTeam(client) == 3)
+			if (IsInfected(client))
 				CloseGhostHandle(client);
 			SetPlayerMode(client, GetClientTeam(client));
 		}
@@ -201,7 +201,7 @@ public void OnClientDisconnect(int client)
 public void OnClientPutInServer(int client)
 {
 	if (IsValidEntity(client) && !IsFakeClient(client))
-		CreateTimer(2.0, Timer_CheckPlayerTeam, client, TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer(1.0, Timer_CheckPlayerTeam, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 //特感连跳
@@ -287,7 +287,7 @@ public Action Command_Jointeam(int client, const char[] command, int args)
 	
 	if (StrEqual(arg, "infected", true) || StrEqual(arg, "3", true))
 	{
-		if (GetClientTeam(client) == 3)
+		if (IsInfected(client))
 		{
 			CPrintToChat(client, messages[Msg_AlreadyInfected]);
 			return Plugin_Handled;
@@ -342,7 +342,7 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
 
 	if (!IsValidClient(client)) return;
 	
-	if (GetClientTeam(client) == 3 && GetEntProp(client, Prop_Send, "m_zombieClass") == 8) 
+	if (IsInfected && GetEntProp(client, Prop_Send, "m_zombieClass") == view_as<int>(ZC_Tank)) 
 	{
 		L4D2Direct_SetTankPassedCount(1);
 		CloseGhostHandle(client);
@@ -367,15 +367,14 @@ public Action Event_WitchKilled(Event event, const char[] name, bool dontBroadca
 
 	if (!IsValidClient(client)) return;
 	
-	if (client > 0 && client <= MaxClients && IsClientInGame(client) && GetClientTeam(client) == 2 && IsPlayerAlive(client) && !IsPlayerIncap(client))
+	if (client > 0 && client <= MaxClients && IsClientInGame(client) && 
+		IsSurvivor(client) && IsPlayerAlive(client) && !IsPlayerIncap(client))
 	{
-		int maxhp = GetEntProp(client, Prop_Data, "m_iMaxHealth", 4, 0);
-		int targetHealth = GetSurvivorPermHealth(client) + 15;
+		int maxhp = GetEntProp(client, Prop_Data, "m_iMaxHealth");
+		int targetHealth = GetPlayerHealth(client) + 15;
 		if (targetHealth > maxhp + 20)
-		{
 			targetHealth = maxhp;
-		}
-		SetSurvivorPermHealth(client, targetHealth);
+		SetPlayerHealth(client, targetHealth);
 	}
 }
 
@@ -423,8 +422,8 @@ public Action Event_PlayerReplaceTankBot(Event event, const char[] name, bool do
 	int client = GetClientOfUserId(GetEventInt(event, "player", 0));
 
 	if (!IsValidClient(client)) return;
-	
-	if (!IsValidClient(client) || !L4D2_IsTankInPlay() || GetClientTeam(client) != 3) return;
+
+	if (!L4D2_IsTankInPlay() || !IsInfected(client)) return;
 
 	if (GetEntProp(client, Prop_Send, "m_zombieClass") == 8)
 	{
@@ -438,6 +437,7 @@ public Action Event_PlayerReplaceTankBot(Event event, const char[] name, bool do
 		CloseGhostHandle(tankPlayer);
 		CPrintToChatAll(messages[Msg_TakeTank], tankPlayer);
 		CreateTimer(0.5, Timer_CheckTankFrustration, tankPlayer, TIMER_REPEAT);
+		CreateTimer(10.0, Timer_FirstCheckTankView, tankPlayer, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
@@ -470,7 +470,7 @@ public Action Event_CreateClassMenu(int client)
 {
 	Handle menu = CreateMenu(Handle_ExecClassMenu);
 	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger 7=Witch(Unsafe) 8=Tank
-	if (GetClientTeam(client) == 3)
+	if (IsInfected(client))
 	{
 		SetMenuTitle(menu, "Choose zombie:");
 		AddMenuItem(menu, "Smoker",   "Smoker");
@@ -507,7 +507,7 @@ public Action Event_CreateClassMenu(int client)
 //创建ClipMenu
 public Action Event_CreateClipMenu(int client)
 {
-	if (GetClientTeam(client) != 3) return Plugin_Handled;
+	if (!IsInfected(client)) return Plugin_Handled;
 	Handle menu = CreateMenu(Handle_ExecClipMenu);
 	SetMenuTitle(menu, "Noclip status:");
 	AddMenuItem(menu, "NOCLIP",   "On");
@@ -599,7 +599,8 @@ public Action Timer_CheckPlayerTeam(Handle timer, int client)
 	if (!IsValidClient(client) || IsFakeClient(client)) return;
 	
 	if (playerFirstJoin[client])
-		if (GetClientTeam(client) == 3)
+		if (IsInfected(client))
+		{
 			if (playerInfectedSwitch == 0)
 			{
 				if (IsSuivivorTeamFull())
@@ -615,6 +616,9 @@ public Action Timer_CheckPlayerTeam(Handle timer, int client)
 				ChangePlayerSurvivor(client);
 			else
 				ChangeClientTeam(client, 1);
+		}
+		else if (!isRoundStart && IsSurvivor(client))
+			ChangeClientTeam(client, 1);
 
 	playerFirstJoin[client] = false;
 
@@ -642,6 +646,7 @@ public Action Timer_ReplaceTank(Handle timer, int tankClient)
 	L4D_TakeOverZombieBot(tankPlayer, tankClient);
 	L4D2Direct_SetTankPassedCount(1);
 	CreateTimer(0.5, Timer_CheckTankFrustration, tankPlayer, TIMER_REPEAT);
+	CreateTimer(10.0, Timer_FirstCheckTankView, tankPlayer, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 //自动给予药品
@@ -707,6 +712,28 @@ public Action Timer_CheckTankFrustration(Handle timer, int tankClient)
 	return Plugin_Continue;
 }
 
+//检查玩家视野Timer
+public Action Timer_FirstCheckTankView(Handle timer, int tankClient)
+{
+	int frust = GetTankFrustration(tankClient);
+	if(!IsTankHasView(tankClient))
+		SetTankFrustration(tankClient, frust >= 10 ? frust - 5 : 5);
+	CreateTimer(2.0, Timer_CheckTankView, tankClient, TIMER_REPEAT);
+}
+
+//检查玩家视野Timer
+public Action Timer_CheckTankView(Handle timer, int tankClient)
+{
+	if(!IsValidClient(tankClient) || !IsInfected(tankClient) ||
+	 !IsPlayerAlive(tankClient) || !IsTank(tankClient)) return Plugin_Stop;
+
+	int frust = GetTankFrustration(tankClient);
+	if(!IsTankHasView(tankClient))
+		SetTankFrustration(tankClient, frust >= 10 ? frust - 5 : 5);
+
+	return Plugin_Continue;
+}
+
 //特感复活事件改变Timer
 public Action Timer_SpecialInterval(Handle timer)
 {
@@ -754,7 +781,7 @@ public int Handle_ExecSpecMenu(Menu menu, MenuAction action, int client, int ite
 	GetMenuItem(menu, item, useridStr, 255);
 	userid = StringToInt(useridStr);
 	target = GetClientOfUserId(userid);
-	if (!IsValidClient(target) || IsFakeClient(target) || GetClientTeam(target) == 1) return 0;
+	if (!IsValidClient(target) || IsFakeClient(target) || IsSpectator(target)) return 0;
 	CPrintToChatAll(messages[Msg_ForceSpectated], target);
 	ChangeClientTeam(target, 1);
 
@@ -767,7 +794,7 @@ public int Handle_ExecClassMenu(Menu menu, MenuAction action, int client, int it
 	//1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger 7=Witch(Unsafe) 8=Tank
 	if (!IsValidClient(client)) return 0;
 	if (action != MenuAction_Select) return 0;
-	if (GetClientTeam(client) == 3)
+	if (IsInfected(client))
 	{
 		if (item < 8 && item != 6)
 			L4D_SetClass(client, item + 1);
@@ -834,12 +861,11 @@ public Action Cmd_PlayTank(int client, any args)
 //玩家更换特感命令
 public Action Cmd_ChangeClass(int client, any args)
 {
-	if (!IsValidClient(client) ||  IsTank(client) || 
-		((IsGhost(client) || playerGhostHandle[client] == INVALID_HANDLE) && 
-		GetClientTeam(client) == 3) ||
-		(!IsPlayerAlive(client) && GetClientTeam(client) == 2)) return;
+	if (!IsValidClient(client) || IsTank(client) || 
+		((!IsGhost(client) || playerGhostHandle[client] == INVALID_HANDLE) && IsInfected(client)) ||
+		(!IsPlayerAlive(client) && IsSurvivor(client))) return;
 
-	if (GetClientTeam(client) != 1)
+	if (!IsSpectator(client))
 		Event_CreateClassMenu(client);
 	else
 		CPrintToChat(client, messages[Msg_UnableToUse]);
@@ -859,7 +885,7 @@ public Action Cmd_AFKTurnClientToSpe(int client, any args)
 {
 	if (!IsValidClient(client)) return;
 	
-	if (!IsPinned(client))
+	if (!IsSurvivorPinned(client))
 		CreateTimer(2.5, Timer_CheckAway, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
@@ -885,9 +911,9 @@ public Action Cmd_AFKTurnClientTeam(int client, int args)
 			}
 			case 3:
 			{
-				if (GetClientTeam(client) == 2 && isRoundStart)
+				if (IsSurvivor(client) && isRoundStart)
 					CPrintToChat(client, messages[Msg_RoundStart]);
-				else if (GetClientTeam(client) == 3)
+				else if (IsInfected(client))
 					CPrintToChat(client, messages[Msg_AlreadyInfected]);
 				else
 				{
@@ -917,12 +943,12 @@ public Action Cmd_AFKTurnClientToInfected(int client, any args)
 	if (!canInfectedJoin)
 	{
 		CPrintToChat(client, messages[Msg_InfectedDisabled]);
-		if (GetClientTeam(client) == 3)
+		if (IsInfected(client))
 			ChangeClientTeam(client, 1);
 		return;
 	}
 
-	if (GetClientTeam(client) == 3)
+	if (IsInfected(client))
 	{
 		CPrintToChat(client, messages[Msg_AlreadyInfected]);
 		return;
@@ -988,7 +1014,7 @@ void ChangePlayerSurvivor(int client)
 	if (FindSurvivorBot() > 0)
 	{
 		int flags = GetCommandFlags("sb_takecontrol");
-		SetCommandFlags("sb_takecontrol", flags & -16385);
+		SetCommandFlags("sb_takecontrol", flags & (~FCVAR_CHEAT));
 		FakeClientCommand(client, "sb_takecontrol");
 		SetCommandFlags("sb_takecontrol", flags);
 	}
@@ -1000,7 +1026,7 @@ void BypassAndExecuteCommand(int client, const char[] strCommand, const char[] s
 	if (!IsValidClient(client)) return;
 	
 	int flags = GetCommandFlags(strCommand);
-	SetCommandFlags(strCommand, flags & -16385);
+	SetCommandFlags(strCommand, flags & (~FCVAR_CHEAT));
 	FakeClientCommand(client, "%s %s", strCommand, strParam);
 	SetCommandFlags(strCommand, flags);
 }
@@ -1016,14 +1042,8 @@ void CrashMap()
 //重启服务器
 void CrashServer()
 {
-	SetCommandFlags("crash", GetCommandFlags("crash") & -16385);
+	SetCommandFlags("crash", GetCommandFlags("crash") & (~FCVAR_CHEAT));
 	ServerCommand("crash");
-}
-
-//设置玩家
-void SetSurvivorPermHealth(int client, int health)
-{
-	SetEntProp(client, Prop_Send, "m_iHealth", health);
 }
 
 //重置玩家血量
@@ -1072,8 +1092,9 @@ void GiveInventoryItems(int client)
 		for (int i = 0; i < 1; i++)
 			DeleteInventoryItem(client, i);
 
-		BypassAndExecuteCommand(client, "give", "shotgun_chrome");
+		//BypassAndExecuteCommand(client, "give", "shotgun_chrome");
 		BypassAndExecuteCommand(client, "give", "pistol_magnum");
+		BypassAndExecuteCommand(client, "give", "pumpshotgun");
 
 		SetEntProp(client, Prop_Send, "m_bAutoAimTarget", 1);
 		SetEntProp(client, Prop_Send, "m_bAllowAutoMovement", 1);
@@ -1103,127 +1124,15 @@ void CloseGhostHandle(int client)
 	}
 }
 
-//设置Tank控制权
-void SetTankFrustration(int tankClient, int frustration)
-{
-	if (frustration < 0 || frustration > 100) return;
-	
-	SetEntProp(tankClient, Prop_Send, "m_frustration", 100 - frustration);
-}
-
-//玩家是否被控
-bool IsPinned(int client)
-{
-	if (IsSurvivor(client))
-		if (GetEntPropEnt(client, Prop_Send, "m_tongueOwner") > 0	||
-			GetEntPropEnt(client, Prop_Send, "m_carryAttacker") > 0  ||
-			GetEntPropEnt(client, Prop_Send, "m_pounceAttacker") > 0 ||
-			GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") > 0 ||
-			GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") > 0)
-			return true;
-	return false;
-}
-
-//生还是否满员
-bool IsSuivivorTeamFull()
-{
-	for (int i = 1; i <= MaxClients; i++)
-		if (IsValidClient(i) && GetClientTeam(i) == 2 && IsPlayerAlive(i) && IsFakeClient(i))
-			return false;
-			
-	return true;
-}
-
-//客户端是否是生还
-bool IsSurvivor(int client)
-{
-	if (IsValidClient(client) && GetClientTeam(client) == 2)
-		return true;
-	
-	return false;
-}
-
-//客户端是否是特感
-bool IsInfected(int client)
-{
-	if (IsValidClient(client) && GetClientTeam(client) == 3)
-		return true;
-	
-	return false;
-}
-
-//客户端是否是灵魂
-bool IsGhost(int client)
-{
-	return GetEntProp(client, Prop_Send, "m_isGhost") == 0;
-}
-
-//客户端是否为Tank
-bool IsTank(int client)
-{
-	if (IsValidClient(client) && GetEntProp(client, Prop_Send, "m_zombieClass") == 8)
-		return true;
-
-	return false;
-}
-
-//玩家是否倒地
-bool IsPlayerIncap(int client)
-{
-	return GetEntProp(client, Prop_Send, "m_isIncapacitated") != 0;
-}
-
-//Client是否正确
-bool IsValidClient(int client)
-{
-	return (client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client));
-}
-
-//设置Tank控制权
-int GetTankFrustration(int tankClient)
-{
-	return 100 - GetEntProp(tankClient, Prop_Send, "m_frustration");
-}
-
-//获得玩家血量
-int GetSurvivorPermHealth(int client)
-{
-	return GetEntProp(client, Prop_Send, "m_iHealth");
-}
-
 //获得Bot生还
 int FindSurvivorBot()
 {
 	for (int client = 1; client <= MaxClients; client++)
-		if (IsClientInGame(client) && IsFakeClient(client) && GetClientTeam(client) == 2)
+		if (IsClientInGame(client) && IsFakeClient(client) && IsSurvivor(client))
 			return client;
 
 	return -1;
 }
-
-//获得生还数量
-int GetSurvivorCount()
-{
-	int humans = 0;
-	for (int i = 1; i <= MaxClients; i++)
-		if (IsSurvivor(i))
-			humans++;
-	
-	return humans;
-}
-
-/***
-//获得玩家生还数量
-int GetPlayerSurvivorCount()
-{
-	int humans = 0;
-	for (int i = 1; i <= MaxClients; i++)
-		if (!IsFakeClient(i) && IsSurvivor(i))
-			humans++;
-	
-	return humans;
-}
-***/
 
 //随机获得玩家特感Client
 int GetRandomInfected()
@@ -1232,28 +1141,6 @@ int GetRandomInfected()
 		if (IsInfected(i) && !IsFakeClient(i)  && GetRandomInt(0, 5) > 3)
 			return i;
 	return -1;
-}
-
-//获得玩家特感数量
-int GetPlayerInfectedCount()
-{
-	int humans = 0;
-	for (int i = 1; i <= MaxClients; i++)
-		if (IsInfected(i) && !IsFakeClient(i))
-			humans++;
-	
-	return humans;
-}
-
-//获得活着的生还数量
-int GetAliveSurvivorCount()
-{
-	int humans = 0;
-	for (int i = 1; i <= MaxClients; i++)
-		if (IsSurvivor(i) && IsPlayerAlive(i))
-			humans++;
-	
-	return humans;
 }
 
 				/*	########################################
