@@ -9,7 +9,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "6.52.7"
+#define VERSION "6.53.1"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -342,7 +342,7 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
 
 	if (!IsValidClient(client)) return;
 	
-	if (IsInfected && GetEntProp(client, Prop_Send, "m_zombieClass") == view_as<int>(ZC_Tank)) 
+	if (IsInfected && GetInfectedClass(client) == view_as<int>(ZC_Tank)) 
 	{
 		L4D2Direct_SetTankPassedCount(1);
 		CloseGhostHandle(client);
@@ -354,7 +354,7 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
 		isRoundStart = false;
 		tankPlayer = -1;
 		if (playerInfectedSwitch == 1)
-			SetConVarInt(FindConVar("director_no_specials"), 0, false, false);
+			SetConVarInt(FindConVar("director_no_specials"), 0);
 		for (int i = 1; i <= MaxClients; i++)
 			CloseGhostHandle(i);
 	}
@@ -425,7 +425,7 @@ public Action Event_PlayerReplaceTankBot(Event event, const char[] name, bool do
 
 	if (!L4D2_IsTankInPlay() || !IsInfected(client)) return;
 
-	if (GetEntProp(client, Prop_Send, "m_zombieClass") == 8)
+	if (GetInfectedClass(client) == view_as<int>(ZC_Tank))
 	{
 		if (tankPlayer == -1)
 			tankPlayer = client;
@@ -546,7 +546,7 @@ public void CvarEvent_PlayerSpecialSwitchChange(ConVar convar, const char[] oldV
 	playerInfectedSwitch = playerInfectedSwitchConvar.IntValue;
 	if (playerInfectedSwitch == 0)
 	{
-		SetConVarInt(FindConVar("director_no_specials"), 1, false, false);
+		SetConVarInt(FindConVar("director_no_specials"), 1);
 		for (int client = 1; client <= MaxClients; client++)
 			if (IsInfected(client))
 				ChangeClientTeam(client, 1);
@@ -554,7 +554,7 @@ public void CvarEvent_PlayerSpecialSwitchChange(ConVar convar, const char[] oldV
 	}
 	else
 	{
-		SetConVarInt(FindConVar("director_no_specials"), 0, false, false);
+		SetConVarInt(FindConVar("director_no_specials"), 0);
 		canInfectedJoin = true;
 	}
 }
@@ -664,9 +664,9 @@ public Action Timer_AutoGive(Handle timer)
 			GiveInventoryItems(client);
 		}
 	if (playerInfectedSwitch == 1)
-		SetConVarInt(FindConVar("director_no_specials"), 0, false, false);
+		SetConVarInt(FindConVar("director_no_specials"), 0);
 	else
-		SetConVarInt(FindConVar("director_no_specials"), 1, false, false);
+		SetConVarInt(FindConVar("director_no_specials"), 1);
 }
 
 //执行地图信息
@@ -684,7 +684,7 @@ public Action Timer_DelayedOnRoundStart(Handle timer)
 	for (int client = 1; client <= MaxClients; client++)
 		if (IsValidClient(client) &&!IsFakeClient(client))
 			SetPlayerMode(client, GetClientTeam(client));
-	SetConVarInt(FindConVar("director_no_specials"), 0, false, false);
+	SetConVarInt(FindConVar("director_no_specials"), 0);
 }
 
 //检查玩家控制权Timer
@@ -738,9 +738,9 @@ public Action Timer_CheckTankView(Handle timer, int tankClient)
 public Action Timer_SpecialInterval(Handle timer)
 {
 	if (playerInfectedSwitch == 0)
-		SetConVarInt(FindConVar("director_no_specials"), 1, false, false);
+		SetConVarInt(FindConVar("director_no_specials"), 1);
 	else
-		SetConVarInt(FindConVar("director_no_specials"), 0, false, false);
+		SetConVarInt(FindConVar("director_no_specials"), 0);
 }
 
 //玩家旁观Timer
