@@ -15,7 +15,7 @@ public Plugin myinfo =
 	author = "我是派蒙啊",
 	description = "Let's RUSH! RUSH!! RUSH!! >_<!!!!!!",
 	version = VERSION,
-	url = "http://github.com/PaimonQwQ/L4D2-Plugins/l4d2_letsrush.sp",
+	url = "http://github.com/PaimonQwQ/L4D2-Plugins/l4d2_letusrush.sp",
 };
 
 public void OnPluginStart()
@@ -43,7 +43,10 @@ public void Event_RoundStart(Event hEvent, const char[] eName, bool dontBroadcas
 			GetEdictClassname(i, EdictClassName, 128);
 			if (StrContains(EdictClassName, "prop_door_rotating_checkpoint", false) != -1 
 					&& GetEntProp(i, Prop_Send, "m_bLocked", 4) == 1)
+			{
 				firstdoor = i;
+				return;
+			}
 		}
 }
 
