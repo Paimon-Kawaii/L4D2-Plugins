@@ -1,7 +1,15 @@
+/*
+ * @Author:             我是派蒙啊
+ * @Last Modified by:   我是派蒙啊
+ * @Create Date:        2022-01-14 11:54:43
+ * @Last Modified time: 2022-01-20 19:14:10
+ * @Github:             http://github.com/PaimonQwQ
+ */
+
 /* #################################################################### *
                                 L4D2 Tools
                             Author: 我是派蒙啊
-                             Version: 1.3.1
+                             Version: 1.3.3
  * #################################################################### */
 
 #if defined _l4d2tools_included
@@ -60,10 +68,7 @@ stock bool IsValidClient(int client)
  */
 stock bool IsSurvivor(int client)
 {
-    if (IsValidClient(client) && view_as<TEAM>(GetClientTeam(client)) == Team_Survivor)
-        return true;
-    
-    return false;
+    return (IsValidClient(client) && GetClientTeam(client) == view_as<int>(Team_Survivor));
 }
 
 /**
@@ -74,10 +79,7 @@ stock bool IsSurvivor(int client)
  */
 stock bool IsInfected(int client)
 {
-    if (IsValidClient(client) && view_as<TEAM>(GetClientTeam(client)) == Team_Infected)
-        return true;
-    
-    return false;
+    return (IsValidClient(client) && GetClientTeam(client) == view_as<int>(Team_Infected));
 }
 
 /**
@@ -88,10 +90,7 @@ stock bool IsInfected(int client)
  */
 stock bool IsSpectator(int client)
 {
-    if (IsValidClient(client) && view_as<TEAM>(GetClientTeam(client)) == Team_Spectator)
-        return true;
-    
-    return false;
+    return (IsValidClient(client) && GetClientTeam(client) == view_as<int>(Team_Spectator));
 }
 
 /**
@@ -102,10 +101,7 @@ stock bool IsSpectator(int client)
  */
 stock bool IsGhost(int client)
 {
-    if (IsValidClient(client) && GetEntProp(client, Prop_Send, "m_isGhost") != 0)
-        return true;
-    
-    return false;
+    return (IsValidClient(client) && view_as<bool>(GetEntProp(client, Prop_Send, "m_isGhost")));
 }
 
 /**
@@ -116,10 +112,7 @@ stock bool IsGhost(int client)
  */
 stock bool IsTank(int client)
 {
-    if (IsValidClient(client) && GetEntProp(client, Prop_Send, "m_zombieClass") == view_as<int>(ZC_Tank))
-        return true;
-    
-    return false;
+    return (IsValidClient(client) && GetEntProp(client, Prop_Send, "m_zombieClass") == view_as<int>(ZC_Tank));
 }
 
 /**
@@ -130,15 +123,12 @@ stock bool IsTank(int client)
  */
 stock bool IsSurvivorPinned(int client)
 {
-    if (IsSurvivor(client))
-        if (GetEntPropEnt(client, Prop_Send, "m_tongueOwner") > 0    || //smoker grabbed
-            GetEntPropEnt(client, Prop_Send, "m_carryAttacker") > 0  || //hunter pounded
-            GetEntPropEnt(client, Prop_Send, "m_pounceAttacker") > 0 || //charger carred
-            GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") > 0 || //charger pounded
-            GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") > 0)   //jockey ridden
-            return true;
-
-    return false;
+    return (IsSurvivor(client) &&
+            (GetEntPropEnt(client, Prop_Send, "m_tongueOwner") > 0      || //smoker grabbed
+            GetEntPropEnt(client, Prop_Send, "m_carryAttacker") > 0     || //hunter pounded
+            GetEntPropEnt(client, Prop_Send, "m_pounceAttacker") > 0    || //charger carred
+            GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") > 0    || //charger pounded
+            GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") > 0));     //jockey ridden
 }
 
 /**
@@ -149,15 +139,12 @@ stock bool IsSurvivorPinned(int client)
  */
 stock bool IsPinningASurvivor(int client)
 {
-    if (IsInfected(client))
-        if (GetEntPropEnt(client, Prop_Send, "m_tongueVictim") > 0 || //smoker grabbing
-            GetEntPropEnt(client, Prop_Send, "m_pounceVictim") > 0 || //hunter pounding
-            GetEntPropEnt(client, Prop_Send, "m_carryVictim") > 0  || //charger carrying
-            GetEntPropEnt(client, Prop_Send, "m_pummelVictim") > 0 || //charger pounding
-            GetEntPropEnt(client, Prop_Send, "m_jockeyVictim") > 0)   //jockey riding
-            return true;
-    
-    return false;
+    return (IsInfected(client) &&
+            (GetEntPropEnt(client, Prop_Send, "m_tongueVictim") > 0     || //smoker grabbing
+            GetEntPropEnt(client, Prop_Send, "m_pounceVictim") > 0      || //hunter pounding
+            GetEntPropEnt(client, Prop_Send, "m_carryVictim") > 0       || //charger carrying
+            GetEntPropEnt(client, Prop_Send, "m_pummelVictim") > 0      || //charger pounding
+            GetEntPropEnt(client, Prop_Send, "m_jockeyVictim") > 0));      //jockey riding
 }
 
 /**
@@ -168,10 +155,7 @@ stock bool IsPinningASurvivor(int client)
  */
 stock bool IsPlayerIncap(int client)
 {
-    if (IsValidClient(client) && GetEntProp(client, Prop_Send, "m_isIncapacitated") != 0)
-        return true;
-    
-    return false;
+    return (IsValidClient(client) && view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated")));
 }
 
 /**
@@ -185,7 +169,7 @@ stock bool IsSuivivorTeamFull()
     for (int i = 1; i <= MaxClients; i++)
         if (IsValidClient(i) && GetClientTeam(i) == 2 && IsPlayerAlive(i) && IsFakeClient(i))
             return false;
-            
+
     return true;
 }
 
@@ -197,9 +181,7 @@ stock bool IsSuivivorTeamFull()
  */
 stock bool IsTankHasView(int tankClient)
 {
-    if (!IsValidClient(tankClient)) return false;
-
-    return GetEntProp(tankClient, Prop_Send, "m_hasVisibleThreats") != 0;
+    return (IsValidClient(tankClient) && view_as<bool>(GetEntProp(tankClient, Prop_Send, "m_hasVisibleThreats")));
 }
 
 /**
@@ -212,7 +194,7 @@ stock bool HasSurvivorAlive()
     for (int i = 1; i <= MaxClients; i++)
         if (IsSurvivor(i) && IsPlayerAlive(i))
             return true;
-            
+
     return false;
 }
 
@@ -252,7 +234,7 @@ stock bool SetTankFrustration(int tankClient, int frustration)
 {
     if (!IsValidClient(tankClient)) return false;
     if (frustration < 0 || frustration > 100) return false;
-    
+
     SetEntProp(tankClient, Prop_Send, "m_frustration", 100 - frustration);
     return true;
 }
@@ -308,7 +290,7 @@ stock int GetSurvivorCount()
     for (int i = 1; i <= MaxClients; i++)
         if (IsSurvivor(i))
             count++;
-    
+
     return count;
 }
 
@@ -323,7 +305,7 @@ stock int GetSInfectedCount()
     for (int i = 1; i <= MaxClients; i++)
         if (IsInfected(i))
             count++;
-    
+
     return count;
 }
 
@@ -338,7 +320,7 @@ stock int GetPlayerSurvivorCount()
     for (int i = 1; i <= MaxClients; i++)
         if (!IsFakeClient(i) && IsSurvivor(i))
             count++;
-    
+
     return count;
 }
 
@@ -353,7 +335,7 @@ stock int GetPlayerInfectedCount()
     for (int i = 1; i <= MaxClients; i++)
         if (IsInfected(i) && !IsFakeClient(i))
             count++;
-    
+
     return count;
 }
 
@@ -368,7 +350,7 @@ stock int GetAliveSurvivorCount()
     for (int i = 1; i <= MaxClients; i++)
         if (IsSurvivor(i) && IsPlayerAlive(i))
             count++;
-    
+
     return count;
 }
 
@@ -383,6 +365,6 @@ stock int GetAliveInfectedCount()
     for (int i = 1; i <= MaxClients; i++)
         if (IsInfected(i) && IsPlayerAlive(i))
             count++;
-    
+
     return count;
 }
