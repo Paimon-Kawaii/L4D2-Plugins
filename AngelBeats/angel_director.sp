@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-01 15:25:35
+ * @Last Modified time: 2022-04-01 15:29:58
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -179,7 +179,7 @@ public Action Event_AbilityUsed(Event event, const char[] name, bool dont_broadc
     int client = GetClientOfUserId(event.GetInt("userid"));
     if(!IsInfected(client) || IsTank(client)) return Plugin_Continue;
     float percent = GetSurvivorCount() < 2 ? 0.6 : 0.8;
-    SetPlayerHealth(RoundToFloor(GetPlayerHealth(client) * percent));
+    SetPlayerHealth(client, RoundToFloor(GetPlayerHealth(client) * percent));
     return Plugin_Continue;
 }
 
