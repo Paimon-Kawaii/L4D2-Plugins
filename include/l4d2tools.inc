@@ -1,8 +1,8 @@
 /*
  * @Author:             我是派蒙啊
- * @Last Modified by:   我是派蒙啊
+ * @Last Modified by:   派蒙
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2022-01-20 19:14:10
+ * @Last Modified time: 2022-03-28 16:23:17
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,6 +16,10 @@
     #endinput
 #endif
 #define _l4d2tools_included
+
+#define TEAM_SPECTATOR 1
+#define TEAM_SURVIVOR 2
+#define TEAM_INFECTED 3
 
 enum TEAM
 {
@@ -132,6 +136,29 @@ stock bool IsSurvivorPinned(int client)
 }
 
 /**
+ * @brief Returns who is pinning a client.
+ * 
+ * @param client    Client index.
+ * @return          Entity index if client is being pinned. -1 otherwise.
+ */
+stock int GetSurvivorPinner(int client)
+{
+    if(!IsSurvivor(client)) return -1;
+
+    return (GetEntPropEnt(client, Prop_Send, "m_tongueOwner") > 0 ?     //smoker grabbed
+            GetEntPropEnt(client, Prop_Send, "m_tongueOwner") : 
+            GetEntPropEnt(client, Prop_Send, "m_carryAttacker") > 0 ?   //hunter pounded
+            GetEntPropEnt(client, Prop_Send, "m_carryAttacker") : 
+            GetEntPropEnt(client, Prop_Send, "m_pounceAttacker") > 0 ?  //charger carred
+            GetEntPropEnt(client, Prop_Send, "m_pounceAttacker") : 
+            GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") > 0 ?  //charger pounded
+            GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") :
+            GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") > 0 ?  //jockey ridden
+            GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") : -1);     
+}
+
+
+/**
  * @brief Returns true if client is pinning a survivor.
  * 
  * @param client    Client index.
@@ -161,15 +188,42 @@ stock bool IsPlayerIncap(int client)
 /**
  * @brief Returns true if survivor team is full.
  * 
- * @param client    Client index.
  * @return          True if survivor team is full. False otherwise.
  */
-stock bool IsSuivivorTeamFull()
+stock bool IsSurvivorTeamFull()
 {
     for (int i = 1; i <= MaxClients; i++)
-        if (IsValidClient(i) && GetClientTeam(i) == 2 && IsPlayerAlive(i) && IsFakeClient(i))
+        if (IsSurvivor(i) && IsPlayerAlive(i) && IsFakeClient(i))
             return false;
 
+    return true;
+}
+
+/**
+ * @brief Returns true if survivors are all pinnded.
+ * 
+ * @return          True if survivors are all pinnded. False otherwise.
+ */
+stock bool IsAllSurvivorPinned()
+{
+    for (int i = 1; i <= MaxClients; i++)
+        if (IsSurvivor(i) && IsPlayerAlive(i) && !(IsSurvivorPinned(i) || IsPlayerIncap(i)))
+            return false;
+
+    return true;
+}
+
+/**
+ * @brief Returns true if survivors are all incapped.
+ * 
+ * @return          True if survivora are all incapped. False otherwise.
+ */
+stock bool IsAllSurvivorIncapped()
+{
+    for(int i = 1; i <= MaxClients; i++)
+        if (IsSurvivor(i) && !IsPlayerIncap(i))
+            return false;
+    
     return true;
 }
 
@@ -267,6 +321,26 @@ stock bool SetPlayerHealth(int client, int health)
 }
 
 /**
+ * @brief Execute a command.
+ * 
+ * @param client    Client index.
+ * @param strCmd    Command string.
+ * @param strPrm    CmdParam string.
+ * @return          True if succeed. False otherwise.
+ */
+stock bool BypassAndExecuteCommand(int client, const char[] strCmd, const char[] strPrm)
+{
+    if (!IsValidClient(client)) return false;
+
+    int flags = GetCommandFlags(strCmd);
+    SetCommandFlags(strCmd, flags & (~FCVAR_CHEAT));
+    FakeClientCommand(client, "%s %s", strCmd, strPrm);
+    SetCommandFlags(strCmd, flags);
+    
+    return true;
+}
+
+/**
  * @brief Get client SI(Special Infected) class.
  * 
  * @param client    Client index.
@@ -314,11 +388,11 @@ stock int GetSInfectedCount()
  * 
  * @return          Player survivor count.
  */
-stock int GetPlayerSurvivorCount()
+stock int GetSurvivorPlayerCount()
 {
     int count = 0;
     for (int i = 1; i <= MaxClients; i++)
-        if (!IsFakeClient(i) && IsSurvivor(i))
+        if (IsSurvivor(i) && !IsFakeClient(i))
             count++;
 
     return count;
@@ -329,7 +403,7 @@ stock int GetPlayerSurvivorCount()
  * 
  * @return          Player SI count.
  */
-stock int GetPlayerInfectedCount()
+stock int GetInfectedPlayerCount()
 {
     int count = 0;
     for (int i = 1; i <= MaxClients; i++)
