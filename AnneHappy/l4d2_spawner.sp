@@ -42,7 +42,7 @@ public void OnPluginStart()
 	HookEvent("jockey_ride_end", OnRideStopped, EventHookMode_Post);
 	HookEvent("tongue_pull_stopped", OnPullStopped, EventHookMode_Post);
 	infectedSpawnTypeConvar = CreateConVar("l4d2_infected_type", "6", "1=Smoker, 2=Boomer, 3=Hunter, 4=Spitter, 5=Jockey, 6=Charger 8=Tank", 0, false, 0.0, false, 0.0);
-	infectedLimitConvar = CreateConVar("l4d_infected_limit", "4", "", 0, false, 0.0, false, 0.0);
+	infectedLimitConvar = CreateConVar("l4d_infected_limit", "3", "", 0, false, 0.0, false, 0.0);
 	infectedSpawnIntervalConvar = CreateConVar("versus_special_respawn_interval", "16.0", "", 0, false, 0.0, false, 0.0);
 	
 	GetConVars();
