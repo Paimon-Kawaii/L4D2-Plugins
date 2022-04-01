@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-03-31 17:11:21
+ * @Last Modified time: 2022-04-01 15:25:35
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.03.31"
+#define VERSION "2022.04.01"
 
 public Plugin myinfo =
 {
@@ -63,6 +63,7 @@ public void OnPluginStart()
     HookEvent("witch_killed", Event_WitchKilled);
     HookEvent("player_hurt", Event_PlayerHurted);
     HookEvent("tank_spawn", Event_TankSpawn, EventHookMode_Pre);
+    HookEvent("ability_use", Event_AbilityUsed, EventHookMode_Pre);
     HookEvent("player_team", Event_PlayerChangeTeam, EventHookMode_Pre);
 
     g_hHunterLimit = FindConVar("z_hunter_limit");
@@ -169,6 +170,16 @@ public Action Event_TankSpawn(Event event, const char[] name, bool dont_broadcas
     int tank = GetClientOfUserId(event.GetInt("userid"));
     int heal = GetSurvivorCount() > 2 ? 1500 * GetSurvivorCount() : 1100 * GetSurvivorCount();
     SetPlayerHealth(tank, heal);
+    return Plugin_Continue;
+}
+
+//特感虚弱事件
+public Action Event_AbilityUsed(Event event, const char[] name, bool dont_broadcast)
+{
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if(!IsInfected(client) || IsTank(client)) return Plugin_Continue;
+    float percent = GetSurvivorCount() < 2 ? 0.6 : 0.8;
+    SetPlayerHealth(RoundToFloor(GetPlayerHealth(client) * percent));
     return Plugin_Continue;
 }
 
