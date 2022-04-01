@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:        2021-12-18 15:48:14
- * @Last Modified time: 2022-04-01 10:54:15
+ * @Last Modified time: 2022-04-01 10:59:49
  * @Github:             http://github.com/PaimonQwQ
  */
 #pragma semicolon 1
@@ -638,13 +638,13 @@ public Action Timer_CheckPlayerTeam(Handle timer, int client)
         {
             if (playerInfectedSwitch == 0)
             {
-                if (IsSuivivorTeamFull())
+                if (IsSurvivorTeamFull())
                     ChangeClientTeam(client, 1);
                 else ChangePlayerSurvivor(client);
             }
-            else if (IsSuivivorTeamFull())
+            else if (IsSurvivorTeamFull())
             {
-                if (GetPlayerInfectedCount() == 0)
+                if (GetInfectedPlayerCount() == 0)
                     ChangeClientTeam(client, 1);
             }
             else if (!isRoundStart)
@@ -941,7 +941,7 @@ public Action Cmd_AFKTurnClientTeam(int client, int args)
             }
             case 2:
             {
-                if (!IsSuivivorTeamFull())
+                if (!IsSurvivorTeamFull())
                     ChangePlayerSurvivor(client);
             }
             case 3:
@@ -966,7 +966,7 @@ public Action Cmd_AFKTurnClientToSurvivor(int client, any args)
 {
     if (!IsValidClient(client)) return;
 
-    if (!IsSuivivorTeamFull() || !canInfectedJoin)
+    if (!IsSurvivorTeamFull() || !canInfectedJoin)
         ChangePlayerSurvivor(client);
 }
 
