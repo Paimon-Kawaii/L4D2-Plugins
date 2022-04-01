@@ -1,8 +1,8 @@
 /*
  * @Author:             我是派蒙啊
- * @Last Modified by:   我是派蒙啊
+ * @Last Modified by:   派蒙
  * @Create Date:        2021-12-18 15:48:14
- * @Last Modified time: 2022-01-16 23:51:19
+ * @Last Modified time: 2022-04-01 10:54:15
  * @Github:             http://github.com/PaimonQwQ
  */
 #pragma semicolon 1
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "6.53.1"
+#define VERSION "7.54.3"
 #define MENU_DISPLAY_TIME 15
 
 public Plugin myinfo =
@@ -93,7 +93,14 @@ bool
 ConVar
     serverMaxSurvivorConvar,
     playerInfectedSwitchConvar,
-    specialRespawnIntervalConvar;
+    specialRespawnIntervalConvar,
+    //导演刷特限制
+    g_hHunterLimit,
+    g_hBoomerLimit,
+    g_hSmokerLimit,
+    g_hJockeyLimit,
+    g_hChargerLimit,
+    g_hSpitterLimit;
 
 Handle
     AdminMenu = INVALID_HANDLE,
@@ -122,9 +129,23 @@ public void OnPluginStart()
     specialRespawnIntervalConvar = FindConVar("versus_special_respawn_interval");
     playerInfectedSwitchConvar = CreateConVar("l4d2_player_specials", "1", "开启玩家特感");
 
+    g_hHunterLimit = FindConVar("z_hunter_limit");
+    g_hBoomerLimit = FindConVar("z_boomer_limit");
+    g_hSmokerLimit = FindConVar("z_smoker_limit");
+    g_hJockeyLimit = FindConVar("z_jockey_limit");
+    g_hChargerLimit = FindConVar("z_charger_limit");
+    g_hSpitterLimit = FindConVar("z_spitter_limit");
+
     HookConVarChange(serverMaxSurvivorConvar, CvarEvent_MaxSurvivorChange);
     HookConVarChange(specialRespawnIntervalConvar, CvarEvent_SpecialIntervalChange);
     HookConVarChange(playerInfectedSwitchConvar, CvarEvent_PlayerSpecialSwitchChange);
+
+    g_hHunterLimit.AddChangeHook(CvarEvent_LimitChangeed);
+    g_hBoomerLimit.AddChangeHook(CvarEvent_LimitChangeed);
+    g_hSmokerLimit.AddChangeHook(CvarEvent_LimitChangeed);
+    g_hJockeyLimit.AddChangeHook(CvarEvent_LimitChangeed);
+    g_hChargerLimit.AddChangeHook(CvarEvent_LimitChangeed);
+    g_hSpitterLimit.AddChangeHook(CvarEvent_LimitChangeed);
 
     RegConsoleCmd("sm_it", Cmd_PlayTank, "Take tank");
     RegConsoleCmd("sm_c", Cmd_ChangeClass, "Change SI");
@@ -158,6 +179,7 @@ public void OnMapStart()
 {
     tankPlayer = -1;
     isRoundStart = false;
+    FindConVar("director_allow_infected_bots").SetInt(0);
     for (int client = 1; client <= MaxClients; client++)
         if (IsValidClient(client) && !IsFakeClient(client))
         {
@@ -266,7 +288,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 //接管克事件
 public Action L4D_OnTryOfferingTankBot(int tank_index, bool &enterStasis)
 {
-    tankPlayer = IsValidClient(tankPlayer) ? tankPlayer : GetRandomInfected();
+    tankPlayer = IsValidClient(tankPlayer) ? tankPlayer : FindRandomInfected();
     if (IsValidClient(tankPlayer) && L4D2Direct_GetTankPassedCount() < 2)
     {
         CreateTimer(2.0, Timer_ReplaceTank, tank_index, TIMER_FLAG_NO_MAPCHANGE);
@@ -380,7 +402,7 @@ public Action Event_WitchKilled(Event event, const char[] name, bool dontBroadca
         int maxhp = GetEntProp(client, Prop_Data, "m_iMaxHealth");
         int targetHealth = GetPlayerHealth(client) + 15;
         if (targetHealth > maxhp + 20)
-            targetHealth = maxhp;
+            targetHealth = maxhp + 20;
         SetPlayerHealth(client, targetHealth);
     }
 }
@@ -566,6 +588,12 @@ public void CvarEvent_PlayerSpecialSwitchChange(ConVar convar, const char[] oldV
     }
 }
 
+//特感数量更改
+public void CvarEvent_LimitChangeed(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    convar.SetInt(0, true);
+}
+
                 /*  ########################################
                             <==ConVarEvent:END
                 ########################################    */
@@ -679,7 +707,7 @@ public Action Timer_AutoGive(Handle timer)
 //执行地图信息
 public Action Timer_DelayedOnRoundStart(Handle timer)
 {
-    SetConVarString(FindConVar("mp_gamemode"), "coop", false, false);
+    SetConVarString(FindConVar("mp_gamemode"), "coop");
     char sMapConfig[128];
     GetCurrentMap(sMapConfig, 128);
     Format(sMapConfig, 128, "cfg/sourcemod/map_cvars/%s.cfg", sMapConfig);
@@ -1027,16 +1055,16 @@ void ChangePlayerSurvivor(int client)
     }
 }
 
-//执行指令
-void BypassAndExecuteCommand(int client, const char[] strCommand, const char[] strParam)
-{
-    if (!IsValidClient(client)) return;
+// //执行指令
+// void BypassAndExecuteCommand(int client, const char[] strCommand, const char[] strParam)
+// {
+//     if (!IsValidClient(client)) return;
 
-    int flags = GetCommandFlags(strCommand);
-    SetCommandFlags(strCommand, flags & (~FCVAR_CHEAT));
-    FakeClientCommand(client, "%s %s", strCommand, strParam);
-    SetCommandFlags(strCommand, flags);
-}
+//     int flags = GetCommandFlags(strCommand);
+//     SetCommandFlags(strCommand, flags & (~FCVAR_CHEAT));
+//     FakeClientCommand(client, "%s %s", strCommand, strParam);
+//     SetCommandFlags(strCommand, flags);
+// }
 
 //重启地图
 void CrashMap()
@@ -1142,7 +1170,7 @@ int FindSurvivorBot()
 }
 
 //随机获得玩家特感Client
-int GetRandomInfected()
+int FindRandomInfected()
 {
     for (int i = 1; i <= MaxClients; i++)
         if (IsInfected(i) && !IsFakeClient(i)  && GetRandomInt(0, 5) > 3)
