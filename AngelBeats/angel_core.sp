@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-03-31 13:59:05
+ * @Last Modified time: 2022-04-01 16:07:38
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.03.31"
+#define VERSION "2022.04.01"
 
 public Plugin myinfo =
 {
@@ -92,7 +92,7 @@ public void OnMapStart()
     SetGodMode(true);
 
     g_bIsGameStart = false;
-    SetConVarString(FindConVar("mp_gamemode"), "coop");
+    FindConVar("mp_gamemode").SetString("coop");
 }
 
 //玩家正在连接
@@ -144,7 +144,7 @@ public void OnClientDisconnect(int client)
 // 对抗计分面板出现前
 public Action L4D2_OnEndVersusModeRound(bool countSurvivors)
 {
-    SetConVarString(FindConVar("mp_gamemode"), "realism");
+    FindConVar("mp_gamemode").SetString("realism");
     return Plugin_Handled;
 }
 
@@ -164,7 +164,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
     RestoreHealth();
     ResetInventory();
     g_bIsGameStart = false;
-    SetConVarString(FindConVar("mp_gamemode"), "coop");
+    FindConVar("mp_gamemode").SetString("coop");
     g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
     return Plugin_Continue;
 }
@@ -175,7 +175,7 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
     if (GetAliveSurvivorCount() == 0)
     {
         g_bIsGameStart = false;
-        SetConVarString(FindConVar("mp_gamemode"), "realism");
+        FindConVar("mp_gamemode").SetString("realism");
         g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
         SetGodMode(true);
     }
@@ -185,7 +185,7 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
 //关卡结束
 public Action Event_MissionLost(Event event, const char[] name, bool dont_broadcast)
 {
-    SetConVarString(FindConVar("mp_gamemode"), "realism");
+    FindConVar("mp_gamemode").SetString("realism");
     if(!IsAllSurvivorPinned()) return Plugin_Continue;
 
     for(int i = 1; i < MaxClients; i++)
@@ -201,7 +201,7 @@ public Action Event_ResetSurvivors(Event event, const char[] name, bool dontBroa
     RestoreHealth();
     ResetInventory();
     g_bIsGameStart = false;
-    SetConVarString(FindConVar("mp_gamemode"), "realism");
+    FindConVar("mp_gamemode").SetString("realism");
     g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
     return Plugin_Continue;
 }
