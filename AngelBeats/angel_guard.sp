@@ -2,7 +2,7 @@
  * @Author:			 我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:		2022-03-24 17:00:57
- * @Last Modified time: 2022-03-31 14:03:13
+ * @Last Modified time: 2022-04-05 23:41:50
  * @Github:			 http://github.com/PaimonQwQ
  */
 
@@ -18,7 +18,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.03.31"
+#define VERSION "2022.04.05"
 #define MENU_DISPLAY_TIME 15
 
 int
@@ -57,6 +57,17 @@ public void OnMapStart()
 	InitTickets();
 }
 
+//玩家正在连接
+public void OnClientConnected(int client)
+{
+    g_iMealTickets[client] = 0;
+}
+
+//玩家断开连接
+public void OnClientDisconnect(int client)
+{
+	g_iMealTickets[client] = 0;
+}
 //玩家离开安全屋给予近战
 public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
@@ -391,7 +402,7 @@ public int Handle_ExecMeleePanel(Menu menu, MenuAction action, int client, int i
 //处理Choice列表事件
 public int Handle_ExecChoiceMenu(Menu menu, MenuAction action, int client, int item)
 {
-	if (!IsSurvivor(client)) return 0;
+	if (!IsSurvivor(client) || IsFakeClient(client)) return 0;
 	if (action != MenuAction_Select) return 0;
 	if (item > 5) return 0;
 
@@ -403,6 +414,8 @@ public int Handle_ExecChoiceMenu(Menu menu, MenuAction action, int client, int i
 	PlayerInfo.JumpToKey(str, true);
 	IntToString(item, str, sizeof(str));
 	PlayerInfo.SetString("melee", str);
+	GetClientName(client, str, 256);
+	PlayerInfo.SetString("name", str);
 	PlayerInfo.Rewind();
 	PlayerInfo.ExportToFile(g_sInfoPath);
 	delete PlayerInfo;
@@ -476,6 +489,7 @@ void GiveMelee(int client)
 {
 	if(!IsSurvivor(client) || !IsPlayerAlive(client) || IsFakeClient(client))
 		return;
+
 	char str[256];
 	GetClientAuthId(client, AuthId_Steam2, str, 32, true);
 	switch(GetMeleeFromPlayerInfo(str))
@@ -510,4 +524,14 @@ void GiveMelee(int client)
 		}
 	}
 
+	KeyValues PlayerInfo = new KeyValues("PlayerInfo");
+	PlayerInfo.ImportFromFile(g_sInfoPath);
+	if(PlayerInfo.JumpToKey(str))
+	{
+		GetClientName(client, str, 256);
+		PlayerInfo.SetString("name", str);
+		PlayerInfo.Rewind();
+		PlayerInfo.ExportToFile(g_sInfoPath);
+	}
+	delete PlayerInfo;
 }
