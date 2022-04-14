@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-01 15:29:58
+ * @Last Modified time: 2022-04-14 14:23:06
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.01"
+#define VERSION "2022.04.14"
 
 public Plugin myinfo =
 {
@@ -31,15 +31,15 @@ int
     g_iSelfClearTimes[MAXSIZE];
 
 bool
-	g_bIsRoundOver,
-	g_bIsSpawnable,
+    g_bIsRoundOver,
+    g_bIsSpawnable,
     g_bIsSelfCleared,
     g_bShowSaveMsg[MAXSIZE];
 
 ConVar
     //对抗模式开关
     g_hAngelVersus,
-	//导演刷特限制
+    //导演刷特限制
     g_hHunterLimit,
     g_hBoomerLimit,
     g_hSmokerLimit,
@@ -102,7 +102,7 @@ public void OnPluginStart()
 //地图加载
 public void OnMapStart()
 {
-	InitLimit();
+    InitLimit();
 }
 
 //玩家解控
