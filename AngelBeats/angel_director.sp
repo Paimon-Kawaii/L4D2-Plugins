@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-14 14:23:06
+ * @Last Modified time: 2022-04-14 17:01:20
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -154,11 +154,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
     g_bIsSelfCleared = false;
     g_bIsRoundOver = g_bIsSpawnable = true;
-    for(int i = 1; i < MaxClients; i++)
-    {
-        g_bShowSaveMsg[i] = false;
-        g_iSelfClearTimes[i] = GetSurvivorCount() <= 2 ? g_hSICountLimit.IntValue - 2 : 1;
-    }
+    CreateTimer(0.2, Timer_ResetStats, 0, TIMER_FLAG_NO_MAPCHANGE);
 
     CreateTimer(0.5, Timer_FirstSpawn, 0, TIMER_FLAG_NO_MAPCHANGE);
     return Plugin_Continue;
@@ -254,6 +250,16 @@ public Action Timer_CancelGetup(Handle timer, any client)
     if (IsValidClient(client))
         SetEntPropFloat(client, Prop_Send, "m_flCycle", 1.0);
     return Plugin_Continue;
+}
+
+//重置玩家解控次数
+public Action Timer_ResetStats(Handle timer)
+{
+    for(int i = 1; i < MaxClients; i++)
+    {
+        g_bShowSaveMsg[i] = false;
+        g_iSelfClearTimes[i] = GetSurvivorCount() <= 2 ? g_hSICountLimit.IntValue - 2 : 1;
+    }
 }
 
 //Angel第一次刷特
