@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-04-14 14:23:02
+ * @Last Modified time: 2022-04-15 20:25:50
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.14"
+#define VERSION "2022.04.15"
 
 public Plugin myinfo =
 {
@@ -24,7 +24,7 @@ public Plugin myinfo =
     author = "我是派蒙啊",
     description = "AngelServer的启动核心(P.S. 改自内鬼插件-anneserver.sp)",
     version = VERSION,
-    url = "http://github.com/PaimonQwQ/AngelBeats/angel_core.sp",
+    url = "http://github.com/PaimonQwQ/L4D2-Plugins/AngelBeats"
 };
 
 enum Msgs

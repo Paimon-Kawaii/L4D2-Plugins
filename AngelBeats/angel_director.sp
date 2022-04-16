@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-14 17:01:20
+ * @Last Modified time: 2022-04-15 20:25:54
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -24,7 +24,7 @@ public Plugin myinfo =
     author = "我是派蒙啊",
     description = "AngelServer的刷特导演",
     version = VERSION,
-    url = "http://github.com/PaimonQwQ/AngelBeats/angel_director.sp",
+    url = "http://github.com/PaimonQwQ/L4D2-Plugins/AngelBeats"
 };
 
 int

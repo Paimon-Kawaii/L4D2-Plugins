@@ -2,7 +2,7 @@
  * @Author:          我是派蒙啊
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-14 14:23:11
+ * @Last Modified time: 2022-04-15 20:25:59
  * @Github:          http://github.com/PaimonQwQ
  */
 
@@ -33,7 +33,7 @@ public Plugin myinfo =
     author = "我是派蒙啊",
     description = "AngelServer的商店插件",
     version = VERSION,
-    url = "http://github.com/PaimonQwQ/AngelBeats/angel_guard.sp",
+    url = "http://github.com/PaimonQwQ/L4D2-Plugins/AngelBeats"
 };
 
 //插件入口

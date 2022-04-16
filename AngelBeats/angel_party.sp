@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-04-14 11:20:56
- * @Last Modified time: 2022-04-14 17:11:50
+ * @Last Modified time: 2022-04-15 20:26:03
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -14,7 +14,7 @@
 #include <l4d2tools>
 #include <left4dhooks>
 
-#define VERSION "2022.04.14"
+#define VERSION "2022.04.15"
 
 ConVar
     g_hAngelParty;//0=Disable, 1=Smoker, 2=Boomer, 3=Hunter,
@@ -26,7 +26,7 @@ public Plugin myinfo =
     author = "我是派蒙啊",
     description = "AngelServer的特感派对",
     version = VERSION,
-    url = "http://github.com/PaimonQwQ/AngelBeats/angel_director.sp",
+    url = "http://github.com/PaimonQwQ/L4D2-Plugins/AngelBeats"
 };
 
 //插件入口
