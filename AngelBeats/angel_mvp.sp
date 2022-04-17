@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-04-17 11:10:52
+ * @Last Modified time: 2022-04-17 12:28:04
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -44,16 +44,10 @@ public void OnPluginStart()
     HookEvent("finale_win", Event_RoundEnd);
     HookEvent("round_start", Event_RoundStart);
     HookEvent("player_hurt", Event_PlayerHurt);
+    HookEvent("map_transition", Event_RoundEnd);
     HookEvent("mission_lost", Event_MissionLost);
     HookEvent("player_death", Event_InfectedDeath);
     HookEvent("infected_death", Event_ZombiesDeath);
-    HookEvent("map_transition", Event_MapTransition);
-}
-
-public void OnMapStart()
-{
-    g_iRetryTimes = g_iHours = g_iMinutes = g_iSeconds = 0;
-    CreateTimer(1.0, Timer_CountTime, 0, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public Action L4D_OnFirstSurvivorLeftSafeArea()
@@ -97,13 +91,6 @@ public Action Event_RoundStart(Handle event, char[] name, bool dontBroadcast)
 public Action Event_MissionLost(Event event, const char[] name, bool dont_broadcast)
 {
     g_iRetryTimes++;
-    return Plugin_Continue;
-}
-
-public Action Event_MapTransition(Handle event, char[] name, bool dontBroadcast)
-{
-    ShowMVPMsg();
-    g_iRetryTimes = g_iHours = g_iMinutes = g_iSeconds = 0;
     return Plugin_Continue;
 }
 
@@ -163,20 +150,17 @@ public Action Event_ZombiesDeath(Handle event, char[] name, bool dontBroadcast)
     return Plugin_Continue;
 }
 
-public Action Timer_CountTime(Handle timer, int client)
+int SortByDamageDesc(int elem1, int elem2, int[] array, Handle hndl)
 {
-    g_iSeconds++;
-    if(g_iSeconds >= 60)
-    {
-        g_iSeconds = 0;
-        g_iMinutes++;
-    }
-    if(g_iMinutes >= 60)
-    {
-        g_iMinutes = 0;
-        g_iHours++;
-    }
-    return Plugin_Continue;
+    if (g_iTotalDamage[elem2] < g_iTotalDamage[elem1])
+        return -1;
+    if (g_iTotalDamage[elem1] < g_iTotalDamage[elem2])
+        return 1;
+    if (elem1 > elem2)
+        return -1;
+    if (elem2 > elem1)
+        return 1;
+    return 0;
 }
 
 bool IsValidClient(int client)
@@ -186,6 +170,7 @@ bool IsValidClient(int client)
 
 void ShowMVPMsg()
 {
+    GetMapTime();
     int players = 0;
     int players_clients[MAXSIZE];
     PrintToChatAll("\x03[MVP统计]");
@@ -205,15 +190,10 @@ void ShowMVPMsg()
     }
 }
 
-int SortByDamageDesc(int elem1, int elem2, int[] array, Handle hndl)
+void GetMapTime()
 {
-    if (g_iTotalDamage[elem2] < g_iTotalDamage[elem1])
-        return -1;
-    if (g_iTotalDamage[elem1] < g_iTotalDamage[elem2])
-        return 1;
-    if (elem1 > elem2)
-        return -1;
-    if (elem2 > elem1)
-        return 1;
-    return 0;
+    float seconds = GetGameTime();
+    g_iHours = RoundToFloor(seconds / 3600);
+    g_iMinutes = RoundToFloor((seconds - g_iHours * 3600) / 60);
+    g_iSeconds = RoundToFloor(seconds - g_iHours * 3600 - g_iMinutes * 60);
 }
