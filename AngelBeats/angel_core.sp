@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-04-17 10:53:51
+ * @Last Modified time: 2022-04-19 12:20:22
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -161,11 +161,9 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 //回合开始事件
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-    RestoreHealth();
-    ResetInventory();
-    g_bIsGameStart = false;
     FindConVar("mp_gamemode").SetString("coop");
     g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
+    CreateTimer(1.0, Timer_DelayedOnRoundStart, 0, TIMER_FLAG_NO_MAPCHANGE);
     return Plugin_Continue;
 }
 
@@ -276,6 +274,14 @@ public Action Cmd_PlayerSuicide(int client, any args)
 public Action Timer_RestartMap(Handle timer, int client)
 {
     CrashMap();
+}
+
+//开局重置
+public Action Timer_DelayedOnRoundStart(Handle timer)
+{
+    RestoreHealth();
+    ResetInventory();
+    g_bIsGameStart = false;
 }
 
 //服务器空置
