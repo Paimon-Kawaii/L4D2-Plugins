@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-17 10:53:55
+ * @Last Modified time: 2022-04-20 11:44:13
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.14"
+#define VERSION "2022.04.20"
 
 public Plugin myinfo =
 {
@@ -37,8 +37,9 @@ bool
     g_bShowSaveMsg[MAXSIZE];
 
 ConVar
-    //对抗模式开关
+    //模式开关
     g_hAngelVersus,
+    g_hAngelTraining,
     //导演刷特限制
     g_hHunterLimit,
     g_hBoomerLimit,
@@ -63,7 +64,7 @@ public void OnPluginStart()
     HookEvent("witch_killed", Event_WitchKilled);
     HookEvent("player_hurt", Event_PlayerHurted);
     HookEvent("tank_spawn", Event_TankSpawn, EventHookMode_Pre);
-    HookEvent("ability_use", Event_AbilityUsed, EventHookMode_Pre);
+    // HookEvent("ability_use", Event_AbilityUsed, EventHookMode_Pre);
     HookEvent("player_team", Event_PlayerChangeTeam, EventHookMode_Pre);
 
     g_hHunterLimit = FindConVar("z_hunter_limit");
@@ -94,6 +95,7 @@ public void OnPluginStart()
     g_hSpawnInterval.AddChangeHook(CvarEvent_InfectedChanged);
 
     g_hAngelVersus = CreateConVar("angel_versus", "0", "Angel对抗开关");
+    g_hAngelTraining = CreateConVar("angel_training", "0", "Angel训练模式");
 
     RegConsoleCmd("sm_dc", Cmd_DirectorMsg, "Show director-manager information");
     RegConsoleCmd("sm_xx", Cmd_DirectorMsg, "Show director-manager information");
@@ -109,8 +111,8 @@ public void OnMapStart()
 public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
 {
     //当生还存活并且未倒地，且仍被特感控制时，使用交互键并还有剩余解控次数，生还数量在2-3人时，判断是否可解控
-    if (IsSurvivor(client) && IsPlayerAlive(client) && IsSurvivorPinned(client) && 
-        !IsPlayerIncap(client) && (buttons & IN_USE) && g_iSelfClearTimes[client] > 0 && 
+    if (IsSurvivor(client) && IsPlayerAlive(client) && IsSurvivorPinned(client) &&
+        !IsPlayerIncap(client) && (buttons & IN_USE) && g_iSelfClearTimes[client] > 0 &&
         GetSurvivorCount() < 4 && GetSurvivorCount() > 1)
     {
         int attacker = GetSurvivorPinner(client);
@@ -123,7 +125,9 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
             g_bShowSaveMsg[client] = false;
 
             ForcePlayerSuicide(attacker);
-            SetPlayerHealth(client, GetPlayerHealth(client) - 3);
+            if(!SetPlayerHealth(client, GetPlayerHealth(client) - 3))
+                if(L4D_GetTempHealth(client) > 0)
+                    L4D_SetTempHealth(client, L4D_GetTempHealth(client) - 3);
             CreateTimer(0.1, Timer_CancelGetup, client, TIMER_FLAG_NO_MAPCHANGE);
 
             CPrintToChat(client, "[{olive}SSS团{default}] {default}剩余解控次数：{red}%d", g_iSelfClearTimes[client]);
@@ -147,6 +151,8 @@ public void L4D_OnEnterGhostState(int client)
     //Angel对抗未开启，玩家进入特感灵魂时移动至旁观
     if(!g_hAngelVersus.BoolValue)
         ChangeClientTeam(client, TEAM_SPECTATOR);
+
+    L4D_SetClass(client, FindConVar("angel_party").IntValue);
 }
 
 //玩家离开安全屋
@@ -166,16 +172,6 @@ public Action Event_TankSpawn(Event event, const char[] name, bool dont_broadcas
     int tank = GetClientOfUserId(event.GetInt("userid"));
     int heal = GetSurvivorCount() > 2 ? 1500 * GetSurvivorCount() : 1100 * GetSurvivorCount();
     SetPlayerHealth(tank, heal);
-    return Plugin_Continue;
-}
-
-//特感虚弱事件
-public Action Event_AbilityUsed(Event event, const char[] name, bool dont_broadcast)
-{
-    int client = GetClientOfUserId(event.GetInt("userid"));
-    if(!IsInfected(client) || IsTank(client)) return Plugin_Continue;
-    float percent = GetSurvivorCount() < 2 ? 0.6 : 0.8;
-    SetPlayerHealth(client, RoundToFloor(GetPlayerHealth(client) * percent));
     return Plugin_Continue;
 }
 
@@ -205,20 +201,31 @@ public Action Event_WitchKilled(Event event, const char[] name, bool dont_broadc
 //非4人时进行解控
 public Action Event_PlayerHurted(Event event, const char[] name, bool dont_broadcast)
 {
-    int damage = event.GetInt("dmg_health");
     int victim = GetClientOfUserId(event.GetInt("userid"));
     int attacker = GetClientOfUserId(event.GetInt("attacker"));
-    int zclass = GetEntProp(attacker, Prop_Send, "m_zombieClass");
-    int remain = GetClientHealth(attacker);
+    if (!IsSurvivor(victim) || !IsInfected(attacker))
+        return Plugin_Continue;
 
-    if (!IsSurvivor(victim) || !IsInfected(attacker) || zclass == view_as<int>(ZC_Spitter) ||
+    int remain = GetClientHealth(attacker);
+    int damage = event.GetInt("dmg_health");
+    int zclass = GetEntProp(attacker, Prop_Send, "m_zombieClass");
+    if(zclass == view_as<int>(ZC_Spitter) ||
         !IsSurvivorPinned(victim) || IsPlayerIncap(victim))
         return Plugin_Continue;
+
 
     if(GetSurvivorCount() == 1)
     {
         ForcePlayerSuicide(attacker);
-        SetPlayerHealth(victim, GetPlayerHealth(victim) - (damage - 1));
+        if(FindConVar("angel_party").IntValue == 3 && !g_hAngelTraining.BoolValue)
+        {
+            if(GetPlayerHealth(victim) > 10 && !SetPlayerHealth(victim, GetPlayerHealth(victim) - 10 + damage))
+                if(L4D_GetTempHealth(victim) > 0)
+                    L4D_SetTempHealth(victim, L4D_GetTempHealth(victim) - 10 + damage);
+                else SetPlayerHealth(victim, 0);
+        }
+        else if(!SetPlayerHealth(victim, GetPlayerHealth(victim) - damage))
+            L4D_SetTempHealth(victim, L4D_GetTempHealth(victim) - damage);
         CreateTimer(0.1, Timer_CancelGetup, victim, TIMER_FLAG_NO_MAPCHANGE);
         CPrintToChat(victim, "{olive}[SSS团] {red}%N{default} 还有 {olive}%d{default} 血!", attacker, remain);
     }
