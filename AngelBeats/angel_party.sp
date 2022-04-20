@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-04-14 11:20:56
- * @Last Modified time: 2022-04-15 20:26:03
+ * @Last Modified time: 2022-04-17 14:19:42
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -14,7 +14,7 @@
 #include <l4d2tools>
 #include <left4dhooks>
 
-#define VERSION "2022.04.15"
+#define VERSION "2022.04.17"
 
 ConVar
     g_hAngelParty;//0=Disable, 1=Smoker, 2=Boomer, 3=Hunter,
@@ -32,8 +32,8 @@ public Plugin myinfo =
 //插件入口
 public void OnPluginStart()
 {
+    HookEvent("tank_spawn", Event_TankSpawn);
     HookEvent("tongue_pull_stopped", Event_TonguePullStopped);
-    HookEvent("tank_spawn", Event_TankSpawn, EventHookMode_Pre);
 
     g_hAngelParty = CreateConVar("angel_party", "0", "特感派对类型");
 }
@@ -71,6 +71,11 @@ public Action Event_TankSpawn(Event event, const char[] name, bool dont_broadcas
 {
     int tank = GetClientOfUserId(event.GetInt("userid"));
     int heal = GetSurvivorCount() > 2 ? 1500 * GetSurvivorCount() : 1100 * GetSurvivorCount();
+    if(GetSurvivorCount() <= 2 && (g_hAngelParty.IntValue == 3 || g_hAngelParty.IntValue == 1))
+    {
+        ForcePlayerSuicide(tank);
+        return Plugin_Handled;
+    }
     switch(g_hAngelParty.IntValue)
     {
         case 5:
