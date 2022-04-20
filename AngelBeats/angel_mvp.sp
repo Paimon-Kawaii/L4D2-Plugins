@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-04-17 12:28:04
+ * @Last Modified time: 2022-04-17 14:53:02
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -40,6 +40,7 @@ public void OnPluginStart()
 {
     RegConsoleCmd("sm_mvp", MVPinfo, "MVP Msg");
     RegConsoleCmd("sm_kills", MVPinfo, "MVP Msg");
+
     HookEvent("round_end", Event_RoundEnd);
     HookEvent("finale_win", Event_RoundEnd);
     HookEvent("round_start", Event_RoundStart);
@@ -48,6 +49,11 @@ public void OnPluginStart()
     HookEvent("mission_lost", Event_MissionLost);
     HookEvent("player_death", Event_InfectedDeath);
     HookEvent("infected_death", Event_ZombiesDeath);
+}
+
+public void OnMapStart()
+{
+    g_iRetryTimes = 0;
 }
 
 public Action L4D_OnFirstSurvivorLeftSafeArea()
