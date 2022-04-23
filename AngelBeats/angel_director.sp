@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-20 11:44:13
+ * @Last Modified time: 2022-04-23 14:52:33
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.20"
+#define VERSION "2022.04.22"
 
 public Plugin myinfo =
 {
@@ -37,6 +37,8 @@ bool
     g_bShowSaveMsg[MAXSIZE];
 
 ConVar
+    //回血开关
+    g_hAngelReheal,
     //模式开关
     g_hAngelVersus,
     g_hAngelTraining,
@@ -94,6 +96,7 @@ public void OnPluginStart()
     g_hSICountLimit.AddChangeHook(CvarEvent_InfectedChanged);
     g_hSpawnInterval.AddChangeHook(CvarEvent_InfectedChanged);
 
+    g_hAngelReheal = CreateConVar("angel_reheal", "0", "Angel回血开关");
     g_hAngelVersus = CreateConVar("angel_versus", "0", "Angel对抗开关");
     g_hAngelTraining = CreateConVar("angel_training", "0", "Angel训练模式");
 
@@ -178,7 +181,34 @@ public Action Event_TankSpawn(Event event, const char[] name, bool dont_broadcas
 //特感死亡事件
 public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadcast)
 {
-    int client = GetClientOfUserId(event.GetInt("userid"));
+    int victim = GetClientOfUserId(event.GetInt("userid"));
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    if(g_hAngelReheal.BoolValue && IsInfected(victim) && !IsTank(victim) && IsSurvivor(attacker))
+    {
+        int heal = 0;
+        int zclass = GetEntProp(victim, Prop_Send, "m_zombieClass");
+        switch(zclass)
+        {
+            case 1:
+            {
+                heal += 4;
+            }
+            case 3:
+            {
+                heal += 5;
+            }
+            case 5:
+            {
+                heal += 5;
+            }
+            case 6:
+            {
+                heal += 6;
+            }
+        }
+        L4D_SetTempHealth(attacker, L4D_GetTempHealth(attacker) + heal);
+    }
+
     return Plugin_Continue;
 }
 
@@ -224,6 +254,9 @@ public Action Event_PlayerHurted(Event event, const char[] name, bool dont_broad
                     L4D_SetTempHealth(victim, L4D_GetTempHealth(victim) - 10 + damage);
                 else SetPlayerHealth(victim, 0);
         }
+        else if(g_hAngelTraining.BoolValue)
+            if(!SetPlayerHealth(victim, GetPlayerHealth(victim) + (damage - 1)))
+                L4D_SetTempHealth(victim, L4D_GetTempHealth(victim) + (damage - 1));
         else if(!SetPlayerHealth(victim, GetPlayerHealth(victim) - damage))
             L4D_SetTempHealth(victim, L4D_GetTempHealth(victim) - damage);
         CreateTimer(0.1, Timer_CancelGetup, victim, TIMER_FLAG_NO_MAPCHANGE);
