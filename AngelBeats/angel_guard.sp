@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-17 10:54:04
+ * @Last Modified time: 2022-04-22 23:56:31
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -18,7 +18,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.14"
+#define VERSION "2022.04.22"
 #define MENU_DISPLAY_TIME 15
 
 int
@@ -48,6 +48,7 @@ public void OnPluginStart()
 
     RegConsoleCmd("sm_buy", Cmd_GuardBuy, "Show guard menu");
     RegConsoleCmd("sm_rpg", Cmd_GuardBuy, "Show guard menu");
+    RegAdminCmd("sm_miku", Cmd_MiKuMiKu, ADMFLAG_GENERIC, "Give ticket");
     RegAdminCmd("sm_ticket", Cmd_GiveTicket, ADMFLAG_GENERIC, "Give ticket");
 }
 
@@ -115,6 +116,14 @@ public Action Cmd_GuardBuy(int client, any args)
     Event_CreateGuardMenu(client);
     return Plugin_Continue;
 }
+
+//MiKuMiKu~~
+public Action Cmd_MiKuMiKu(int client, any args)
+{
+    ClientCommand(client, "sm_ticket 520");
+    return Plugin_Continue;
+}
+
 
 //管理员作弊指令
 public Action Cmd_GiveTicket(int client, any args)
@@ -381,6 +390,7 @@ public int Handle_ExecHealthMenu(Menu menu, MenuAction action, int client, int i
             {
                 g_iMealTickets[client] -= ticket;
                 SetPlayerHealth(client, 5200);
+                L4D2_UseAdrenaline(client, 13140.0);
                 CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了麻婆豆腐", client, ticket);
             }
             else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
