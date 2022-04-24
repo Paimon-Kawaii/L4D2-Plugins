@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-22 23:56:31
+ * @Last Modified time: 2022-04-24 15:13:07
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -18,14 +18,25 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.22"
+#define VERSION "2022.04.23"
 #define MENU_DISPLAY_TIME 15
 
 int
     g_iMealTickets[MAXSIZE];
 
+enum Msgs
+{
+    Msg_Buy = 0,
+    Msg_NotEnough,
+};//Message enums for message array(as an index)
+
 char
-    g_sInfoPath[PLATFORM_MAX_PATH];
+    g_sInfoPath[PLATFORM_MAX_PATH],
+    g_sMessages[][] =
+    {
+        "[{olive}Guard{default}] {blue}%N{default} 花费{olive}%d{default}饭票购买了%s",
+        "[{olive}Guard{default}] 你没有饭票啦，快去学校抢一些吧",
+    };
 
 public Plugin myinfo =
 {
@@ -86,7 +97,7 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
     int attacker = GetClientOfUserId(event.GetInt("attacker"));
     if (IsInfected(client) && IsSurvivor(attacker) && !IsFakeClient(attacker) && IsPlayerAlive(attacker))
     {
-        ZCLASSES zclass = view_as<ZCLASSES>(GetEntProp(client, Prop_Send, "m_zombieClass"));
+        ZCLASSES zclass = view_as<ZCLASSES>(GetInfectedClass(client));
         if (zclass == ZC_Charger)
             g_iMealTickets[attacker] += 4;
         else if (zclass == ZC_Hunter)
@@ -282,9 +293,9 @@ public int Handle_ExecWeaponMenu(Menu menu, MenuAction action, int client, int i
             {
                 g_iMealTickets[client] -= ticket;
                 BypassAndExecuteCommand(client, "give", "smg");
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了UZI", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "UZI");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
         case 2:
         {
@@ -292,9 +303,9 @@ public int Handle_ExecWeaponMenu(Menu menu, MenuAction action, int client, int i
             {
                 g_iMealTickets[client] -= ticket;
                 BypassAndExecuteCommand(client, "give", "smg_silenced");
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了SMG", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "SMG");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
         case 3:
         {
@@ -302,9 +313,9 @@ public int Handle_ExecWeaponMenu(Menu menu, MenuAction action, int client, int i
             {
                 BypassAndExecuteCommand(client, "give", "pumpshotgun");
                 g_iMealTickets[client] -= ticket;
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了木喷", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "木喷");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
         case 4:
         {
@@ -312,9 +323,9 @@ public int Handle_ExecWeaponMenu(Menu menu, MenuAction action, int client, int i
             {
                 g_iMealTickets[client] -= ticket;
                 BypassAndExecuteCommand(client, "give", "shotgun_chrome");
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了铁喷", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "铁喷");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
         case 5:
         {
@@ -322,9 +333,9 @@ public int Handle_ExecWeaponMenu(Menu menu, MenuAction action, int client, int i
             {
                 g_iMealTickets[client] -= ticket;
                 BypassAndExecuteCommand(client, "give", "sniper_awp");
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了AWP", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "AWP");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
     }
 
@@ -350,9 +361,9 @@ public int Handle_ExecHealthMenu(Menu menu, MenuAction action, int client, int i
             {
                 g_iMealTickets[client] -= ticket;
                 BypassAndExecuteCommand(client, "give", "pain_pills");
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了止痛药", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "止痛药");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
         case 1:
         {
@@ -360,9 +371,9 @@ public int Handle_ExecHealthMenu(Menu menu, MenuAction action, int client, int i
             {
                 g_iMealTickets[client] -= ticket;
                 BypassAndExecuteCommand(client, "give", "adrenaline");
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了肾上腺素", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "肾上腺素");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
         case 2:
         {
@@ -370,9 +381,9 @@ public int Handle_ExecHealthMenu(Menu menu, MenuAction action, int client, int i
             {
                 BypassAndExecuteCommand(client, "give", "first_aid_kit");
                 g_iMealTickets[client] -= ticket;
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了急救包", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "急救包");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
         case 3:
         {
@@ -380,9 +391,9 @@ public int Handle_ExecHealthMenu(Menu menu, MenuAction action, int client, int i
             {
                 g_iMealTickets[client] -= ticket;
                 BypassAndExecuteCommand(client, "give", "defibrillator");
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了电击器", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "电击器");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
         case 4:
         {
@@ -391,9 +402,9 @@ public int Handle_ExecHealthMenu(Menu menu, MenuAction action, int client, int i
                 g_iMealTickets[client] -= ticket;
                 SetPlayerHealth(client, 5200);
                 L4D2_UseAdrenaline(client, 13140.0);
-                CPrintToChatAll("{olive}[Guard] {blue}%N{default} 花费{olive}%d{default}饭票购买了麻婆豆腐", client, ticket);
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "麻婆豆腐");
             }
-            else CPrintToChat(client, "{olive}[Guard] {default}你没有饭票啦，快去学校抢一些吧");
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
     }
 
