@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-04-19 12:20:22
+ * @Last Modified time: 2022-04-24 14:54:05
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.15"
+#define VERSION "2022.04.23"
 
 public Plugin myinfo =
 {
@@ -38,14 +38,14 @@ enum Msgs
 };//Message enums for message array(as an index)
 
 char
-    messages[][] =
+    g_sMessages[][] =
     {
-        "{olive}[天使] {default}提醒您：{blue}%N {default}将加入战线",
-        "{olive}[天使] {default}提醒您：{blue}%N {default}加入了战线",
-        "{olive}[天使] {default}提醒您：{blue}%N {default}离开了战线",
-        "{olive}[天使] {default}提醒您：{blue}%N {default}心满意足的消失了",
-        "{olive}[天使] {default}提醒您：{default}当前无生还Bot，请在开局前使用 {orange}!jg",
-        "{olive}[天使] {default}提醒您：{red}#检测到未知错误，AngelPlayer即将重启",
+        "[{olive}天使{default}] 提醒您：{blue}%N {default}将加入战线",
+        "[{olive}天使{default}] 提醒您：{blue}%N {default}加入了战线",
+        "[{olive}天使{default}] 提醒您：{blue}%N {default}离开了战线",
+        "[{olive}天使{default}] 提醒您：{blue}%N {default}心满意足的消失了",
+        "[{olive}天使{default}] 提醒您：{default}当前无生还Bot，请在开局前使用 {orange}!jg",
+        "[{olive}天使{default}] 提醒您：{red}#检测到未知错误，AngelPlayer即将重启",
     };//Messages for player to show
 
 bool
@@ -100,13 +100,13 @@ public void OnClientConnected(int client)
 {
     if (GetSurvivorCount() > 4)
     {
-        CPrintToChatAll(messages[Msg_Error]);
+        CPrintToChatAll(g_sMessages[Msg_Error]);
         CreateTimer(2.0, Timer_RestartMap, 0, TIMER_FLAG_NO_MAPCHANGE);
     }
 
     if (IsFakeClient(client)) return;
 
-    CPrintToChatAll(messages[Msg_Connecting], client);
+    CPrintToChatAll(g_sMessages[Msg_Connecting], client);
 }
 
 //玩家进入服务器
@@ -114,7 +114,7 @@ public void OnClientPutInServer(int client)
 {
     if (IsFakeClient(client)) return;
 
-    CPrintToChatAll(messages[Msg_Connected], client);
+    CPrintToChatAll(g_sMessages[Msg_Connected], client);
     g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
 }
 
@@ -129,7 +129,7 @@ public void OnClientDisconnect(int client)
     float currenttime = GetGameTime();
 
     if (IsClientInGame(client))
-        CPrintToChatAll(messages[Msg_DisConnected], client);
+        CPrintToChatAll(g_sMessages[Msg_DisConnected], client);
 
     if(!g_bIsGameStart)
         g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
@@ -239,13 +239,13 @@ public Action Cmd_JoinSurvivor(int client, any args)
     {
         if(IsSurvivorTeamFull() && g_bIsGameStart)
         {
-            CPrintToChat(client, messages[Msg_PlayerCanJoin]);
+            CPrintToChat(client, g_sMessages[Msg_PlayerCanJoin]);
             return Plugin_Handled;
         }
         int survivorcount = (!IsSurvivorTeamFull() || g_hServerMaxSurvivor.IntValue >= 4) ? g_hServerMaxSurvivor.IntValue : g_hServerMaxSurvivor.IntValue + 1;
         g_hServerMaxSurvivor.SetInt(survivorcount);
         ClientCommand(client, "jointeam survivor");
-        CreateTimer(0.1, Timer_NoWander, client, TIMER_REPEAT);
+        CreateTimer(0.1, Timer_NoWander, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     }
     return Plugin_Handled;
 }
@@ -265,7 +265,7 @@ public Action Cmd_PlayerSuicide(int client, any args)
 {
     if (!IsValidClient(client) || !IsPlayerAlive(client)) return Plugin_Handled;
 
-    CPrintToChatAll(messages[Msg_PlayerSuicide], client);
+    CPrintToChatAll(g_sMessages[Msg_PlayerSuicide], client);
     ForcePlayerSuicide(client);
     return Plugin_Handled;
 }
