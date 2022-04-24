@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-23 14:52:33
+ * @Last Modified time: 2022-04-24 15:20:35
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.22"
+#define VERSION "2022.04.23"
 
 public Plugin myinfo =
 {
@@ -31,6 +31,7 @@ int
     g_iSelfClearTimes[MAXSIZE];
 
 bool
+    g_bLateLoad,
     g_bIsRoundOver,
     g_bIsSpawnable,
     g_bIsSelfCleared,
@@ -59,12 +60,18 @@ ConVar
     g_hAngelChargerLimit,
     g_hAngelSpitterLimit;
 
+public APLRes AskPluginLoad2(Handle plugin, bool late, char[] error, int errMax)
+{
+    g_bLateLoad = late;
+    return APLRes_Success;
+}
+
 //插件入口
 public void OnPluginStart()
 {
     HookEvent("player_death", Event_PlayerDead);
     HookEvent("witch_killed", Event_WitchKilled);
-    HookEvent("player_hurt", Event_PlayerHurted);
+    // HookEvent("player_hurt", Event_PlayerHurted);
     HookEvent("tank_spawn", Event_TankSpawn, EventHookMode_Pre);
     // HookEvent("ability_use", Event_AbilityUsed, EventHookMode_Pre);
     HookEvent("player_team", Event_PlayerChangeTeam, EventHookMode_Pre);
@@ -102,12 +109,51 @@ public void OnPluginStart()
 
     RegConsoleCmd("sm_dc", Cmd_DirectorMsg, "Show director-manager information");
     RegConsoleCmd("sm_xx", Cmd_DirectorMsg, "Show director-manager information");
+
+    if (g_bLateLoad)
+        for (int i = 1; i <= MaxClients; i++)
+            if (IsClientInGame(i))
+                SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
 }
 
 //地图加载
 public void OnMapStart()
 {
     InitLimit();
+}
+
+//玩家加载完毕(检查是否为管理员是在完成载入后)
+public void OnClientPostAdminCheck(int client)
+{
+    SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+}
+
+//单人解控
+public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
+{
+    if (!IsSurvivor(victim) || !IsInfected(attacker) ||
+         IsTank(attacker) || GetSurvivorCount() > 3)
+        return Plugin_Continue;
+
+    if (GetSurvivorCount() != 1 && g_iSelfClearTimes[victim] > 0 && !g_bShowSaveMsg[victim])
+    {
+        g_bShowSaveMsg[victim] = true;
+        PrintHintText(victim, "使用 E(交互)键 解控！");
+        CreateTimer(1.0, Timer_ResetSaveMsg, victim, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+        return Plugin_Continue;
+    }
+
+    if (!g_hAngelTraining.BoolValue)
+        damage = 10.0;
+    else
+        damage = 2.0;
+    int remain = GetClientHealth(attacker);
+    SDKHooks_TakeDamage(victim, attacker, attacker, damage);
+
+    ForcePlayerSuicide(attacker);
+    CreateTimer(0.1, Timer_CancelGetup, victim, TIMER_FLAG_NO_MAPCHANGE);
+    CPrintToChat(victim, "[{olive}SSS团{default}] {red}%N{default} 还有 {olive}%d{default} 血!", attacker, remain);
+    return Plugin_Handled;
 }
 
 //玩家解控
@@ -120,17 +166,16 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
     {
         int attacker = GetSurvivorPinner(client);
         //如果攻击者是特感，并且特感存活且仍在控制生还，若已展示解控提示，则进行解控
-        if(IsInfected(attacker) && IsPlayerAlive(attacker) &&
+        if (IsInfected(attacker) && IsPlayerAlive(attacker) &&
          IsPinningASurvivor(attacker) && g_bShowSaveMsg[client])
         {
             int remain = GetClientHealth(attacker);
             g_iSelfClearTimes[client]--;
             g_bShowSaveMsg[client] = false;
 
+            SDKHooks_TakeDamage(client, attacker, attacker, 1.0);
+
             ForcePlayerSuicide(attacker);
-            if(!SetPlayerHealth(client, GetPlayerHealth(client) - 3))
-                if(L4D_GetTempHealth(client) > 0)
-                    L4D_SetTempHealth(client, L4D_GetTempHealth(client) - 3);
             CreateTimer(0.1, Timer_CancelGetup, client, TIMER_FLAG_NO_MAPCHANGE);
 
             CPrintToChat(client, "[{olive}SSS团{default}] {default}剩余解控次数：{red}%d", g_iSelfClearTimes[client]);
@@ -152,7 +197,7 @@ public void OnClientDisconnect(int client)
 public void L4D_OnEnterGhostState(int client)
 {
     //Angel对抗未开启，玩家进入特感灵魂时移动至旁观
-    if(!g_hAngelVersus.BoolValue)
+    if (!g_hAngelVersus.BoolValue)
         ChangeClientTeam(client, TEAM_SPECTATOR);
 
     L4D_SetClass(client, FindConVar("angel_party").IntValue);
@@ -183,30 +228,31 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
 {
     int victim = GetClientOfUserId(event.GetInt("userid"));
     int attacker = GetClientOfUserId(event.GetInt("attacker"));
-    if(g_hAngelReheal.BoolValue && IsInfected(victim) && !IsTank(victim) && IsSurvivor(attacker))
+    if (g_hAngelReheal.BoolValue && IsInfected(victim) && !IsTank(victim) && IsSurvivor(attacker))
     {
         int heal = 0;
-        int zclass = GetEntProp(victim, Prop_Send, "m_zombieClass");
-        switch(zclass)
+        int zclass = GetInfectedClass(victim);
+        switch (zclass)
         {
             case 1:
             {
-                heal += 4;
+                heal += 3;
             }
             case 3:
             {
-                heal += 5;
+                heal += 4;
             }
             case 5:
             {
-                heal += 5;
+                heal += 3;
             }
             case 6:
             {
                 heal += 6;
             }
         }
-        L4D_SetTempHealth(attacker, L4D_GetTempHealth(attacker) + heal);
+        float tmpheal = L4D_GetTempHealth(attacker);
+        L4D_SetTempHealth(attacker,  tmpheal + heal > 200 ? tmpheal : tmpheal + heal);
     }
 
     return Plugin_Continue;
@@ -228,55 +274,12 @@ public Action Event_WitchKilled(Event event, const char[] name, bool dont_broadc
     return Plugin_Continue;
 }
 
-//非4人时进行解控
-public Action Event_PlayerHurted(Event event, const char[] name, bool dont_broadcast)
-{
-    int victim = GetClientOfUserId(event.GetInt("userid"));
-    int attacker = GetClientOfUserId(event.GetInt("attacker"));
-    if (!IsSurvivor(victim) || !IsInfected(attacker))
-        return Plugin_Continue;
-
-    int remain = GetClientHealth(attacker);
-    int damage = event.GetInt("dmg_health");
-    int zclass = GetEntProp(attacker, Prop_Send, "m_zombieClass");
-    if(zclass == view_as<int>(ZC_Spitter) ||
-        !IsSurvivorPinned(victim) || IsPlayerIncap(victim))
-        return Plugin_Continue;
-
-
-    if(GetSurvivorCount() == 1)
-    {
-        ForcePlayerSuicide(attacker);
-        if(FindConVar("angel_party").IntValue == 3 && !g_hAngelTraining.BoolValue)
-        {
-            if(GetPlayerHealth(victim) > 10 && !SetPlayerHealth(victim, GetPlayerHealth(victim) - 10 + damage))
-                if(L4D_GetTempHealth(victim) > 0)
-                    L4D_SetTempHealth(victim, L4D_GetTempHealth(victim) - 10 + damage);
-                else SetPlayerHealth(victim, 0);
-        }
-        else if(g_hAngelTraining.BoolValue)
-            if(!SetPlayerHealth(victim, GetPlayerHealth(victim) + (damage - 1)))
-                L4D_SetTempHealth(victim, L4D_GetTempHealth(victim) + (damage - 1));
-        else if(!SetPlayerHealth(victim, GetPlayerHealth(victim) - damage))
-            L4D_SetTempHealth(victim, L4D_GetTempHealth(victim) - damage);
-        CreateTimer(0.1, Timer_CancelGetup, victim, TIMER_FLAG_NO_MAPCHANGE);
-        CPrintToChat(victim, "{olive}[SSS团] {red}%N{default} 还有 {olive}%d{default} 血!", attacker, remain);
-    }
-    else if(GetSurvivorCount() < 4 && g_iSelfClearTimes[victim] > 0 && !g_bShowSaveMsg[victim])
-    {
-        g_bShowSaveMsg[victim] = true;
-        PrintHintText(victim, "使用 E(交互)键 解控！");
-    }
-
-    return Plugin_Continue;
-}
-
 //玩家切换队伍时修正尸潮数量
 public Action Event_PlayerChangeTeam(Event event, const char[] name, bool dont_broadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
     int team = GetClientOfUserId(event.GetInt("team"));
-    if(!IsValidClient(client) || IsFakeClient(client)) 
+    if (!IsValidClient(client) || IsFakeClient(client))
         return Plugin_Continue;
 
     CreateTimer(0.1, Timer_MobChange, 0, TIMER_FLAG_NO_MAPCHANGE);
@@ -292,10 +295,22 @@ public Action Timer_CancelGetup(Handle timer, any client)
     return Plugin_Continue;
 }
 
+//清除玩家起身标签
+public Action Timer_ResetSaveMsg(Handle timer, any client)
+{
+    if ((IsSurvivor(client) && !IsSurvivorPinned(client)) ||
+        !IsSurvivor(client) || !IsPlayerAlive(client))
+    {
+        g_bShowSaveMsg[client] = false;
+        return Plugin_Stop;
+    }
+    return Plugin_Continue;
+}
+
 //重置玩家解控次数
 public Action Timer_ResetStats(Handle timer)
 {
-    for(int i = 1; i < MaxClients; i++)
+    for (int i = 1; i < MaxClients; i++)
     {
         g_bShowSaveMsg[i] = false;
         g_iSelfClearTimes[i] = GetSurvivorCount() <= 2 ? g_hSICountLimit.IntValue - 2 : 1;
