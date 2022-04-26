@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-04-14 11:20:56
- * @Last Modified time: 2022-04-24 15:42:03
+ * @Last Modified time: 2022-04-24 22:46:34
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -44,8 +44,9 @@ public Action L4D_OnSpawnSpecial(int &zombieClass, const float vecPos[3], const 
     if(g_hAngelParty.IntValue < 1 || g_hAngelParty.IntValue > 6)
         return Plugin_Continue;
 
-    if(L4D2_IsTankInPlay() && GetSurvivorCount() < 4 &&
-        GetSInfectedCount() > FindConVar("l4d_infected_limit").IntValue / 2)
+    if(L4D2_IsTankInPlay() && GetSurvivorCount() < 4)
+        if(GetSurvivorCount() == 1 ||
+            GetSInfectedCount() > FindConVar("l4d_infected_limit").IntValue / 2)
         return Plugin_Handled;
 
     zombieClass = g_hAngelParty.IntValue;

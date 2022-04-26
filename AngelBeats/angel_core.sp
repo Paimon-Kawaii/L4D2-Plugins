@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-04-24 14:54:05
+ * @Last Modified time: 2022-04-26 11:28:09
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -161,6 +161,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 //回合开始事件
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
+    SetGodMode(true);
     FindConVar("mp_gamemode").SetString("coop");
     g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
     CreateTimer(1.0, Timer_DelayedOnRoundStart, 0, TIMER_FLAG_NO_MAPCHANGE);
@@ -302,6 +303,7 @@ public Action Timer_IsNobodyConnected(Handle timer, any timerDisconnectTime)
 //自动给予药品
 public Action Timer_AutoGive(Handle timer)
 {
+    g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
     for (int client = 1; client <= MaxClients; client++)
         if (IsSurvivor(client) && !IsFakeClient(client))
         {
