@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2022-04-20 14:03:01
+ * @Last Modified time: 2022-05-20 23:31:48
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -228,14 +228,14 @@ stock bool IsAllSurvivorIncapped()
 }
 
 /**
- * @brief Returns true if tank has view of survivor.
+ * @brief Returns true if player can see threats.
  * 
- * @param tankClient    Client index.
- * @return              True if tank has view of survivor. False otherwise.
+ * @param client    Client index.
+ * @return              True if player can see threats. False otherwise.
  */
-stock bool IsTankHasView(int tankClient)
+stock bool CanPlayerSeeThreats(int client)
 {
-    return (IsValidClient(tankClient) && view_as<bool>(GetEntProp(tankClient, Prop_Send, "m_hasVisibleThreats")));
+    return (IsValidClient(client) && view_as<bool>(GetEntProp(client, Prop_Send, "m_hasVisibleThreats")));
 }
 
 /**
