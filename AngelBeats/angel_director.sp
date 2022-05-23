@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-05-23 14:08:02
+ * @Last Modified time: 2022-05-23 17:37:17
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -45,6 +45,7 @@ ConVar
     g_hChargerLimit,
     g_hSpitterLimit,
     //插件刷特限制
+    g_hAngelHardMode,
     g_hSICountLimit,
     g_hAngelSpawnFlow,
     g_hAngelDelayDistance,
@@ -76,6 +77,7 @@ public void OnPluginStart()
     CreateConVar("angel_infected_limit", "6", "特感上限显示");
     g_hSICountLimit = CreateConVar("l4d_infected_limit", "31", "特感数量上限");
 
+    g_hAngelHardMode = CreateConVar("angel_director_hard", "0", "高难度模式");
     g_hAngelDirectorDebug = CreateConVar("angel_director_debug", "0", "输出测试信息");
     g_hAngelSpawnFlow = CreateConVar("angel_spawn_flow", "5", "生还进程影响刷特的权重");
     //路程刷特方式：若 当前生还最高路程 - 上次刷特特感最高路程 >= 权重 * (40 - 当前刷特秒数) / 20 时，进行计时
@@ -254,7 +256,7 @@ public Action Timer_DelaySIDealed(Handle timer)
                 if(L4D2Direct_GetFlowDistance(i) < L4D2Direct_GetFlowDistance(keySurvivor) &&
                     !L4D2_VScriptWrapper_NavAreaBuildPath(pos, keyPos, g_hAngelDelayDistance.FloatValue, false, false, TEAM_INFECTED, false))
                 {
-                    L4D_GetRandomPZSpawnPosition(keySurvivor, GetInfectedClass(i), 2, pos);
+                    GetRandomSpawnPosition(keySurvivor, i, GetInfectedClass(i), 2, pos);
                     TeleportEntity(i, pos, NULL_VECTOR, NULL_VECTOR);
                     if(g_hAngelDirectorDebug.BoolValue)
                         CPrintToChatAll("%N tped to %N",i, keySurvivor);
@@ -316,29 +318,27 @@ void StartSpawn()
     typeLimit[4] = g_hAngelJockeyLimit.IntValue;
     typeLimit[5] = g_hAngelChargerLimit.IntValue;
 
+    GetRandomSpawnPosition(keySurvivor, -1, 1, 2, pos);
+
     for(int i = 1; i < 7; i++)
-    {
         for(int v = GetAliveInfectedCountByClass(i); v < typeLimit[i - 1]; v++)
         {
             if(GetAliveInfectedCount() >= GetInfectedLimit() &&
                 FindConVar("angel_party").IntValue > 0)
                 break;
 
-            int times = 2;
             float tarPos[3];
             int target = GetInfectedClientBeyondLimit();
             int zclass = FindConVar("angel_party").IntValue ? FindConVar("angel_party").IntValue : i;
             if(IsInfected(target) && IsPlayerAlive(target))
                 GetClientAbsOrigin(target, tarPos);
 
-            L4D_GetRandomPZSpawnPosition(keySurvivor, zclass, times--, pos);
-            while((L4D2Direct_GetTerrorNavArea(pos) == Address_Null ||
-                L4D2_NavAreaTravelDistance(pos, keyPos, true) <= 0) && times > 0)
-                L4D_GetRandomPZSpawnPosition(keySurvivor, zclass, times--, pos);
+            if(g_hAngelHardMode.BoolValue)
+                GetRandomSpawnPosition(keySurvivor, target, zclass, 2, pos);
 
             if(!IsInfected(target))
-                L4D2_SpawnSpecial(zclass, pos, NULL_VECTOR);
-            else if(!IsPinningASurvivor(target) &&
+                target = L4D2_SpawnSpecial(zclass, pos, NULL_VECTOR);
+            else if(!IsPinningASurvivor(target) && !CanPlayerSeeThreats(target) &&
                 L4D2Direct_GetFlowDistance(target) < L4D2Direct_GetFlowDistance(keySurvivor) &&
                 !L4D2_VScriptWrapper_NavAreaBuildPath(tarPos, keyPos, g_hAngelDelayDistance.FloatValue, false, false, TEAM_INFECTED, false))
             {
@@ -346,7 +346,6 @@ void StartSpawn()
                 TeleportEntity(target, pos, NULL_VECTOR, NULL_VECTOR);
             }
         }
-    }
 
     g_fLastFlowPercent = GetFurthestInfectedFlow() / L4D2Direct_GetMapMaxFlowDistance() * 100;
     g_bIsSpawnCounting = false;
@@ -381,6 +380,19 @@ float GetFurthestInfectedFlow()
 
 int GetInfectedClientBeyondLimit()
 {
+    if(FindConVar("angel_party").IntValue)
+    {
+        int count = 0;
+        for(int i = 0; i < MaxClients; i++)
+            if(IsInfected(i) && IsPlayerAlive(i) && IsFakeClient(i) &&
+                !IsTank(i) && !CanPlayerSeeThreats(i) && !IsPinningASurvivor(i))
+            {
+                count++;
+                if(count > GetInfectedLimit())
+                    return i;
+            }
+        return 0;
+    }
     int typeLimit[6];
     typeLimit[0] = g_hAngelSmokerLimit.IntValue;
     typeLimit[1] = g_hAngelBoomerLimit.IntValue;
@@ -401,4 +413,17 @@ int GetInfectedClientBeyondLimit()
             }
     }
     return 0;
+}
+
+void GetRandomSpawnPosition(int survivor, int infected, int zclass, int times, float pos[3])
+{
+    L4D_GetRandomPZSpawnPosition(survivor, zclass, times--, pos);
+    if(!IsInfected(infected)) return;
+
+    float surPos[3], infPos[3];
+    GetClientAbsOrigin(survivor, surPos);
+    GetClientAbsOrigin(infected, infPos);
+    while((L4D2Direct_GetTerrorNavArea(pos) == Address_Null || L4D2_NavAreaTravelDistance(pos, surPos, true) <= 0 ||
+        L4D2_VScriptWrapper_NavAreaBuildPath(infPos, surPos, g_hAngelDelayDistance.FloatValue, false, false, TEAM_INFECTED, false)) && times > 0)
+        L4D_GetRandomPZSpawnPosition(survivor, zclass, times--, pos);
 }
