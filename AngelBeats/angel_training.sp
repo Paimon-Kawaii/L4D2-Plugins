@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-04-26 11:45:56
- * @Last Modified time: 2022-04-26 18:20:16
+ * @Last Modified time: 2022-05-22 14:01:29
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -17,7 +17,7 @@
 #include <left4dhooks>
 #include <angel/training>
 
-#define VERSION "2022.04.26"
+#define VERSION "2022.05.22"
 #define NEQNULL(%1) Dynamic_IsValid(view_as<int>(%1))
 
 public Plugin myinfo =
@@ -38,9 +38,10 @@ public void OnPluginStart()
     if(!NEQNULL(g_oAngelTraining))
         g_oAngelTraining = Training();
 
+    g_oAngelTraining.HealthConVar = CreateConVar("angel_reheal", "0", "Angel回血");
     g_oAngelTraining.TrainConVar = CreateConVar("angel_training", "0", "Angel训练模式");
-    g_oAngelTraining.HealthConVar = CreateConVar("angel_reheal", "0", "Angel回血开关");
-    g_oAngelTraining.RefillConVar = CreateConVar("angel_autorefill", "0", "开关自动装填");
+    g_oAngelTraining.ShotConVar = CreateConVar("angel_headshot", "0", "Angel爆头训练");
+    g_oAngelTraining.RefillConVar = CreateConVar("angel_autorefill", "0", "Angel自动装填");
 
     HookEvent("player_death", Event_PlayerDead);
     HookEvent("weapon_fire", Event_WeaponFire);
@@ -54,12 +55,16 @@ public void OnAllPluginsLoaded()
 {
     for (int i = 1; i <= MaxClients; i++)
         if (IsClientInGame(i))
+        {
+            SDKHook(i, SDKHook_TraceAttack, TraceAttack);
             SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+        }
 }
 
 //玩家加载完毕(检查是否为管理员是在完成载入后)
 public void OnClientPostAdminCheck(int client)
 {
+    SDKHook(client, SDKHook_TraceAttack, TraceAttack);
     SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 }
 
@@ -80,8 +85,22 @@ public void OnClientDisconnect(int client)
          g_oAngelTraining.SICountLimit - (GetSurvivorCount() <= 2 ? 1 : 3));
 }
 
+//爆头训练
+public Action TraceAttack(int victim, int &attacker, int &inflictor, float &damage, int &damageType, int &ammoType, int hitBox, int hitGroup)
+{
+    if(!g_oAngelTraining.ShotConVar.BoolValue)
+        return Plugin_Continue;
+    if(!IsSurvivor(attacker) || !IsInfected(victim) || IsTank(victim))
+        return Plugin_Continue;
+    if(hitGroup != 1)//HeadShot
+        damage = 0.0;
+    else
+        PrintToChat(attacker, "Well Done, you made %d dmg by head-shot", RoundToFloor(damage * ((damageType & DMG_BUCKSHOT) ? 1.25 : ((damageType & DMG_BULLET) ? 4.0 : 1.0))));
+    return Plugin_Changed;
+}
+
 //单人解控
-public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
+public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damageType, int &weapon, float damageForce[3], float damagePosition[3])
 {
     if (!IsSurvivor(victim) || !IsInfected(attacker) ||
          IsTank(attacker) || GetSurvivorCount() > 3 ||
@@ -107,6 +126,7 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
     SDKHooks_TakeDamage(victim, attacker, attacker, damage);
 
     ForcePlayerSuicide(attacker);
+    SetEntProp(victim, Prop_Send, "m_CollisionGroup", 17);
     CreateTimer(0.1, Timer_CancelGetup, victim, TIMER_FLAG_NO_MAPCHANGE);
     CPrintToChat(victim, "[{olive}SSS团{default}] {red}%N{default} 还有 {olive}%d{default} 血!", attacker, remain);
     return Plugin_Handled;
@@ -132,10 +152,11 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
             SDKHooks_TakeDamage(client, attacker, attacker, 1.0);
 
             ForcePlayerSuicide(attacker);
+            SetEntProp(client, Prop_Send, "m_CollisionGroup", 17);
             CreateTimer(0.1, Timer_CancelGetup, client, TIMER_FLAG_NO_MAPCHANGE);
 
             CPrintToChat(client, "[{olive}SSS团{default}] {default}剩余解控次数：{red}%d",
-                g_oAngelTraining.SaveMsgArray.Get(client));
+                g_oAngelTraining.SelfSaveArray.Get(client));
             CPrintToChat(client, "[{olive}SSS团{default}] {red}%N{default} 还有 {olive}%d{default} 血!", attacker, remain);
         }
     }
@@ -211,8 +232,18 @@ public Action Event_WeaponFire(Event event, const char[] name, bool dont_broadca
 //取消生还起身延迟
 public Action Timer_CancelGetup(Handle timer, any client)
 {
-    if (IsValidClient(client))
-        SetEntPropFloat(client, Prop_Send, "m_flCycle", 1.0);
+    if (!IsValidClient(client)) return Plugin_Stop;
+    SetEntPropFloat(client, Prop_Send, "m_flCycle", 1.0);
+    SetEntProp(client, Prop_Send, "m_CollisionGroup", 17);
+    CreateTimer(2.0,  Timer_ResetGetup, client, TIMER_FLAG_NO_MAPCHANGE);
+    return Plugin_Continue;
+}
+
+//恢复生还被控
+public Action Timer_ResetGetup(Handle timer, any client)
+{
+    if (!IsValidClient(client)) return Plugin_Stop;
+    SetEntProp(client, Prop_Send, "m_CollisionGroup", 5);
     return Plugin_Continue;
 }
 
