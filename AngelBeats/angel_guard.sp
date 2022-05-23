@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-04-24 15:13:07
+ * @Last Modified time: 2022-05-12 14:56:05
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -18,15 +18,18 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.23"
+#define VERSION "2022.05.12"
 #define MENU_DISPLAY_TIME 15
 
 int
-    g_iMealTickets[MAXSIZE];
+    g_iKidneySold[MAXSIZE],
+    g_iMealTickets[MAXSIZE],
+    g_iRecordHapless[MAXSIZE];
 
 enum Msgs
 {
     Msg_Buy = 0,
+    Msg_Lottery,
     Msg_NotEnough,
 };//Message enums for message array(as an index)
 
@@ -35,6 +38,7 @@ char
     g_sMessages[][] =
     {
         "[{olive}Guard{default}] {blue}%N{default} 花费{olive}%d{default}饭票购买了%s",
+        "[{olive}Guard{default}] {blue}%N {default}抽奖获得了{olive}%s",
         "[{olive}Guard{default}] 你没有饭票啦，快去学校抢一些吧",
     };
 
@@ -85,7 +89,7 @@ public void OnClientDisconnect(int client)
 public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
     for(int i = 1; i < MaxClients; i++)
-        if(IsSurvivor(i) && IsPlayerAlive(i) && !IsFakeClient(i))
+        if (IsSurvivor(i) && IsPlayerAlive(i) && !IsFakeClient(i))
             GiveMelee(i);
     return Plugin_Continue;
 }
@@ -125,21 +129,20 @@ public Action Cmd_GuardBuy(int client, any args)
         return Plugin_Handled;
 
     Event_CreateGuardMenu(client);
-    return Plugin_Continue;
+    return Plugin_Handled;
 }
 
 //MiKuMiKu~~
 public Action Cmd_MiKuMiKu(int client, any args)
 {
     ClientCommand(client, "sm_ticket 520");
-    return Plugin_Continue;
+    return Plugin_Handled;
 }
-
 
 //管理员作弊指令
 public Action Cmd_GiveTicket(int client, any args)
 {
-    if(!IsValidClient(client)) return Plugin_Handled;
+    if (!IsValidClient(client)) return Plugin_Handled;
 
     char arg[16];
     int target = client;
@@ -160,7 +163,7 @@ public Action Cmd_GiveTicket(int client, any args)
 
     }
 
-    return Plugin_Continue;
+    return Plugin_Handled;
 }
 
 //创建GuardMenu
@@ -172,6 +175,7 @@ public Action Event_CreateGuardMenu(int client)
     menu.AddItem("Weapon", "武器商店");
     menu.AddItem("Health", "补给商店");
     menu.AddItem("Melee",  "近战补给");
+    menu.AddItem("Lottery",  "抽奖转盘");
     menu.Pagination = MENU_NO_PAGINATION;
     menu.ExitButton = true;
     menu.Display(client, MENU_DISPLAY_TIME);
@@ -207,7 +211,8 @@ public Action Event_CreateHealthMenu(int client)
     menu.AddItem("40", "止痛药(40饭票)");
     menu.AddItem("40", "肾上腺素(40饭票)");
     menu.AddItem("100", "急救包(100饭票)");
-    menu.AddItem("200", "电击器(200饭票)");
+    menu.AddItem("100", "电击器(100饭票)");
+    menu.AddItem("120", "红外升级(120饭票)");
     menu.AddItem("520", "麻婆豆腐(520饭票)");
     menu.Pagination = MENU_NO_PAGINATION;
     menu.ExitButton = true;
@@ -257,6 +262,21 @@ public Action Event_CreateChoiceMenu(int client)
     return Plugin_Handled;
 }
 
+//创建LotteryMenu
+public Action Event_CreateLotteryMenu(int client)
+{
+    if (!IsSurvivor(client)) return Plugin_Handled;
+    Menu menu = new Menu(Handle_ExecLotteryMenu);
+    menu.SetTitle("大大大大大转盘：%d 饭票", g_iMealTickets[client]);
+    menu.AddItem("Start", "开始抽奖(12饭票)");
+    menu.AddItem("Kill", "噶腰子(获取饭票)");
+    menu.AddItem("Record", "吃保底(看看你有多非)");
+    menu.Pagination = MENU_NO_PAGINATION;
+    menu.ExitButton = true;
+    menu.Display(client, MENU_DISPLAY_TIME);
+
+    return Plugin_Handled;
+}
 
 //处理Guard列表事件
 public int Handle_ExecGuardMenu(Menu menu, MenuAction action, int client, int item)
@@ -266,6 +286,7 @@ public int Handle_ExecGuardMenu(Menu menu, MenuAction action, int client, int it
     if (item == 0) Event_CreateWeaponMenu(client);
     if (item == 1) Event_CreateHealthMenu(client);
     if (item == 2) Event_CreateMeleePanel(client);
+    if (item == 3) Event_CreateLotteryMenu(client);
 
     return 1;
 }
@@ -400,6 +421,16 @@ public int Handle_ExecHealthMenu(Menu menu, MenuAction action, int client, int i
             if (g_iMealTickets[client] >= ticket)
             {
                 g_iMealTickets[client] -= ticket;
+                BypassAndExecuteCommand(client, "upgrade_add", "laser_sight");
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "红外");
+            }
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
+        }
+        case 5:
+        {
+            if (g_iMealTickets[client] >= ticket)
+            {
+                g_iMealTickets[client] -= ticket;
                 SetPlayerHealth(client, 5200);
                 L4D2_UseAdrenaline(client, 13140.0);
                 CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "麻婆豆腐");
@@ -445,11 +476,31 @@ public int Handle_ExecChoiceMenu(Menu menu, MenuAction action, int client, int i
     return 1;
 }
 
+//处理Guard列表事件
+public int Handle_ExecLotteryMenu(Menu menu, MenuAction action, int client, int item)
+{
+    if (!IsSurvivor(client)) return 0;
+    if (action != MenuAction_Select) return 0;
+    if (item == 0) StartLottery(client);
+    if (item == 1 && L4D_HasAnySurvivorLeftSafeArea() && IsPlayerAlive(client))
+    {
+        g_iKidneySold[client]++;
+        int ticket = GetRandomInt(10, 20);
+        g_iMealTickets[client] += ticket;
+        SDKHooks_TakeDamage(client, client, client, 20.0);
+        CPrintToChatAll("[{olive}Guard{default}] {blue}%N {olive}噶掉了她的第%d个腰子，兑换了%d饭票", client, g_iKidneySold[client], ticket);
+    }
+    if (item == 2) CPrintToChat(client, "[{olive}Guard{default}] {default}你还需要{lime}%d{default}抽才能吃大保底", 40 - g_iRecordHapless[client]);
+    Event_CreateLotteryMenu(client);
+
+    return 1;
+}
+
 //初始化饭票
 void InitTickets()
 {
     for(int i = 1; i < MaxClients; i++)
-        g_iMealTickets[i] = 0;
+        g_iMealTickets[i] = g_iRecordHapless[i] = g_iKidneySold[i] = 0;
 }
 
 //获取近战类型
@@ -507,9 +558,110 @@ void GetMeleeName(int melee, char[] name)
     }
 }
 
+void StartLottery(int client)
+{
+    if(g_iMealTickets[client] < 12)
+    {
+        CPrintToChat(client, g_sMessages[Msg_NotEnough]);
+        return;
+    }
+
+    g_iMealTickets[client] -= 12;
+    g_iRecordHapless[client]++;
+    if (g_iRecordHapless[client] >= 40)
+    {
+        SetPlayerHealth(client, 5200);
+        L4D2_UseAdrenaline(client, 13140.0);
+        g_iRecordHapless[client] = 0;
+        CPrintToChatAll("[{olive}Guard{default}] {blue}%N {olive}吃保底啦", client);
+        return;
+    }
+    int random = GetRandomInt(1, 100);
+    if (random <= 40)
+    {
+        random = GetRandomInt(1, 80);
+        if (random <= 5)
+        {
+            SetPlayerHealth(client, 5200);
+            L4D2_UseAdrenaline(client, 13140.0);
+            g_iRecordHapless[client] = 0;
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "麻婆豆腐");
+        }
+        else if(random <= 20)
+        {
+            BypassAndExecuteCommand(client, "give", "sniper_awp");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "AWP");
+        }
+        else if(random <= 35)
+        {
+            BypassAndExecuteCommand(client, "upgrade_add", "LASER_SIGHT");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "激光升级");
+        }
+        else if(random <= 50)
+        {
+            BypassAndExecuteCommand(client, "upgrade_add", "INCENDIARY_AMMO");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "燃烧弹升级");
+        }
+        else if(random <= 65)
+        {
+            BypassAndExecuteCommand(client, "upgrade_add", "EXPLOSIVE_AMMO");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "爆炸弹升级");
+        }
+        else
+        {
+            g_iMealTickets[client] += 48;
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "48饭票");
+        }
+    }
+    else
+    {
+        random = GetRandomInt(1, 100);
+        if (random <= 30)
+        {
+            CPrintToChat(client, "[{olive}Guard{default}]  谢谢参与！");
+            return;
+        }
+        else if (random <= 40)
+        {
+            BypassAndExecuteCommand(client, "give", "smg_silenced");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "SMG");
+        }
+        else if (random <= 50)
+        {
+            BypassAndExecuteCommand(client, "give", "smg");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "UZI");
+        }
+        else if (random <= 60)
+        {
+            BypassAndExecuteCommand(client, "give", "first_aid_kit");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "急救包");
+        }
+        else if (random <= 70)
+        {
+            BypassAndExecuteCommand(client, "give", "defibrillator");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "电击器");
+        }
+        else if (random <= 80)
+        {
+            BypassAndExecuteCommand(client, "give", "pain_pills");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "止痛药");
+        }
+        else if (random <= 90)
+        {
+            BypassAndExecuteCommand(client, "give", "adrenaline");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "肾上腺素");
+        }
+        else if (random <= 100)
+        {
+            BypassAndExecuteCommand(client, "give", "ammo");
+            CPrintToChatAll(g_sMessages[Msg_Lottery], client, "弹药补充");
+        }
+    }
+}
+
 void GiveMelee(int client)
 {
-    if(!IsSurvivor(client) || !IsPlayerAlive(client) || IsFakeClient(client))
+    if (!IsSurvivor(client) || !IsPlayerAlive(client) || IsFakeClient(client))
         return;
 
     char str[256];
@@ -548,7 +700,7 @@ void GiveMelee(int client)
 
     KeyValues PlayerInfo = new KeyValues("PlayerInfo");
     PlayerInfo.ImportFromFile(g_sInfoPath);
-    if(PlayerInfo.JumpToKey(str))
+    if (PlayerInfo.JumpToKey(str))
     {
         GetClientName(client, str, 256);
         PlayerInfo.SetString("name", str);
