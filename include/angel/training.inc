@@ -20,7 +20,7 @@ methodmap Training < Dynamic
     {
         public get()
         {
-            return FindConVar("l4d_infected_limit").IntValue;
+            return FindConVar("angel_infected_limit").IntValue;
         }
     }
     property int OffsetAmmo
@@ -63,6 +63,17 @@ methodmap Training < Dynamic
             this.SetHandle("WeaponOffsets", view_as<Handle>(map));
         }
     }
+    property ConVar HealthConVar
+    {
+        public get()
+        {
+            return view_as<ConVar>(this.GetHandle("HealthConVar"));
+        }
+        public set(ConVar convar)
+        {
+            this.SetHandle("HealthConVar", view_as<Handle>(convar));
+        }
+    }
     property ConVar TrainConVar
     {
         public get()
@@ -74,15 +85,15 @@ methodmap Training < Dynamic
             this.SetHandle("TrainConVar", view_as<Handle>(convar));
         }
     }
-    property ConVar HealthConVar
+    property ConVar ShotConVar
     {
         public get()
         {
-            return view_as<ConVar>(this.GetHandle("HealthConVar"));
+            return view_as<ConVar>(this.GetHandle("ShotConVar"));
         }
         public set(ConVar convar)
         {
-            this.SetHandle("HealthConVar", view_as<Handle>(convar));
+            this.SetHandle("ShotConVar", view_as<Handle>(convar));
         }
     }
     property ConVar RefillConVar
