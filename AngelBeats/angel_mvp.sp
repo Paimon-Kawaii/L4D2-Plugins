@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-04-17 14:53:02
+ * @Last Modified time: 2022-05-04 20:17:54
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -14,16 +14,21 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.17"
+#define VERSION "2022.05.04"
 
 int
     g_iHours,
     g_iMinutes,
     g_iSeconds,
     g_iRetryTimes,
-    g_iTotalDamage[MAXSIZE],
-    g_iKillZombies[MAXSIZE],
+    //Bullets statis
+    g_iCoolBullets[MAXSIZE],
+    g_iValidBullets[MAXSIZE],
+    g_iShotBullets[MAXSIZE],
+    //Damage statis
     g_iKillSpecial[MAXSIZE],
+    g_iKillZombies[MAXSIZE],
+    g_iTotalDamage[MAXSIZE],
     g_iFriendDamage[MAXSIZE],
     g_iDamageFriend[MAXSIZE];
 
@@ -45,6 +50,8 @@ public void OnPluginStart()
     HookEvent("finale_win", Event_RoundEnd);
     HookEvent("round_start", Event_RoundStart);
     HookEvent("player_hurt", Event_PlayerHurt);
+    HookEvent("weapon_fire", Event_WeaponFire);
+    HookEvent("infected_hurt", Event_InfectedHurt);
     HookEvent("map_transition", Event_RoundEnd);
     HookEvent("mission_lost", Event_MissionLost);
     HookEvent("player_death", Event_InfectedDeath);
@@ -60,11 +67,14 @@ public Action L4D_OnFirstSurvivorLeftSafeArea()
 {
     for(int i = 1; i <= MaxClients; i++)
     {
-        g_iKillZombies[i] = 0;
+        g_iCoolBullets[i] = 0;
+        g_iValidBullets[i] = 0;
+        g_iShotBullets[i] = 0;
         g_iKillSpecial[i] = 0;
+        g_iKillZombies[i] = 0;
+        g_iTotalDamage[i] = 0;
         g_iFriendDamage[i] = 0;
         g_iDamageFriend[i] = 0;
-        g_iTotalDamage[i] = 0;
     }
     return Plugin_Continue;
 }
@@ -75,19 +85,22 @@ public Action MVPinfo(int client, any args)
     return Plugin_Handled;
 }
 
-public Action Event_RoundEnd(Handle event, char[] name, bool dontBroadcast)
+public Action Event_RoundEnd(Event event, char[] name, bool dontBroadcast)
 {
     ShowMVPMsg();
     return Plugin_Continue;
 }
 
-public Action Event_RoundStart(Handle event, char[] name, bool dontBroadcast)
+public Action Event_RoundStart(Event event, char[] name, bool dontBroadcast)
 {
     for(int i = 1; i <= MaxClients; i++)
     {
-        g_iTotalDamage[i] = 0;
-        g_iKillZombies[i] = 0;
+        g_iCoolBullets[i] = 0;
+        g_iValidBullets[i] = 0;
+        g_iShotBullets[i] = 0;
         g_iKillSpecial[i] = 0;
+        g_iKillZombies[i] = 0;
+        g_iTotalDamage[i] = 0;
         g_iFriendDamage[i] = 0;
         g_iDamageFriend[i] = 0;
     }
@@ -100,22 +113,23 @@ public Action Event_MissionLost(Event event, const char[] name, bool dont_broadc
     return Plugin_Continue;
 }
 
-public Action Event_PlayerHurt(Handle event, char[] name, bool dontBroadcast)
+public Action Event_PlayerHurt(Event event, char[] name, bool dontBroadcast)
 {
-    int victimId = GetEventInt(event, "userid", 0);
-    int victim = GetClientOfUserId(victimId);
-    int attackerId = GetEventInt(event, "attacker", 0);
-    int attacker = GetClientOfUserId(attackerId);
-    int damageDone = GetEventInt(event, "dmg_health", 0);
+    int victim = GetClientOfUserId(event.GetInt("userid"));
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    int damageDone = event.GetInt("dmg_health");
+    int hitGroup = event.GetInt("hitgroup");
     if (IsValidClient(victim) && IsValidClient(attacker) && GetClientTeam(attacker) == 2 && GetClientTeam(victim) == 2 && GetEntProp(victim, Prop_Send, "m_isIncapacitated", 4, 0) < 1)
     {
         g_iFriendDamage[attacker] += damageDone;
         g_iDamageFriend[victim] += damageDone;
     }
-    if (victimId && attackerId && IsValidClient(victim) && IsValidClient(attacker))
+    if (IsValidClient(victim) && IsValidClient(attacker))
     {
         if (GetClientTeam(attacker) == 2 && GetClientTeam(victim) == 3)
         {
+            g_iValidBullets[attacker]++;
+            if(hitGroup == 1) g_iCoolBullets[attacker]++;
             int zombieClass = GetEntProp(victim, Prop_Send, "m_zombieClass", 4, 0);
             if (zombieClass >= 1 && zombieClass < 7)
             {
@@ -138,19 +152,36 @@ public Action Event_PlayerHurt(Handle event, char[] name, bool dontBroadcast)
     return Plugin_Continue;
 }
 
-public Action Event_InfectedDeath(Handle event, char[] name, bool dontBroadcast)
+public Action Event_WeaponFire(Event event, char[] name, bool dontBroadcast)
 {
-    int attacker = GetClientOfUserId(GetEventInt(event, "attacker", 0));
-    int client = GetClientOfUserId(GetEventInt(event, "userid", 0));
+    int count = event.GetInt("count");
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if(IsValidClient(client) && GetClientTeam(client) == 2)
+        g_iShotBullets[client] += count;
+    return Plugin_Continue;
+}
+
+public Action Event_InfectedHurt(Event event, char[] name, bool dontBroadcast)
+{
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    if (IsValidClient(attacker) && GetClientTeam(attacker) == 2)
+        g_iValidBullets[attacker] += 1;
+    return Plugin_Continue;
+}
+
+public Action Event_InfectedDeath(Event event, char[] name, bool dontBroadcast)
+{
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    int client = GetClientOfUserId(event.GetInt("userid"));
     if (IsValidClient(attacker) && IsValidClient(client))
         if (GetClientTeam(attacker) == 2 && GetClientTeam(client) == 3)
             g_iKillSpecial[attacker] += 1;
     return Plugin_Continue;
 }
 
-public Action Event_ZombiesDeath(Handle event, char[] name, bool dontBroadcast)
+public Action Event_ZombiesDeath(Event event, char[] name, bool dontBroadcast)
 {
-    int attacker = GetClientOfUserId(GetEventInt(event, "attacker", 0));
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
     if (IsValidClient(attacker) && GetClientTeam(attacker) == 2)
         g_iKillZombies[attacker] += 1;
     return Plugin_Continue;
@@ -167,11 +198,6 @@ int SortByDamageDesc(int elem1, int elem2, int[] array, Handle hndl)
     if (elem2 > elem1)
         return 1;
     return 0;
-}
-
-bool IsValidClient(int client)
-{
-    return client > 0 && client <= MaxClients && IsClientInGame(client);
 }
 
 void ShowMVPMsg()
@@ -192,8 +218,13 @@ void ShowMVPMsg()
     {
         int client = players_clients[i];
         if (IsValidClient(client) && GetClientTeam(client) == 2)
-            PrintToChatAll("\x03特感\x04%2d \x03丧尸\x04%3d \x03黑/被黑\x04%2d/%2d \x03伤害\x04%4d \x05%N", g_iKillSpecial[client], g_iKillZombies[client], g_iFriendDamage[client], g_iDamageFriend[client], g_iTotalDamage[client], client);
+            PrintToChatAll("\x03特感\x04%d \x03黑/被黑\x04%d/%d \x03击中/爆头\x04%2d%%/%2d%% \x03伤害\x04%d \x05%N", g_iKillSpecial[client], g_iFriendDamage[client], g_iDamageFriend[client], GetShotAccuracy(client), GetCoolShotAcc(client), g_iTotalDamage[client], client);
     }
+}
+
+bool IsValidClient(int client)
+{
+    return client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client);
 }
 
 void GetMapTime()
@@ -202,4 +233,18 @@ void GetMapTime()
     g_iHours = RoundToFloor(seconds / 3600);
     g_iMinutes = RoundToFloor((seconds - g_iHours * 3600) / 60);
     g_iSeconds = RoundToFloor(seconds - g_iHours * 3600 - g_iMinutes * 60);
+}
+
+int GetShotAccuracy(int client)
+{
+    if(!IsValidClient(client) || GetClientTeam(client) != 2) return 0;
+    if(g_iShotBullets[client] <= 0) return 100;
+    return RoundToFloor((g_iValidBullets[client] * 100.0) / g_iShotBullets[client]);
+}
+
+int GetCoolShotAcc(int client)
+{
+    if(!IsValidClient(client) || GetClientTeam(client) != 2) return 0;
+    if(g_iValidBullets[client] <= 0) return 100;
+    return RoundToFloor((g_iCoolBullets[client] * 100.0) / g_iValidBullets[client]);
 }
