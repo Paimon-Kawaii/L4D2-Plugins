@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-04-26 11:28:09
+ * @Last Modified time: 2022-05-22 14:01:44
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.04.23"
+#define VERSION "2022.05.22"
 
 public Plugin myinfo =
 {
@@ -69,6 +69,7 @@ public void OnPluginStart()
     HookEvent("player_incapacitated", Event_PlayerIncapped, EventHookMode_Pre);
 
     g_hServerMaxSurvivor = FindConVar("survivor_limit");
+    FindConVar("sb_all_bot_game").AddChangeHook(CVarEvent_OnBotGameChanged);
 
     RegConsoleCmd("sm_ammo", Cmd_GiveAmmo, "Give survivor ammo");
 
@@ -225,6 +226,13 @@ public Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBr
     return Plugin_Handled;
 }
 
+//Bots事件
+public void CVarEvent_OnBotGameChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    if(StringToInt(newValue) != 1)
+        FindConVar("sb_all_bot_game").SetInt(1);
+}
+
 //给予玩家子弹
 public Action Cmd_GiveAmmo(int client, any args)
 {
@@ -243,7 +251,7 @@ public Action Cmd_JoinSurvivor(int client, any args)
             CPrintToChat(client, g_sMessages[Msg_PlayerCanJoin]);
             return Plugin_Handled;
         }
-        int survivorcount = (!IsSurvivorTeamFull() || g_hServerMaxSurvivor.IntValue >= 4) ? g_hServerMaxSurvivor.IntValue : g_hServerMaxSurvivor.IntValue + 1;
+        int survivorcount = g_hServerMaxSurvivor.IntValue >= 4 ? 4 : IsSurvivorTeamFull() ? g_hServerMaxSurvivor.IntValue + 1 : g_hServerMaxSurvivor.IntValue;
         g_hServerMaxSurvivor.SetInt(survivorcount);
         ClientCommand(client, "jointeam survivor");
         CreateTimer(0.1, Timer_NoWander, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -325,13 +333,18 @@ public Action Timer_CheckAway(Handle timer, int client)
     if (!IsValidClient(client) || IsFakeClient(client)) return Plugin_Stop;
 
     ChangeClientTeam(client, TEAM_SPECTATOR);
+    if(!L4D_HasAnySurvivorLeftSafeArea())
+    {
+        int survivorcount = g_hServerMaxSurvivor.IntValue <= 1 ? 1 : g_hServerMaxSurvivor.IntValue - 1;
+        g_hServerMaxSurvivor.SetInt(survivorcount);
+    }
     return Plugin_Continue;
 }
 
 //取消玩家闲置
 public Action Timer_NoWander(Handle timer, int client)
 {
-    if(IsSurvivorTeamFull()) return Plugin_Continue;
+    if(IsSurvivorTeamFull() || !IsSurvivor(client)) return Plugin_Continue;
 
     int flags = GetCommandFlags("sb_takecontrol");
     SetCommandFlags("sb_takecontrol", flags & (~FCVAR_CHEAT));
@@ -359,9 +372,9 @@ void SetGodMode(bool status)
 {
     int flags = GetCommandFlags("god");
     SetCommandFlags("god", flags & (~FCVAR_NOTIFY));
-    SetConVarInt(FindConVar("god"), status);
+    FindConVar("god").SetInt(status);
     SetCommandFlags("god", flags);
-    SetConVarInt(FindConVar("sv_infinite_ammo"), status);
+    FindConVar("sv_infinite_ammo").SetInt(status);
 }
 
 //重置玩家背包
