@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-05-23 17:37:17
+ * @Last Modified time: 2022-05-26 12:02:01
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.05.23"
+#define VERSION "2022.05.26"
 
 public Plugin myinfo =
 {
@@ -45,9 +45,10 @@ ConVar
     g_hChargerLimit,
     g_hSpitterLimit,
     //插件刷特限制
-    g_hAngelHardMode,
     g_hSICountLimit,
+    g_hAngelHardMode,
     g_hAngelSpawnFlow,
+    g_hAngelSpawnMode,
     g_hAngelDelayDistance,
     g_hAngelDirectorDebug,
     g_hAngelSpawnInterval,
@@ -78,6 +79,7 @@ public void OnPluginStart()
     g_hSICountLimit = CreateConVar("l4d_infected_limit", "31", "特感数量上限");
 
     g_hAngelHardMode = CreateConVar("angel_director_hard", "0", "高难度模式");
+    g_hAngelSpawnMode = CreateConVar("angel_director_spawner", "1", "刷特模式");
     g_hAngelDirectorDebug = CreateConVar("angel_director_debug", "0", "输出测试信息");
     g_hAngelSpawnFlow = CreateConVar("angel_spawn_flow", "5", "生还进程影响刷特的权重");
     //路程刷特方式：若 当前生还最高路程 - 上次刷特特感最高路程 >= 权重 * (40 - 当前刷特秒数) / 20 时，进行计时
@@ -318,7 +320,7 @@ void StartSpawn()
     typeLimit[4] = g_hAngelJockeyLimit.IntValue;
     typeLimit[5] = g_hAngelChargerLimit.IntValue;
 
-    GetRandomSpawnPosition(keySurvivor, -1, 1, 2, pos);
+    GetRandomSpawnPosition(keySurvivor, -1, g_hAngelSpawnMode.IntValue, 2, pos);
 
     for(int i = 1; i < 7; i++)
         for(int v = GetAliveInfectedCountByClass(i); v < typeLimit[i - 1]; v++)
