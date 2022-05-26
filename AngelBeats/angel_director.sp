@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-05-26 12:02:01
+ * @Last Modified time: 2022-05-26 14:11:50
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -111,6 +111,7 @@ public void OnPluginStart()
 
     RegConsoleCmd("sm_dc", Cmd_DirectorMsg, "Show director-manager information");
     RegConsoleCmd("sm_xx", Cmd_DirectorMsg, "Show director-manager information");
+    RegConsoleCmd("sm_mode", Cmd_DirectorMode, "Show director spawn mode");
 }
 
 //玩家进入服务器
@@ -118,8 +119,7 @@ public void OnClientPutInServer(int client)
 {
     if (IsFakeClient(client)) return;
 
-    CPrintToChat(client, "{olive}插件{default}[{blue}Angel{default}] {olive}状态{default}[{blue}%d特/%d秒{default}] {olive}版本{default}[{blue}%s{default}]",
-        GetInfectedLimit(), g_hAngelSpawnInterval.IntValue, VERSION);
+    CreateTimer(1.2, Timer_ShowMsg, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 //地图加载
@@ -159,6 +159,12 @@ public void L4D_OnEnterGhostState(int client)
 //玩家离开安全屋
 public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
+    CPrintToChatAll("[{olive}特感详情{default}]");
+    CPrintToChatAll("\tSmoker {blue}%d\t{default}Spitter {blue}%d\t{default}Boomer {blue}%d",
+        g_hAngelSmokerLimit.IntValue, g_hAngelSpitterLimit.IntValue, g_hAngelBoomerLimit.IntValue);
+    CPrintToChatAll("\tHunter {blue}%d\t{default}Jockey {blue}%d\t{default}Charger {blue}%d",
+        g_hAngelHunterLimit.IntValue, g_hAngelJockeyLimit.IntValue, g_hAngelChargerLimit.IntValue);
+
     CPrintToChatAll("{olive}插件{default}[{blue}Angel{default}] {olive}状态{default}[{blue}%d特/%d秒{default}] {olive}版本{default}[{blue}%s{default}]",
         GetInfectedLimit(), g_hAngelSpawnInterval.IntValue, VERSION);
 
@@ -174,8 +180,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 {
     g_bIsGameStart = false;
     g_bIsSpawnCounting = true;
-    CPrintToChatAll("{olive}插件{default}[{blue}Angel{default}] {olive}状态{default}[{blue}%d特/%d秒{default}] {olive}版本{default}[{blue}%s{default}]",
-        GetInfectedLimit(), g_hAngelSpawnInterval.IntValue, VERSION);
+
     return Plugin_Continue;
 }
 
@@ -184,6 +189,7 @@ public Action Event_MissionLost(Event event, const char[] name, bool dont_broadc
 {
     g_bIsGameStart = false;
     g_bIsSpawnCounting = true;
+
     return Plugin_Continue;
 }
 
@@ -193,6 +199,7 @@ public Action Event_TankSpawn(Event event, const char[] name, bool dont_broadcas
     int tank = GetClientOfUserId(event.GetInt("userid"));
     int heal = GetSurvivorCount() > 2 ? 1500 * GetSurvivorCount() : 1100 * GetSurvivorCount();
     SetPlayerHealth(tank, heal);
+
     return Plugin_Continue;
 }
 
@@ -209,6 +216,7 @@ public Action Event_WitchKilled(Event event, const char[] name, bool dont_broadc
 
         SetPlayerHealth(client, iTargetHealth);
     }
+
     return Plugin_Continue;
 }
 
@@ -224,6 +232,15 @@ public Action Event_PlayerChangeTeam(Event event, const char[] name, bool dont_b
     return Plugin_Continue;
 }
 
+//展示信息
+public Action Timer_ShowMsg(Handle timer, int client)
+{
+    ClientCommand(client, "sm_dc");
+    ClientCommand(client, "sm_mode");
+
+    return Plugin_Stop;
+}
+
 //尸潮数量更改
 public Action Timer_MobChange(Handle timer)
 {
@@ -231,6 +248,8 @@ public Action Timer_MobChange(Handle timer)
     FindConVar("z_mega_mob_size").SetInt(6 * GetSurvivorCount());
     FindConVar("z_mob_spawn_min_size").SetInt(3 * GetSurvivorCount());
     FindConVar("z_mob_spawn_max_size").SetInt(4 * GetSurvivorCount());
+
+    return Plugin_Stop;
 }
 
 //特感生成准备
@@ -239,6 +258,8 @@ public Action Timer_Prepare2Spawn(Handle timer)
     StartSpawn();
     if(g_hAngelDirectorDebug.BoolValue)
             CPrintToChatAll("started");
+
+    return Plugin_Stop;
 }
 
 //延后特感传送
@@ -287,6 +308,19 @@ public Action Cmd_DirectorMsg(int client, any args)
 {
     CPrintToChat(client, "{olive}插件{default}[{blue}Angel{default}] {olive}状态{default}[{blue}%d特/%d秒{default}] {olive}版本{default}[{blue}%s{default}]",
         GetInfectedLimit(), g_hAngelSpawnInterval.IntValue, VERSION);
+
+    return Plugin_Handled;
+}
+
+//刷特信息
+public Action Cmd_DirectorMode(int client, any args)
+{
+    CPrintToChat(client, "[{olive}特感详情{default}]");
+    CPrintToChat(client, "\tSmoker {blue}%d\t{default}Spitter {blue}%d\t{default}Boomer {blue}%d",
+        g_hAngelSmokerLimit.IntValue, g_hAngelSpitterLimit.IntValue, g_hAngelBoomerLimit.IntValue);
+    CPrintToChat(client, "\tHunter {blue}%d\t{default}Jockey {blue}%d\t{default}Charger {blue}%d",
+        g_hAngelHunterLimit.IntValue, g_hAngelJockeyLimit.IntValue, g_hAngelChargerLimit.IntValue);
+
     return Plugin_Handled;
 }
 
