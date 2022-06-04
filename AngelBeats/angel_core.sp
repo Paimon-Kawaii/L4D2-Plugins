@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-05-22 14:01:44
+ * @Last Modified time: 2022-06-04 12:55:52
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.05.22"
+#define VERSION "2022.06.04"
 
 public Plugin myinfo =
 {
@@ -69,7 +69,11 @@ public void OnPluginStart()
     HookEvent("player_incapacitated", Event_PlayerIncapped, EventHookMode_Pre);
 
     g_hServerMaxSurvivor = FindConVar("survivor_limit");
+    CreateConVar("angel_survivor_limit", "4", "生还人数上限");
+    g_hServerMaxSurvivor.SetBounds(ConVarBound_Lower, true, 1.0);
+    g_hServerMaxSurvivor.SetBounds(ConVarBound_Upper, true, 4.0);
     FindConVar("sb_all_bot_game").AddChangeHook(CVarEvent_OnBotGameChanged);
+    FindConVar("angel_survivor_limit").AddChangeHook(CVarEvent_OnAngelSurvivorChanged);
 
     RegConsoleCmd("sm_ammo", Cmd_GiveAmmo, "Give survivor ammo");
 
@@ -99,13 +103,14 @@ public void OnMapStart()
 //玩家正在连接
 public void OnClientConnected(int client)
 {
-    if (GetSurvivorCount() > 4)
+    if (GetSurvivorCount() > g_hServerMaxSurvivor.IntValue)
     {
         CPrintToChatAll(g_sMessages[Msg_Error]);
         CreateTimer(2.0, Timer_RestartMap, 0, TIMER_FLAG_NO_MAPCHANGE);
     }
 
-    if (IsFakeClient(client)) return;
+    if (IsFakeClient(client))
+        return;
 
     CPrintToChatAll(g_sMessages[Msg_Connecting], client);
 }
@@ -113,16 +118,17 @@ public void OnClientConnected(int client)
 //玩家进入服务器
 public void OnClientPutInServer(int client)
 {
-    if (IsFakeClient(client)) return;
+    if (IsFakeClient(client))
+        return;
 
     CPrintToChatAll(g_sMessages[Msg_Connected], client);
-    g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
 }
 
 //玩家断开连接
 public void OnClientDisconnect(int client)
 {
-    if (!IsValidClient(client)) return;
+    if (!IsValidClient(client))
+        return;
 
     if (IsClientInGame(client) && IsFakeClient(client))
         return;
@@ -132,9 +138,6 @@ public void OnClientDisconnect(int client)
     if (IsClientInGame(client))
         CPrintToChatAll(g_sMessages[Msg_DisConnected], client);
 
-    if(!g_bIsGameStart)
-        g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
-
     if (g_fLastDisconnectTime == currenttime)
         return;
 
@@ -142,10 +145,11 @@ public void OnClientDisconnect(int client)
     g_fLastDisconnectTime = currenttime;
 }
 
-// 对抗计分面板出现前
+//对抗计分面板出现前
 public Action L4D2_OnEndVersusModeRound(bool countSurvivors)
 {
     FindConVar("mp_gamemode").SetString("realism");
+
     return Plugin_Handled;
 }
 
@@ -156,6 +160,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
     g_bIsGameStart = true;
     g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
     CreateTimer(0.1, Timer_AutoGive, 0, TIMER_FLAG_NO_MAPCHANGE);
+
     return Plugin_Continue;
 }
 
@@ -166,6 +171,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
     FindConVar("mp_gamemode").SetString("coop");
     g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
     CreateTimer(1.0, Timer_DelayedOnRoundStart, 0, TIMER_FLAG_NO_MAPCHANGE);
+
     return Plugin_Continue;
 }
 
@@ -179,6 +185,7 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
         g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
         SetGodMode(true);
     }
+
     return Plugin_Continue;
 }
 
@@ -186,7 +193,8 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
 public Action Event_MissionLost(Event event, const char[] name, bool dont_broadcast)
 {
     FindConVar("mp_gamemode").SetString("realism");
-    if(!IsAllSurvivorPinned()) return Plugin_Continue;
+    if(!IsAllSurvivorPinned())
+        return Plugin_Continue;
 
     for(int i = 1; i < MaxClients; i++)
         if(IsSurvivor(i) && (IsPlayerIncap(i) || IsSurvivorPinned(i)))
@@ -203,13 +211,15 @@ public Action Event_ResetSurvivors(Event event, const char[] name, bool dontBroa
     g_bIsGameStart = false;
     FindConVar("mp_gamemode").SetString("realism");
     g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
+
     return Plugin_Continue;
 }
 
 //玩家均被制服时
 public Action Event_PlayerIncapped(Event event, const char[] name, bool dontBroadcast)
 {
-    if(!IsAllSurvivorPinned()) return Plugin_Continue;
+    if(!IsAllSurvivorPinned())
+        return Plugin_Continue;
 
     for(int i = 1; i < MaxClients; i++)
         if(IsSurvivor(i) && (IsPlayerIncap(i) || IsSurvivorPinned(i)))
@@ -223,6 +233,7 @@ public Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBr
 {
     SetEventBroadcast(event, false);
     dontBroadcast = true;
+
     return Plugin_Handled;
 }
 
@@ -233,11 +244,18 @@ public void CVarEvent_OnBotGameChanged(ConVar convar, const char[] oldValue, con
         FindConVar("sb_all_bot_game").SetInt(1);
 }
 
+//生还人数上限改变事件
+public void CVarEvent_OnAngelSurvivorChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    g_hServerMaxSurvivor.SetBounds(ConVarBound_Upper, true, convar.FloatValue);
+}
+
 //给予玩家子弹
 public Action Cmd_GiveAmmo(int client, any args)
 {
     if (IsValidClient(client) && IsSurvivor(client))
         BypassAndExecuteCommand(client, "give", "ammo");
+
     return Plugin_Handled;
 }
 
@@ -251,31 +269,44 @@ public Action Cmd_JoinSurvivor(int client, any args)
             CPrintToChat(client, g_sMessages[Msg_PlayerCanJoin]);
             return Plugin_Handled;
         }
-        int survivorcount = g_hServerMaxSurvivor.IntValue >= 4 ? 4 : IsSurvivorTeamFull() ? g_hServerMaxSurvivor.IntValue + 1 : g_hServerMaxSurvivor.IntValue;
-        g_hServerMaxSurvivor.SetInt(survivorcount);
+        float survivors = 4.0;
+        g_hServerMaxSurvivor.GetBounds(ConVarBound_Upper, survivors);
+        g_hServerMaxSurvivor.SetInt(g_hServerMaxSurvivor.IntValue >= survivors ?
+            view_as<int>(survivors) : IsSurvivorTeamFull() ? GetSurvivorPlayerCount() + 1 :
+            GetSurvivorPlayerCount());
         ClientCommand(client, "jointeam survivor");
         CreateTimer(0.1, Timer_NoWander, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     }
+
     return Plugin_Handled;
 }
 
 //进入旁观（被控禁止旁观）
 public Action Cmd_JoinSpectator(int client, any args)
 {
-    if (!IsValidClient(client)) return Plugin_Handled;
+    if (!IsValidClient(client))
+        return Plugin_Handled;
 
     if (!IsSurvivorPinned(client))
-        CreateTimer(0.5, Timer_CheckAway, client, TIMER_FLAG_NO_MAPCHANGE);
+    {
+        ChangeClientTeam(client, TEAM_SPECTATOR);
+        if(!g_bIsGameStart)
+            g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount() > 0 ? GetSurvivorPlayerCount() : 1);
+
+    }
+
     return Plugin_Handled;
 }
 
 //玩家自杀
 public Action Cmd_PlayerSuicide(int client, any args)
 {
-    if (!IsValidClient(client) || !IsPlayerAlive(client)) return Plugin_Handled;
+    if (!IsValidClient(client) || !IsPlayerAlive(client))
+        return Plugin_Handled;
 
     CPrintToChatAll(g_sMessages[Msg_PlayerSuicide], client);
     ForcePlayerSuicide(client);
+
     return Plugin_Handled;
 }
 
@@ -324,32 +355,21 @@ public Action Timer_AutoGive(Handle timer)
             SetEntProp(client, Prop_Send, "m_currentReviveCount", 0);
             SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", 0);
         }
-    return Plugin_Continue;
-}
 
-//玩家旁观Timer
-public Action Timer_CheckAway(Handle timer, int client)
-{
-    if (!IsValidClient(client) || IsFakeClient(client)) return Plugin_Stop;
-
-    ChangeClientTeam(client, TEAM_SPECTATOR);
-    if(!L4D_HasAnySurvivorLeftSafeArea())
-    {
-        int survivorcount = g_hServerMaxSurvivor.IntValue <= 1 ? 1 : g_hServerMaxSurvivor.IntValue - 1;
-        g_hServerMaxSurvivor.SetInt(survivorcount);
-    }
     return Plugin_Continue;
 }
 
 //取消玩家闲置
 public Action Timer_NoWander(Handle timer, int client)
 {
-    if(IsSurvivorTeamFull() || !IsSurvivor(client)) return Plugin_Continue;
+    if(IsSurvivorTeamFull() || !IsSurvivor(client))
+        return Plugin_Continue;
 
     int flags = GetCommandFlags("sb_takecontrol");
     SetCommandFlags("sb_takecontrol", flags & (~FCVAR_CHEAT));
     FakeClientCommand(client, "sb_takecontrol");
     SetCommandFlags("sb_takecontrol", flags);
+
     return Plugin_Stop;
 }
 
@@ -393,7 +413,8 @@ void ResetInventory()
 //删除背包物品
 void DeleteInventoryItem(int client, int slot)
 {
-    if (!IsValidClient(client)) return;
+    if (!IsValidClient(client))
+        return;
 
     int item = GetPlayerWeaponSlot(client, slot);
     if (item > 0)
