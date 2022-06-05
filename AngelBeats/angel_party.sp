@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-04-14 11:20:56
- * @Last Modified time: 2022-04-24 22:46:34
+ * @Last Modified time: 2022-06-05 22:29:40
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -14,7 +14,7 @@
 #include <l4d2tools>
 #include <left4dhooks>
 
-#define VERSION "2022.04.23"
+#define VERSION "2022.06.05"
 
 ConVar
     g_hAngelParty;//0=Disable, 1=Smoker, 2=Boomer, 3=Hunter,
@@ -45,8 +45,7 @@ public Action L4D_OnSpawnSpecial(int &zombieClass, const float vecPos[3], const 
         return Plugin_Continue;
 
     if(L4D2_IsTankInPlay() && GetSurvivorCount() < 4)
-        if(GetSurvivorCount() == 1 ||
-            GetSInfectedCount() > FindConVar("l4d_infected_limit").IntValue / 2)
+        if(GetSInfectedCount() > FindConVar("angel_infected_limit").IntValue / 2)
         return Plugin_Handled;
 
     zombieClass = g_hAngelParty.IntValue;
