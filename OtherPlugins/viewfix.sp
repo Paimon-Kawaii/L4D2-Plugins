@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-06-04 13:22:42
- * @Last Modified time: 2022-06-04 13:53:03
+ * @Last Modified time: 2022-06-04 21:51:33
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -12,6 +12,7 @@
 #include <sdktools>
 #include <l4d2tools>
 #include <sourcemod>
+#include <left4dhooks>
 
 #define MAXSIZE 33
 #define VERSION "2022.06.04"
@@ -40,7 +41,7 @@ public Action Cmd_ViewFix(int client, any args)
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
 {
-    if(IsSurvivor(client) && !IsFakeClient(client))
+    if(IsSurvivor(client) && !IsFakeClient(client) && L4D_HasAnySurvivorLeftSafeArea())
         SetClientViewEntity(client, client);
 
     return Plugin_Continue;
