@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-06-04 13:22:42
- * @Last Modified time: 2022-06-04 21:51:33
+ * @Last Modified time: 2022-06-05 22:06:44
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -15,7 +15,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.06.04"
+#define VERSION "2022.06.05"
 
 public Plugin myinfo =
 {
@@ -29,6 +29,7 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
     RegConsoleCmd("sm_fix", Cmd_ViewFix, "View Fix");
+    HookEvent("bot_player_replace", Event_PlayerJoined);
 }
 
 public Action Cmd_ViewFix(int client, any args)
@@ -39,8 +40,9 @@ public Action Cmd_ViewFix(int client, any args)
     return Plugin_Handled;
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
+public Action Event_PlayerJoined(Event event, const char[] name, bool dont_broadcast)
 {
+    int client = GetClientOfUserId(event.GetInt("userid"));
     if(IsSurvivor(client) && !IsFakeClient(client) && L4D_HasAnySurvivorLeftSafeArea())
         SetClientViewEntity(client, client);
 
