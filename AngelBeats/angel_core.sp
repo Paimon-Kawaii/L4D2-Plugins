@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-06-04 12:55:52
+ * @Last Modified time: 2022-06-06 00:26:10
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.06.04"
+#define VERSION "2022.06.06"
 
 public Plugin myinfo =
 {
@@ -38,6 +38,7 @@ enum Msgs
 };//Message enums for message array(as an index)
 
 char
+    g_sFirstMap[64],
     g_sMessages[][] =
     {
         "[{olive}天使{default}] 提醒您：{blue}%N {default}将加入战线",
@@ -55,6 +56,7 @@ float
     g_fLastDisconnectTime;
 
 ConVar
+    g_hAngelSurvivorLimit,
     g_hServerMaxSurvivor;
 
 //插件入口
@@ -69,11 +71,16 @@ public void OnPluginStart()
     HookEvent("player_incapacitated", Event_PlayerIncapped, EventHookMode_Pre);
 
     g_hServerMaxSurvivor = FindConVar("survivor_limit");
-    CreateConVar("angel_survivor_limit", "4", "生还人数上限");
+    g_hAngelSurvivorLimit = CreateConVar("angel_survivor_limit", "4", "生还人数上限");
+
+    g_hAngelSurvivorLimit.AddChangeHook(CVarEvent_OnAngelSurvivorChanged);
+    FindConVar("sb_all_bot_game").AddChangeHook(CVarEvent_OnBotGameChanged);
+
     g_hServerMaxSurvivor.SetBounds(ConVarBound_Lower, true, 1.0);
     g_hServerMaxSurvivor.SetBounds(ConVarBound_Upper, true, 4.0);
-    FindConVar("sb_all_bot_game").AddChangeHook(CVarEvent_OnBotGameChanged);
-    FindConVar("angel_survivor_limit").AddChangeHook(CVarEvent_OnAngelSurvivorChanged);
+
+    g_hAngelSurvivorLimit.SetBounds(ConVarBound_Lower, true, 1.0);
+    g_hAngelSurvivorLimit.SetBounds(ConVarBound_Upper, true, 28.0);
 
     RegConsoleCmd("sm_ammo", Cmd_GiveAmmo, "Give survivor ammo");
 
@@ -98,17 +105,14 @@ public void OnMapStart()
 
     g_bIsGameStart = false;
     FindConVar("mp_gamemode").SetString("coop");
+
+    if(L4D_IsFirstMapInScenario())
+        GetCurrentMap(g_sFirstMap, sizeof(g_sFirstMap));
 }
 
 //玩家正在连接
 public void OnClientConnected(int client)
 {
-    if (GetSurvivorCount() > g_hServerMaxSurvivor.IntValue)
-    {
-        CPrintToChatAll(g_sMessages[Msg_Error]);
-        CreateTimer(2.0, Timer_RestartMap, 0, TIMER_FLAG_NO_MAPCHANGE);
-    }
-
     if (IsFakeClient(client))
         return;
 
@@ -120,6 +124,9 @@ public void OnClientPutInServer(int client)
 {
     if (IsFakeClient(client))
         return;
+
+    int surPlayerCount = GetSurvivorPlayerCount();
+    g_hServerMaxSurvivor.SetInt(surPlayerCount ? surPlayerCount : 1);
 
     CPrintToChatAll(g_sMessages[Msg_Connected], client);
 }
@@ -139,7 +146,10 @@ public void OnClientDisconnect(int client)
         CPrintToChatAll(g_sMessages[Msg_DisConnected], client);
 
     if (g_fLastDisconnectTime == currenttime)
+    {
+        g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
         return;
+    }
 
     CreateTimer(3.0, Timer_IsNobodyConnected, currenttime, TIMER_FLAG_NO_MAPCHANGE);
     g_fLastDisconnectTime = currenttime;
@@ -158,6 +168,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
     SetGodMode(false);
     g_bIsGameStart = true;
+    //重置数量为玩家生还数量
     g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
     CreateTimer(0.1, Timer_AutoGive, 0, TIMER_FLAG_NO_MAPCHANGE);
 
@@ -169,7 +180,6 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 {
     SetGodMode(true);
     FindConVar("mp_gamemode").SetString("coop");
-    g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
     CreateTimer(1.0, Timer_DelayedOnRoundStart, 0, TIMER_FLAG_NO_MAPCHANGE);
 
     return Plugin_Continue;
@@ -182,7 +192,6 @@ public Action Event_PlayerDead(Event event, const char[] name, bool dont_broadca
     {
         g_bIsGameStart = false;
         FindConVar("mp_gamemode").SetString("realism");
-        g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
         SetGodMode(true);
     }
 
@@ -210,7 +219,9 @@ public Action Event_ResetSurvivors(Event event, const char[] name, bool dontBroa
     ResetInventory();
     g_bIsGameStart = false;
     FindConVar("mp_gamemode").SetString("realism");
-    g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
+
+    if(L4D_IsMissionFinalMap())
+        ServerCommand("changelevel %s", g_sFirstMap);
 
     return Plugin_Continue;
 }
@@ -223,6 +234,7 @@ public Action Event_PlayerIncapped(Event event, const char[] name, bool dontBroa
 
     for(int i = 1; i < MaxClients; i++)
         if(IsSurvivor(i) && (IsPlayerIncap(i) || IsSurvivorPinned(i)))
+            //直接处死加快重启
             ForcePlayerSuicide(i);
 
     return Plugin_Continue;
@@ -241,7 +253,7 @@ public Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBr
 public void CVarEvent_OnBotGameChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
     if(StringToInt(newValue) != 1)
-        FindConVar("sb_all_bot_game").SetInt(1);
+        convar.SetInt(1);
 }
 
 //生还人数上限改变事件
@@ -270,10 +282,20 @@ public Action Cmd_JoinSurvivor(int client, any args)
             return Plugin_Handled;
         }
         float survivors = 4.0;
+        //获取生还数量ConVar范围上限
         g_hServerMaxSurvivor.GetBounds(ConVarBound_Upper, survivors);
-        g_hServerMaxSurvivor.SetInt(g_hServerMaxSurvivor.IntValue >= survivors ?
-            view_as<int>(survivors) : IsSurvivorTeamFull() ? GetSurvivorPlayerCount() + 1 :
-            GetSurvivorPlayerCount());
+        int surPlayerCount = GetSurvivorPlayerCount();
+        //设置生还数量为：如果当前数量大于>=范围上限，设置为范围上限；否则，
+        //如果生还队伍已满，设置为生还玩家数量+1；否则，如果生还玩家数量不为0，
+        //设置为生还玩家数量，否则设置为1
+        //(p.s.这逻辑是不太好讲，但是3元运算符写着真爽，下次还写ww)
+        g_hServerMaxSurvivor.SetInt(g_hServerMaxSurvivor.FloatValue >= survivors ?
+            view_as<int>(survivors) : IsSurvivorTeamFull() ? surPlayerCount + 1 :
+            surPlayerCount ? surPlayerCount : 1);
+        //若执行完上述语句后，没有被playermanager插件自动添加假人
+        //说明队伍已满，不再继续执行加入指令，以防炸服
+        if(IsSurvivorTeamFull())
+            return Plugin_Handled;
         ClientCommand(client, "jointeam survivor");
         CreateTimer(0.1, Timer_NoWander, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     }
@@ -290,9 +312,13 @@ public Action Cmd_JoinSpectator(int client, any args)
     if (!IsSurvivorPinned(client))
     {
         ChangeClientTeam(client, TEAM_SPECTATOR);
+        //如果没有开始游戏
         if(!g_bIsGameStart)
-            g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount() > 0 ? GetSurvivorPlayerCount() : 1);
-
+        {
+            int surPlayerCount = GetSurvivorPlayerCount();
+            //设置生还数量为：如果生还玩家数量不为0，设置为生还玩家数量，否则设置为1
+            g_hServerMaxSurvivor.SetInt(surPlayerCount ? surPlayerCount : 1);
+        }
     }
 
     return Plugin_Handled;
@@ -308,12 +334,6 @@ public Action Cmd_PlayerSuicide(int client, any args)
     ForcePlayerSuicide(client);
 
     return Plugin_Handled;
-}
-
-//地图重启
-public Action Timer_RestartMap(Handle timer, int client)
-{
-    CrashMap();
 }
 
 //开局重置
@@ -334,7 +354,7 @@ public Action Timer_IsNobodyConnected(Handle timer, any timerDisconnectTime)
         if (IsValidClient(i) && !IsFakeClient(i))
             return Plugin_Stop;
 
-    CrashServer();
+    RestartServer();
 
     return Plugin_Continue;
 }
@@ -342,7 +362,6 @@ public Action Timer_IsNobodyConnected(Handle timer, any timerDisconnectTime)
 //自动给予药品
 public Action Timer_AutoGive(Handle timer)
 {
-    g_hServerMaxSurvivor.SetInt(GetSurvivorPlayerCount());
     for (int client = 1; client <= MaxClients; client++)
         if (IsSurvivor(client) && !IsFakeClient(client))
         {
@@ -351,9 +370,13 @@ public Action Timer_AutoGive(Handle timer)
                 BypassAndExecuteCommand(client, "give", "pain_pills");
             if(GetPlayerHealth(client) < 100)
                 BypassAndExecuteCommand(client, "give", "health");
-            SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0);
-            SetEntProp(client, Prop_Send, "m_currentReviveCount", 0);
-            SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", 0);
+            L4D_SetPlayerTempHealth(client, 0);
+            // SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0);
+            L4D_SetPlayerReviveCount(client, 0);
+            // SetEntProp(client, Prop_Send, "m_currentReviveCount", 0);
+            L4D_SetPlayerThirdStrikeState(client, false);
+            L4D_SetPlayerIsGoingToDie(client, false);
+            // SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", 0);
         }
 
     return Plugin_Continue;
@@ -421,16 +444,8 @@ void DeleteInventoryItem(int client, int slot)
         RemovePlayerItem(client, item);
 }
 
-//重启地图
-void CrashMap()
-{
-    char mapname[64];
-    GetCurrentMap(mapname, 64);
-    ServerCommand("changelevel %s", mapname);
-}
-
 //重启服务器
-void CrashServer()
+void RestartServer()
 {
     SetCommandFlags("crash", GetCommandFlags("crash") & (~FCVAR_CHEAT));
     ServerCommand("crash");
