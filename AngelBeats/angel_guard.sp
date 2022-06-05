@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-05-12 14:56:05
+ * @Last Modified time: 2022-06-04 23:55:24
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -18,7 +18,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.05.12"
+#define VERSION "2022.06.04"
 #define MENU_DISPLAY_TIME 15
 
 int
@@ -195,6 +195,8 @@ public Action Event_CreateWeaponMenu(int client)
     menu.AddItem("30", "木喷(30饭票)");
     menu.AddItem("30", "铁喷(30饭票)");
     menu.AddItem("100", "AWP(100饭票)");
+    menu.AddItem("150", "榴弹(150饭票)");
+    menu.AddItem("200", "M60(200饭票)");
     menu.Pagination = MENU_NO_PAGINATION;
     menu.ExitButton = true;
     menu.Display(client, MENU_DISPLAY_TIME);
@@ -358,6 +360,26 @@ public int Handle_ExecWeaponMenu(Menu menu, MenuAction action, int client, int i
             }
             else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
         }
+        case 6:
+        {
+            if (g_iMealTickets[client] >= ticket)
+            {
+                g_iMealTickets[client] -= ticket;
+                BypassAndExecuteCommand(client, "give", "grenade_launcher");
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "榴弹");
+            }
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
+        }
+        case 7:
+        {
+            if (g_iMealTickets[client] >= ticket)
+            {
+                g_iMealTickets[client] -= ticket;
+                BypassAndExecuteCommand(client, "give", "rifle_m60");
+                CPrintToChatAll(g_sMessages[Msg_Buy], client, ticket, "M60");
+            }
+            else CPrintToChat(client, g_sMessages[Msg_NotEnough]);
+        }
     }
 
     return 1;
@@ -482,7 +504,7 @@ public int Handle_ExecLotteryMenu(Menu menu, MenuAction action, int client, int 
     if (!IsSurvivor(client)) return 0;
     if (action != MenuAction_Select) return 0;
     if (item == 0) StartLottery(client);
-    if (item == 1 && L4D_HasAnySurvivorLeftSafeArea() && IsPlayerAlive(client))
+    if (item == 1 && L4D_HasAnySurvivorLeftSafeArea() && IsPlayerAlive(client) && !IsPlayerIncap(client))
     {
         g_iKidneySold[client]++;
         int ticket = GetRandomInt(10, 20);
