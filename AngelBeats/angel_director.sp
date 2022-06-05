@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-06-03 23:53:14
+ * @Last Modified time: 2022-06-05 22:46:14
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.06.03"
+#define VERSION "2022.06.05"
 
 public Plugin myinfo =
 {
@@ -50,8 +50,9 @@ ConVar
     g_hAngelSpawnFlow,
     g_hAngelSpawnMode,
     g_hAngelDelayDistance,
-    g_hAngelDirectorDebug,
     g_hAngelSpawnInterval,
+    g_hAngelDirectorDebug,
+    g_hAngelSIAttackIntent,
     g_hAngelJockeyLimit,
     g_hAngelHunterLimit,
     g_hAngelSpitterLimit,
@@ -76,21 +77,32 @@ public void OnPluginStart()
     g_hSpitterLimit = FindConVar("z_spitter_limit");
 
     CreateConVar("angel_infected_limit", "6", "特感上限显示");
+    g_hAngelVersus = CreateConVar("angel_versus", "0", "Angel对抗开关");
     g_hSICountLimit = CreateConVar("l4d_infected_limit", "31", "特感数量上限");
+    g_hAngelDirectorDebug = CreateConVar("angel_director_debug", "0", "输出测试信息");
 
     g_hAngelHardMode = CreateConVar("angel_director_hard", "0", "高难度模式");
     g_hAngelSpawnMode = CreateConVar("angel_director_spawner", "1", "刷特模式");
-    g_hAngelDirectorDebug = CreateConVar("angel_director_debug", "0", "输出测试信息");
+    //路程刷特方式：若 当前生还最高路程 - 上次刷特特感最高路程 >= 权重 * (40 - 当前刷特秒数) / 20 时，开始计时
     g_hAngelSpawnFlow = CreateConVar("angel_spawn_flow", "5", "生还进程影响刷特的权重");
-    //路程刷特方式：若 当前生还最高路程 - 上次刷特特感最高路程 >= 权重 * (40 - 当前刷特秒数) / 20 时，进行计时
-    g_hAngelDelayDistance = CreateConVar("angel_special_delay_distance", "520", "特感落后传送距离");
+    //0.0表示玩家灰常冷静(逛gai中)，1.0表示玩家鸭梨山大，
+    //当玩家状态低于特感进攻意图时，唤醒刷特时钟，开始计时
+    g_hAngelSIAttackIntent = CreateConVar("angel_director_intent", "0.12", "生还状态影响的特感刷新强度(进攻意图)");
+
     g_hAngelSpawnInterval = CreateConVar("angel_special_respawn_interval", "16", "复活时间限制");
+    g_hAngelDelayDistance = CreateConVar("angel_special_delay_distance", "520", "特感落后传送距离");
+
     g_hAngelJockeyLimit = CreateConVar("angel_jockey_limit", "1", "Jockey数量限制");
     g_hAngelHunterLimit = CreateConVar("angel_hunter_limit", "1", "Hunter数量限制");
     g_hAngelSpitterLimit = CreateConVar("angel_spitter_limit", "1", "Spitter数量限制");
     g_hAngelBoomerLimit = CreateConVar("angel_boomer_limit", "1", "Boomer数量限制");
     g_hAngelSmokerLimit = CreateConVar("angel_smoker_limit", "1", "Smoker数量限制");
     g_hAngelChargerLimit = CreateConVar("angel_charger_limit", "1", "Charger数量限制");
+
+    //不应该让这个值较低，否则起不到作用
+    //太高了也不行，否则有可能一波接一波，打的生还头皮发麻
+    g_hAngelSIAttackIntent.SetBounds(ConVarBound_Lower, true, 0.12);
+    g_hAngelSIAttackIntent.SetBounds(ConVarBound_Upper, true, 0.60);
 
     g_hSICountLimit.AddChangeHook(CvarEvent_LimitChanged);
     g_hHunterLimit.AddChangeHook(CvarEvent_LimitChanged);
@@ -106,8 +118,6 @@ public void OnPluginStart()
     g_hAngelSpitterLimit.AddChangeHook(CvarEvent_AngelLimitChanged);
     g_hAngelSmokerLimit.AddChangeHook(CvarEvent_AngelLimitChanged);
     g_hAngelChargerLimit.AddChangeHook(CvarEvent_AngelLimitChanged);
-
-    g_hAngelVersus = CreateConVar("angel_versus", "0", "Angel对抗开关");
 
     RegConsoleCmd("sm_dc", Cmd_DirectorMsg, "Show director-manager information");
     RegConsoleCmd("sm_xx", Cmd_DirectorMsg, "Show director-manager information");
@@ -162,7 +172,16 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 
     g_bIsGameStart = true;
     CreateTimer(0.5, Timer_Prepare2Spawn, 0, TIMER_FLAG_NO_MAPCHANGE);
-    CreateTimer((g_hAngelSpawnInterval.FloatValue + 1) / 2, Timer_DelaySIDealed, 0, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+    CreateTimer(g_hAngelSpawnInterval.FloatValue / 4 + 1, Timer_DelaySIDealed, 0, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+
+    return Plugin_Continue;
+}
+
+//特感限制
+public Action L4D_OnSpawnSpecial(int &zombieClass, const float vecPos[3], const float vecAng[3])
+{
+    if(L4D2_IsTankInPlay() && GetSurvivorCount() <= 2)
+        return Plugin_Handled;
 
     return Plugin_Continue;
 }
@@ -249,7 +268,7 @@ public Action Timer_Prepare2Spawn(Handle timer)
 {
     StartSpawn();
     if(g_hAngelDirectorDebug.BoolValue)
-            CPrintToChatAll("started");
+            CPrintToChatAll("count down");
 
     return Plugin_Stop;
 }
@@ -259,6 +278,9 @@ public Action Timer_DelaySIDealed(Handle timer)
 {
     if(!g_bIsGameStart)
         return Plugin_Stop;
+
+    if(g_bIsSpawnCounting)
+        return Plugin_Continue;
 
     CheckDelaySITeleport();
 
@@ -322,24 +344,29 @@ bool IsAllKillersDown()
 void CheckDelaySITeleport()
 {
     if(!g_bIsGameStart) return;
-    //不能看见玩家并且不是克并且未控制生还，进行传送检测
     for(int i = 1; i < MaxClients; i++)
         if(IsInfected(i) && IsFakeClient(i) && IsPlayerAlive(i) &&
-            !CanPlayerSeeThreats(i) && !IsTank(i) && !IsPinningASurvivor(i))
+            //不能看见生还并且不是克并且未控制生还，进行传送检测
+            !L4D_HasVisibleThreats(i) && !IsTank(i) && !IsPinningASurvivor(i))
         {
                 float pos[3];
                 float keyPos[3];
+                int keySurvivor;
                 //最高路程生还
-                int keySurvivor = L4D_GetHighestFlowSurvivor();
+                while(!IsSurvivor(keySurvivor))
+                    keySurvivor = L4D_GetHighestFlowSurvivor();
 
                 GetClientAbsOrigin(i, pos);
                 GetClientAbsOrigin(keySurvivor, keyPos);
+                //如果特感路程低于生还路程
                 if(L4D2Direct_GetFlowDistance(i) < L4D2Direct_GetFlowDistance(keySurvivor) &&
+                    //并且在指定延后距离下不能成功构建Nav导航，进行传送
                     !L4D2_VScriptWrapper_NavAreaBuildPath(pos, keyPos, g_hAngelDelayDistance.FloatValue, false, false, TEAM_INFECTED, false))
                 {
-                    //获取合适位置传送
-                    GetRandomSpawnPosition(keySurvivor, i, GetInfectedClass(i), 2, pos);
+                    //获取合适位置传送：如果是困难模式，按照类型找位，否则按照导演生成模式找位
+                    GetRandomSpawnPosition(keySurvivor, i, g_hAngelHardMode.BoolValue ? GetInfectedClass(i) : g_hAngelSpawnMode.IntValue, 2, pos);
                     TeleportEntity(i, pos, NULL_VECTOR, NULL_VECTOR);
+                    //重置血量
                     BypassAndExecuteCommand(i, "give", "health");
                     if(g_hAngelDirectorDebug.BoolValue)
                         CPrintToChatAll("%N tped to %N",i, keySurvivor);
@@ -355,11 +382,13 @@ void CheckSpawnCounter()
     float flow = L4D2_GetFurthestSurvivorFlow() / L4D2Direct_GetMapMaxFlowDistance() * 100;
     //如果所有控制型特感死亡，或者存活特感数量小于上限的一半
     if((IsAllKillersDown() || GetAliveInfectedCount() <= GetInfectedLimit() / 2 ||
+        //或者玩家冷静度(未遭受伤害程度较高或者造成伤害程度较低)低于特感进攻度
+        L4D_GetAvgSurvivorIntensity() <= g_hAngelSIAttackIntent.FloatValue ||
         //或者路程差超过指定权重，如果还没进入计时，开始计时
         flow - g_fLastFlowPercent >= g_hAngelSpawnFlow.FloatValue * (40 - g_hAngelSpawnInterval.FloatValue) / 20) && !g_bIsSpawnCounting)
     {
         if(g_hAngelDirectorDebug.BoolValue)
-            CPrintToChatAll("counting--%d %d %f", IsAllKillersDown(), GetAliveInfectedCount() <= GetInfectedLimit() / 4 * 2, flow - g_fLastFlowPercent);
+            CPrintToChatAll("counting--%d %d %.3f %.3f", IsAllKillersDown(), GetAliveInfectedCount() <= GetInfectedLimit() / 4 * 2, flow - g_fLastFlowPercent, L4D_GetAvgSurvivorIntensity());
         float time = g_hAngelSpawnInterval.FloatValue + 1;
         //计时锁死
         g_bIsSpawnCounting = true;
@@ -373,11 +402,15 @@ void StartSpawn()
 {
     if(!g_bIsGameStart) return;
 
+    if(g_hAngelDirectorDebug.BoolValue)
+        CPrintToChatAll("try spawn");
+
     float pos[3];
     float keyPos[3];
-    int typeLimit[6];
-    //最高路程生还
-    int keySurvivor = L4D_GetHighestFlowSurvivor();
+    int typeLimit[6], keySurvivor;
+    //最高路程生还Client
+    while(!IsSurvivor(keySurvivor))
+        keySurvivor = L4D_GetHighestFlowSurvivor();
     GetClientAbsOrigin(keySurvivor, keyPos);
     typeLimit[0] = g_hAngelSmokerLimit.IntValue;
     typeLimit[1] = g_hAngelBoomerLimit.IntValue;
@@ -412,10 +445,14 @@ void StartSpawn()
 
             //若特感不存在，则直接生成
             if(!IsInfected(target))
+            {
                 target = L4D2_SpawnSpecial(zclass, pos, NULL_VECTOR);
+                if(g_hAngelDirectorDebug.BoolValue)
+                    CPrintToChatAll("spawn target %N", target);
+            }
             //如果存在，进行传送检测，若没有控中生还且不能看到生还
-            else if(!IsPinningASurvivor(target) && !CanPlayerSeeThreats(target) &&
-                //并且路程落后最远的生还
+            else if(!IsPinningASurvivor(target) && !L4D_HasVisibleThreats(target) &&
+                //并且路程落后于最远的生还
                 L4D2Direct_GetFlowDistance(target) < L4D2Direct_GetFlowDistance(keySurvivor) &&
                 //并且在指定延后距离下不能成功构建Nav导航，进行传送
                 !L4D2_VScriptWrapper_NavAreaBuildPath(tarPos, keyPos, g_hAngelDelayDistance.FloatValue, false, false, TEAM_INFECTED, false))
@@ -426,7 +463,13 @@ void StartSpawn()
                 TeleportEntity(target, pos, NULL_VECTOR, NULL_VECTOR);
                 //特感回血
                 BypassAndExecuteCommand(target, "give", "health");
+                if(g_hAngelDirectorDebug.BoolValue)
+                    CPrintToChatAll("find target, tped %N", target);
             }
+
+            //若生成后特感不存在，并且在Debug模式下，输出信息
+            if(!IsInfected(target) && g_hAngelDirectorDebug.BoolValue)
+                CPrintToChatAll("sth wrong with spawner");
         }
 
     //设置刷特路程
@@ -483,7 +526,7 @@ int GetInfectedClientBeyondLimit()
         int count = 0;
         for(int v = 1; v <= MaxClients; v++)
             if(IsInfected(v) && IsPlayerAlive(v) && IsFakeClient(v) && !IsTank(v) &&
-                GetInfectedClass(v) == i && !CanPlayerSeeThreats(v) && !IsPinningASurvivor(v))
+                GetInfectedClass(v) == i && !L4D_HasVisibleThreats(v) && !IsPinningASurvivor(v))
             {
                 count++;
                 if(count > typeLimit[i - 1])
@@ -497,13 +540,15 @@ int GetInfectedClientBeyondLimit()
 void GetRandomSpawnPosition(int survivor, int infected, int zclass, int times, float pos[3])
 {
     L4D_GetRandomPZSpawnPosition(survivor, zclass, times--, pos);
-    if(!IsInfected(infected)) return;
+    if(!IsInfected(infected) || !IsSurvivor(survivor)) return;
 
-    float surPos[3], infPos[3];
+    float surPos[3];
     GetClientAbsOrigin(survivor, surPos);
-    GetClientAbsOrigin(infected, infPos);
-    while((L4D2Direct_GetTerrorNavArea(pos) == Address_Null || L4D2_NavAreaTravelDistance(pos, surPos, true) <= 0 ||
+    //生成点对应的Nav网格为空，或者生成点与生还者位置位于同一网格
+    while((!L4D_GetNearestNavArea(pos) || L4D2_NavAreaTravelDistance(pos, surPos, true) <= 0 ||
+        //或者生成点与生还位置在指定延后距离下能成功构建Nav导航
         L4D2_VScriptWrapper_NavAreaBuildPath(pos, surPos, g_hAngelDelayDistance.FloatValue, false, false, TEAM_INFECTED, false) ||
+        //或者生成点的Nav网格路程低于最高生还者路程时，若生成次数大于0，则尝试下一次生成
         L4D2Direct_GetTerrorNavAreaFlow(L4D2Direct_GetTerrorNavArea(pos)) < L4D2_GetFurthestSurvivorFlow()) && times > 0)
         L4D_GetRandomPZSpawnPosition(survivor, zclass, times--, pos);
 }
