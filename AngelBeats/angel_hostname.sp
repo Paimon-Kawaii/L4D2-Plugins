@@ -2,14 +2,16 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-05-23 13:49:33
- * @Last Modified time: 2022-05-23 14:12:20
+ * @Last Modified time: 2022-06-04 21:41:59
  * @Github:             http://github.com/PaimonQwQ
  */
 #pragma semicolon 1
 #pragma newdecls required
 
+#include <sdkhooks>
 #include <sourcemod>
-#define VERSION "2022.05.23"
+#include <SteamWorks>
+#define VERSION "2022.06.04"
 
 char
     g_sHostName[256];
@@ -20,7 +22,7 @@ ConVar
 
 public Plugin myinfo =
 {
-    name = "AngelHostName",
+    name = "AngelName",
     author = "我是派蒙啊",
     description = "AngelServer的名称管理",
     version = VERSION,
@@ -37,6 +39,11 @@ public void OnPluginStart()
     ChangeHostName();
 }
 
+public void OnGameFrame()
+{
+    SteamWorks_SetGameDescription("[Angel Beats!]");
+}
+
 public void CVarEvent_OnDirectorChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
     ChangeHostName();
@@ -46,7 +53,7 @@ void ChangeHostName()
 {
     char name[256];
     GetHostName();
-    Format(name, 256, "%s[%d特/%d秒][AngelBeats!]", g_sHostName,
+    Format(name, 256, "%s[%d特/%d秒]", g_sHostName,
         g_hAngelSpawnLimit.IntValue, g_hAngelSpawnInterval.IntValue);
     FindConVar("hostname").SetString(name);
 }
