@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-06-06 00:26:10
+ * @Last Modified time: 2022-06-08 19:38:10
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.06.06"
+#define VERSION "2022.06.07"
 
 public Plugin myinfo =
 {
@@ -34,7 +34,6 @@ enum Msgs
     Msg_DisConnected,
     Msg_PlayerSuicide,
     Msg_PlayerCanJoin,
-    Msg_Error,
 };//Message enums for message array(as an index)
 
 char
@@ -46,7 +45,6 @@ char
         "[{olive}天使{default}] 提醒您：{blue}%N {default}离开了战线",
         "[{olive}天使{default}] 提醒您：{blue}%N {default}心满意足的消失了",
         "[{olive}天使{default}] 提醒您：{default}当前无生还Bot，请在开局前使用 {orange}!jg",
-        "[{olive}天使{default}] 提醒您：{red}#检测到未知错误，AngelPlayer即将重启",
     };//Messages for player to show
 
 bool
@@ -221,7 +219,24 @@ public Action Event_ResetSurvivors(Event event, const char[] name, bool dontBroa
     FindConVar("mp_gamemode").SetString("realism");
 
     if(L4D_IsMissionFinalMap())
-        ServerCommand("changelevel %s", g_sFirstMap);
+    {
+        char tarMap[64], mapBuf[8];
+        GetCurrentMap(tarMap, sizeof(tarMap));
+        if(IsCharNumeric(tarMap[1]))
+        {
+            int level = -1;
+            mapBuf[0] = tarMap[1];
+            mapBuf[1] = IsCharNumeric(tarMap[2]) ? tarMap[2] : '\0';
+            level = StringToInt(mapBuf);
+            level = level >= 14 ? 0 : level;
+            Format(mapBuf, sizeof(mapBuf), "c%dm1_", level + 1);
+
+            if(FindMap(mapBuf, tarMap, sizeof(tarMap)) != FindMap_NotFound && IsMapValid(tarMap))
+                ServerCommand("changelevel %s", tarMap);
+            else ServerCommand("changelevel %s", g_sFirstMap);
+        }
+        else ServerCommand("changelevel %s", g_sFirstMap);
+    }
 
     return Plugin_Continue;
 }
@@ -285,7 +300,7 @@ public Action Cmd_JoinSurvivor(int client, any args)
         //获取生还数量ConVar范围上限
         g_hServerMaxSurvivor.GetBounds(ConVarBound_Upper, survivors);
         int surPlayerCount = GetSurvivorPlayerCount();
-        //设置生还数量为：如果当前数量大于>=范围上限，设置为范围上限；否则，
+        //设置生还数量为：如果当前数量>=范围上限，设置为范围上限；否则，
         //如果生还队伍已满，设置为生还玩家数量+1；否则，如果生还玩家数量不为0，
         //设置为生还玩家数量，否则设置为1
         //(p.s.这逻辑是不太好讲，但是3元运算符写着真爽，下次还写ww)
@@ -371,12 +386,9 @@ public Action Timer_AutoGive(Handle timer)
             if(GetPlayerHealth(client) < 100)
                 BypassAndExecuteCommand(client, "give", "health");
             L4D_SetPlayerTempHealth(client, 0);
-            // SetEntPropFloat(client, Prop_Send, "m_healthBuffer", 0.0);
             L4D_SetPlayerReviveCount(client, 0);
-            // SetEntProp(client, Prop_Send, "m_currentReviveCount", 0);
             L4D_SetPlayerThirdStrikeState(client, false);
             L4D_SetPlayerIsGoingToDie(client, false);
-            // SetEntProp(client, Prop_Send, "m_bIsOnThirdStrike", 0);
         }
 
     return Plugin_Continue;
@@ -388,10 +400,7 @@ public Action Timer_NoWander(Handle timer, int client)
     if(IsSurvivorTeamFull() || !IsSurvivor(client))
         return Plugin_Continue;
 
-    int flags = GetCommandFlags("sb_takecontrol");
-    SetCommandFlags("sb_takecontrol", flags & (~FCVAR_CHEAT));
-    FakeClientCommand(client, "sb_takecontrol");
-    SetCommandFlags("sb_takecontrol", flags);
+    BypassAndExecuteCommand(client, "sb_takecontrol" ,"");
 
     return Plugin_Stop;
 }
@@ -413,11 +422,16 @@ void RestoreHealth()
 //设置玩家状态
 void SetGodMode(bool status)
 {
-    int flags = GetCommandFlags("god");
-    SetCommandFlags("god", flags & (~FCVAR_NOTIFY));
-    FindConVar("god").SetInt(status);
-    SetCommandFlags("god", flags);
-    FindConVar("sv_infinite_ammo").SetInt(status);
+    ConVar god = FindConVar("god");
+    ConVar ammo = FindConVar("sv_infinite_ammo");
+
+    god.Flags &= ~FCVAR_NOTIFY;
+    god.SetBool(status);
+    god.Flags |= FCVAR_NOTIFY;
+
+    ammo.Flags &= ~FCVAR_NOTIFY;
+    ammo.SetBool(status);
+    ammo.Flags |= FCVAR_NOTIFY;
 }
 
 //重置玩家背包
