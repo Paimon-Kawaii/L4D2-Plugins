@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-06-05 22:46:14
+ * @Last Modified time: 2022-06-08 01:11:51
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.06.05"
+#define VERSION "2022.06.08"
 
 public Plugin myinfo =
 {
@@ -172,7 +172,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 
     g_bIsGameStart = true;
     CreateTimer(0.5, Timer_Prepare2Spawn, 0, TIMER_FLAG_NO_MAPCHANGE);
-    CreateTimer(g_hAngelSpawnInterval.FloatValue / 4 + 1, Timer_DelaySIDealed, 0, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+    CreateTimer(g_hAngelSpawnInterval.FloatValue / 2 + 1, Timer_DelaySIDealed, 0, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 
     return Plugin_Continue;
 }
@@ -208,8 +208,7 @@ public Action Event_MissionLost(Event event, const char[] name, bool dont_broadc
 public Action Event_TankSpawn(Event event, const char[] name, bool dont_broadcast)
 {
     int tank = GetClientOfUserId(event.GetInt("userid"));
-    int heal = GetSurvivorCount() > 2 ? 1500 * GetSurvivorCount() : 1100 * GetSurvivorCount();
-    SetPlayerHealth(tank, heal);
+    SetPlayerHealth(tank, (GetSurvivorCount() > 2 ? 1500 : 1100) * GetSurvivorCount());
 
     return Plugin_Continue;
 }
@@ -220,12 +219,11 @@ public Action Event_WitchKilled(Event event, const char[] name, bool dont_broadc
     int client = GetClientOfUserId(event.GetInt("userid"));
     if (IsSurvivor(client) && IsPlayerAlive(client) && !IsPlayerIncap(client))
     {
-        int iMaxHp = GetEntProp(client, Prop_Data, "m_iMaxHealth");
-        int iTargetHealth = GetPlayerHealth(client) + 10;
-        if (iTargetHealth > iMaxHp)
-            iTargetHealth = iMaxHp;
+        int heal = GetPlayerHealth(client) + 10;
+        if (heal > GetEntProp(client, Prop_Data, "m_iMaxHealth"))
+            heal = GetPlayerHealth(client);
 
-        SetPlayerHealth(client, iTargetHealth);
+        SetPlayerHealth(client, heal);
     }
 
     return Plugin_Continue;
@@ -299,7 +297,7 @@ public void CvarEvent_LimitChanged(ConVar convar, const char[] oldValue, const c
 //刷特数量更改
 public void CvarEvent_AngelLimitChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-    FindConVar("angel_infected_limit").SetInt(GetInfectedLimit(), true);
+    FindConVar("angel_infected_limit").SetInt(GetInfectedLimit());
 }
 
 //插件信息
@@ -346,8 +344,8 @@ void CheckDelaySITeleport()
     if(!g_bIsGameStart) return;
     for(int i = 1; i < MaxClients; i++)
         if(IsInfected(i) && IsFakeClient(i) && IsPlayerAlive(i) &&
-            //不能看见生还并且不是克并且未控制生还，进行传送检测
-            !L4D_HasVisibleThreats(i) && !IsTank(i) && !IsPinningASurvivor(i))
+            //如果能传送并且不是克并且未控制生还，进行传送检测
+            CanInfectedTeleport(i) && !IsTank(i) && !IsPinningASurvivor(i))
         {
                 float pos[3];
                 float keyPos[3];
@@ -366,7 +364,8 @@ void CheckDelaySITeleport()
                     //获取合适位置传送：如果是困难模式，按照类型找位，否则按照导演生成模式找位
                     GetRandomSpawnPosition(keySurvivor, i, g_hAngelHardMode.BoolValue ? GetInfectedClass(i) : g_hAngelSpawnMode.IntValue, 2, pos);
                     TeleportEntity(i, pos, NULL_VECTOR, NULL_VECTOR);
-                    //重置血量
+                    //重置技能和血量
+                    L4D2_SetCustomAbilityCooldown(i, 0.0);
                     BypassAndExecuteCommand(i, "give", "health");
                     if(g_hAngelDirectorDebug.BoolValue)
                         CPrintToChatAll("%N tped to %N",i, keySurvivor);
@@ -450,8 +449,8 @@ void StartSpawn()
                 if(g_hAngelDirectorDebug.BoolValue)
                     CPrintToChatAll("spawn target %N", target);
             }
-            //如果存在，进行传送检测，若没有控中生还且不能看到生还
-            else if(!IsPinningASurvivor(target) && !L4D_HasVisibleThreats(target) &&
+            //如果存在，进行传送判定，若没有控中生还且能传送
+            else if(!IsPinningASurvivor(target) && CanInfectedTeleport(target) &&
                 //并且路程落后于最远的生还
                 L4D2Direct_GetFlowDistance(target) < L4D2Direct_GetFlowDistance(keySurvivor) &&
                 //并且在指定延后距离下不能成功构建Nav导航，进行传送
@@ -461,7 +460,8 @@ void StartSpawn()
                 L4D_SetClass(target, zclass);
                 //传送到指定位置
                 TeleportEntity(target, pos, NULL_VECTOR, NULL_VECTOR);
-                //特感回血
+                //重置技能和血量
+                L4D2_SetCustomAbilityCooldown(target, 0.0);
                 BypassAndExecuteCommand(target, "give", "health");
                 if(g_hAngelDirectorDebug.BoolValue)
                     CPrintToChatAll("find target, tped %N", target);
@@ -526,7 +526,7 @@ int GetInfectedClientBeyondLimit()
         int count = 0;
         for(int v = 1; v <= MaxClients; v++)
             if(IsInfected(v) && IsPlayerAlive(v) && IsFakeClient(v) && !IsTank(v) &&
-                GetInfectedClass(v) == i && !L4D_HasVisibleThreats(v) && !IsPinningASurvivor(v))
+                GetInfectedClass(v) == i && CanInfectedTeleport(v) && !IsPinningASurvivor(v))
             {
                 count++;
                 if(count > typeLimit[i - 1])
@@ -539,16 +539,66 @@ int GetInfectedClientBeyondLimit()
 //获取特感随机生成位置
 void GetRandomSpawnPosition(int survivor, int infected, int zclass, int times, float pos[3])
 {
-    L4D_GetRandomPZSpawnPosition(survivor, zclass, times--, pos);
+    L4D_GetRandomPZSpawnPosition(survivor, zclass, times, pos);
     if(!IsInfected(infected) || !IsSurvivor(survivor)) return;
 
     float surPos[3];
     GetClientAbsOrigin(survivor, surPos);
-    //生成点对应的Nav网格为空，或者生成点与生还者位置位于同一网格
-    while((!L4D_GetNearestNavArea(pos) || L4D2_NavAreaTravelDistance(pos, surPos, true) <= 0 ||
+    //生成点对应的Nav网格为空，或者生成点与生还者位置位于同一网格，或者点可以被生还看到
+    while((!L4D_GetNearestNavArea(pos) || L4D2_NavAreaTravelDistance(pos, surPos, true) <= 0 || CanPointBeenDetected(pos, RangeType_Visibility) ||
         //或者生成点与生还位置在指定延后距离下能成功构建Nav导航
         L4D2_VScriptWrapper_NavAreaBuildPath(pos, surPos, g_hAngelDelayDistance.FloatValue, false, false, TEAM_INFECTED, false) ||
         //或者生成点的Nav网格路程低于最高生还者路程时，若生成次数大于0，则尝试下一次生成
         L4D2Direct_GetTerrorNavAreaFlow(L4D2Direct_GetTerrorNavArea(pos)) < L4D2_GetFurthestSurvivorFlow()) && times > 0)
         L4D_GetRandomPZSpawnPosition(survivor, zclass, times--, pos);
+}
+
+//特感是否能传送
+bool CanInfectedTeleport(int client)
+{
+    if(!IsInfected(client) || !IsPlayerAlive(client))
+        return true;
+
+    //如果特感能看见生还，则不能传送
+    if(L4D_HasVisibleThreats(client))
+        return false;
+
+    float pos[3];
+    GetClientAbsOrigin(client, pos);
+
+    //RangeType_Visibility=>BeenSeen RangeType_Audibility=>BeenHeard
+    return !(CanPointBeenDetected(pos, RangeType_Visibility) ||
+        CanPointBeenDetected(pos, RangeType_Audibility));
+}
+
+//点是否可以被指定方式感知
+bool CanPointBeenDetected(float pos[3], ClientRangeType rangeType)
+{
+    int count = 0;
+    int clients[MAXSIZE];
+    int size = GetClientsInRange(pos, rangeType, clients, MAXSIZE);
+    switch(rangeType)
+    {
+        case RangeType_Visibility:
+        {
+            for(int i = 0; i < size; i++)
+                //如果能被玩家生还看见，则可以被感知
+                if(IsSurvivor(clients[i]) && !IsFakeClient(clients[i])
+                    && IsPlayerAlive(clients[i]))
+                    return true;
+        }
+        case RangeType_Audibility:
+        {
+            for(int i = 0; i < size; i++)
+                if(IsSurvivor(clients[i]) && IsPlayerAlive(clients[i]))
+                    count++;
+        }
+        default:
+        {
+            return false;
+        }
+    }
+
+    //如果能被存活的3分之2的生还听见，则认为可以被感知
+    return (count >= GetAliveSurvivorCount() * 2 / 3);
 }
