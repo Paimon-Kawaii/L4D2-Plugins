@@ -60,13 +60,23 @@ void ChangeHostName()
 
 void GetHostName()
 {
+    KeyValues kv_hostname = new KeyValues("Angelbeats");
+	ConVar cv_hostport = FindConVar("hostport");
     char hostFile[256];
+    
     BuildPath(Path_SM, hostFile, 256, "configs/hostname/l4d2_hostname.txt");
     Handle file = OpenFile(hostFile, "rb");
+    
     if (file)
     {
-        while (!IsEndOfFile(file))
-            ReadFileLine(file, g_sHostName, 256);
+    	if (!kv_hostname.ImportFromFile(hostFile))
+		{
+			SetFailState("导入 %s 失败！", hostFile);
+		}
+    	char port[20];
+		FormatEx(port, sizeof(port), "%d", cv_hostport.IntValue);
+		kv_hostname.JumpToKey(port);
+		kv_hostname.GetString("servername", g_sHostName, sizeof(g_sHostName), "AngleBeats Server");
 
         CloseHandle(file);
     }
