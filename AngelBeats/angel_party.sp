@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-04-14 11:20:56
- * @Last Modified time: 2022-06-05 22:29:40
+ * @Last Modified time: 2022-06-09 14:04:23
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -14,7 +14,7 @@
 #include <l4d2tools>
 #include <left4dhooks>
 
-#define VERSION "2022.06.05"
+#define VERSION "2022.06.09"
 
 ConVar
     g_hAngelParty;//0=Disable, 1=Smoker, 2=Boomer, 3=Hunter,
@@ -32,10 +32,11 @@ public Plugin myinfo =
 //插件入口
 public void OnPluginStart()
 {
-    // HookEvent("tank_spawn", Event_TankSpawn);
     HookEvent("tongue_pull_stopped", Event_TonguePullStopped);
 
     g_hAngelParty = CreateConVar("angel_party", "0", "特感派对类型");
+    g_hAngelParty.SetBounds(ConVarBound_Upper, true, 6.0);
+    g_hAngelParty.SetBounds(ConVarBound_Lower, true, 1.0);
 }
 
 //替换特感类型
@@ -69,39 +70,3 @@ public Action Event_TonguePullStopped(Event event, const char[] name, bool dontB
 
     return Plugin_Continue;
 }
-
-// //根据模式削弱Tank
-// public Action Event_TankSpawn(Event event, const char[] name, bool dont_broadcast)
-// {
-//     int tank = GetClientOfUserId(event.GetInt("userid"));
-//     int heal = GetPlayerHealth(tank);
-//     if(GetSurvivorCount() <= 2)
-//     {
-//         ForcePlayerSuicide(tank);
-//         return Plugin_Handled;
-//     }
-//     switch(g_hAngelParty.IntValue)
-//     {
-//         case 3:
-//         {
-//             heal = heal - GetSurvivorCount() * 500;
-//             SetPlayerHealth(tank, heal);
-//         }
-//         case 5:
-//         {
-//             heal = heal - GetSurvivorCount() * 400;
-//             SetPlayerHealth(tank, heal);
-//         }
-//         case 6:
-//         {
-//             heal = heal - GetSurvivorCount() * 600;
-//             SetPlayerHealth(tank, heal);
-//         }
-//         default:
-//         {
-//             return Plugin_Continue;
-//         }
-//     }
-//     PrintHintTextToAll("克血量已被削弱为%d", heal);
-//     return Plugin_Continue;
-// }
