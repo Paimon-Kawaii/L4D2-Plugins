@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-06-08 01:11:51
+ * @Last Modified time: 2022-06-13 12:50:09
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.06.08"
+#define VERSION "2022.06.09"
 
 public Plugin myinfo =
 {
@@ -122,14 +122,6 @@ public void OnPluginStart()
     RegConsoleCmd("sm_dc", Cmd_DirectorMsg, "Show director-manager information");
     RegConsoleCmd("sm_xx", Cmd_DirectorMsg, "Show director-manager information");
     RegConsoleCmd("sm_mode", Cmd_DirectorMode, "Show director spawn mode");
-}
-
-//玩家进入服务器
-public void OnClientPutInServer(int client)
-{
-    if (IsFakeClient(client)) return;
-
-    CreateTimer(1.2, Timer_ShowMsg, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 //地图加载
@@ -239,15 +231,6 @@ public Action Event_PlayerChangeTeam(Event event, const char[] name, bool dont_b
     CreateTimer(0.1, Timer_MobChange, 0, TIMER_FLAG_NO_MAPCHANGE);
 
     return Plugin_Continue;
-}
-
-//展示信息
-public Action Timer_ShowMsg(Handle timer, int client)
-{
-    ClientCommand(client, "sm_dc");
-    ClientCommand(client, "sm_mode");
-
-    return Plugin_Stop;
 }
 
 //尸潮数量更改
@@ -469,7 +452,7 @@ void StartSpawn()
 
             //若生成后特感不存在，并且在Debug模式下，输出信息
             if(!IsInfected(target) && g_hAngelDirectorDebug.BoolValue)
-                CPrintToChatAll("sth wrong with spawner");
+                CPrintToChatAll("sth wrong while spawning");
         }
 
     //设置刷特路程
@@ -556,11 +539,8 @@ void GetRandomSpawnPosition(int survivor, int infected, int zclass, int times, f
 //特感是否能传送
 bool CanInfectedTeleport(int client)
 {
-    if(!IsInfected(client) || !IsPlayerAlive(client))
-        return true;
-
-    //如果特感能看见生还，则不能传送
-    if(L4D_HasVisibleThreats(client))
+    //如果不是特感，或者特感死亡，亦或者特感能看见生还，则不能传送
+    if(!IsInfected(client) || !IsPlayerAlive(client) || L4D_HasVisibleThreats(client))
         return false;
 
     float pos[3];
