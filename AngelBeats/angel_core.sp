@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-06-08 19:38:10
+ * @Last Modified time: 2022-06-13 13:09:48
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,13 +16,13 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.06.07"
+#define VERSION "2022.06.09"
 
 public Plugin myinfo =
 {
     name = "AngelCore",
     author = "我是派蒙啊",
-    description = "AngelServer的启动核心(P.S. 改自内鬼插件-anneserver.sp)",
+    description = "AngelServer的启动核心",
     version = VERSION,
     url = "http://github.com/PaimonQwQ/L4D2-Plugins/AngelBeats"
 };
@@ -33,7 +33,8 @@ enum Msgs
     Msg_Connected,
     Msg_DisConnected,
     Msg_PlayerSuicide,
-    Msg_PlayerCanJoin,
+    Msg_PlayerJoinFalse,
+    Msg_HowToJoin,
 };//Message enums for message array(as an index)
 
 char
@@ -45,6 +46,7 @@ char
         "[{olive}天使{default}] 提醒您：{blue}%N {default}离开了战线",
         "[{olive}天使{default}] 提醒您：{blue}%N {default}心满意足的消失了",
         "[{olive}天使{default}] 提醒您：{default}当前无生还Bot，请在开局前使用 {orange}!jg",
+        "[{olive}天使{default}] 提醒您：{default}使用 {orange}!jg {default}加入生还",
     };//Messages for player to show
 
 bool
@@ -127,6 +129,15 @@ public void OnClientPutInServer(int client)
     g_hServerMaxSurvivor.SetInt(surPlayerCount ? surPlayerCount : 1);
 
     CPrintToChatAll(g_sMessages[Msg_Connected], client);
+}
+
+//玩家进入服务器(提示用)
+public void OnClientPostAdminCheck(int client)
+{
+    if (IsFakeClient(client))
+        return;
+
+    CPrintToChat(client, g_sMessages[Msg_HowToJoin]);
 }
 
 //玩家断开连接
@@ -228,8 +239,8 @@ public Action Event_ResetSurvivors(Event event, const char[] name, bool dontBroa
             mapBuf[0] = tarMap[1];
             mapBuf[1] = IsCharNumeric(tarMap[2]) ? tarMap[2] : '\0';
             level = StringToInt(mapBuf);
-            level = level >= 14 ? 0 : level;
-            Format(mapBuf, sizeof(mapBuf), "c%dm1_", level + 1);
+            level = level >= 14 ? 1 : level + 1;
+            Format(mapBuf, sizeof(mapBuf), "c%dm1_", level);
 
             if(FindMap(mapBuf, tarMap, sizeof(tarMap)) != FindMap_NotFound && IsMapValid(tarMap))
                 ServerCommand("changelevel %s", tarMap);
@@ -293,7 +304,7 @@ public Action Cmd_JoinSurvivor(int client, any args)
     {
         if(IsSurvivorTeamFull() && g_bIsGameStart)
         {
-            CPrintToChat(client, g_sMessages[Msg_PlayerCanJoin]);
+            CPrintToChat(client, g_sMessages[Msg_PlayerJoinFalse]);
             return Plugin_Handled;
         }
         float survivors = 4.0;
