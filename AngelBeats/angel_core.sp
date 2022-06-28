@@ -380,7 +380,7 @@ public Action Timer_IsNobodyConnected(Handle timer, any timerDisconnectTime)
         if (IsValidClient(i) && !IsFakeClient(i))
             return Plugin_Stop;
 
-    RestartServer();
+    UnloadAccelerator();
 
     return Plugin_Continue;
 }
@@ -467,6 +467,36 @@ void DeleteInventoryItem(int client, int slot)
     int item = GetPlayerWeaponSlot(client, slot);
     if (item > 0)
         RemovePlayerItem(client, item);
+}
+
+//去除因为使用sv_crash命令而导致上传的崩溃log
+void UnloadAccelerator()
+{
+	int Id = GetAcceleratorId();
+	if (Id != -1)
+	{
+		ServerCommand("sm exts unload %i 0", Id);
+		ServerExecute();
+	}
+    RestartServer();
+}
+
+// by sorallll
+int GetAcceleratorId()
+{
+	char sBuffer[512];
+	ServerCommandEx(sBuffer, sizeof(sBuffer), "sm exts list");
+	int index = SplitString(sBuffer, "] Accelerator (", sBuffer, sizeof(sBuffer));
+	if (index == -1)
+		return -1;
+
+	for (int i = strlen(sBuffer); i >= 0; i--)
+	{
+		if(sBuffer[i] == '[')
+			return StringToInt(sBuffer[i + 1]);
+	}
+
+	return -1;
 }
 
 //重启服务器
