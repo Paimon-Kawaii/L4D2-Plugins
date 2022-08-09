@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-24 17:00:57
- * @Last Modified time: 2022-06-04 23:55:24
+ * @Last Modified time: 2022-07-18 22:34:41
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -18,7 +18,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.06.04"
+#define VERSION "2022.07.18"
 #define MENU_DISPLAY_TIME 15
 
 int
@@ -35,6 +35,7 @@ enum Msgs
 
 char
     g_sInfoPath[PLATFORM_MAX_PATH],
+    g_sMeleeName[][] = { "无近战","武士刀", "斧头", "小刀", "砍刀", "马格南", "物理学圣剑", },
     g_sMessages[][] =
     {
         "[{olive}Guard{default}] {blue}%N{default} 花费{olive}%d{default}饭票购买了%s",
@@ -160,7 +161,6 @@ public Action Cmd_GiveTicket(int client, any args)
             GetCmdArg(2, arg, sizeof(arg));
             g_iMealTickets[target] = StringToInt(arg);
         }
-
     }
 
     return Plugin_Handled;
@@ -233,7 +233,7 @@ public Action Event_CreateMeleePanel(int client)
     panel.SetTitle(str);
 
     GetClientAuthId(client, AuthId_Steam2, str, 32, true);
-    GetMeleeName(GetMeleeFromPlayerInfo(str), str);
+    strcopy(str, 256, g_sMeleeName[GetMeleeFromPlayerInfo(str)]);
 
     Format(str, 256, "当前近战：%s", str);
     panel.DrawText(str);
@@ -257,6 +257,7 @@ public Action Event_CreateChoiceMenu(int client)
     menu.AddItem("Knife", "小刀");
     menu.AddItem("Machete", "砍刀");
     menu.AddItem("Magnum", "马格南");
+    menu.AddItem("Crowbar", "物理学圣剑");
     menu.Pagination = MENU_NO_PAGINATION;
     menu.ExitButton = true;
     menu.Display(client, MENU_DISPLAY_TIME);
@@ -544,42 +545,6 @@ int GetMeleeFromPlayerInfo(const char[] steamid)
     return StringToInt(melee);
 }
 
-//获取近战名称
-void GetMeleeName(int melee, char[] name)
-{
-    switch(melee)
-    {
-        case 0:
-        {
-            Format(name, 256, "无近战");
-        }
-        case 1:
-        {
-            Format(name, 256, "武士刀");
-        }
-        case 2:
-        {
-            Format(name, 256, "斧头");
-        }
-        case 3:
-        {
-            Format(name, 256, "小刀");
-        }
-        case 4:
-        {
-            Format(name, 256, "砍刀");
-        }
-        case 5:
-        {
-            Format(name, 256, "马格南");
-        }
-        default:
-        {
-            Format(name, 256, "未知");
-        }
-    }
-}
-
 void StartLottery(int client)
 {
     if(g_iMealTickets[client] < 12)
@@ -640,7 +605,7 @@ void StartLottery(int client)
         random = GetRandomInt(1, 100);
         if (random <= 30)
         {
-            CPrintToChat(client, "[{olive}Guard{default}]  谢谢参与！");
+            CPrintToChat(client, "[{olive}Guard{default}] 谢谢参与！");
             return;
         }
         else if (random <= 40)
@@ -713,6 +678,10 @@ void GiveMelee(int client)
         case 5:
         {
             BypassAndExecuteCommand(client, "give", "pistol_magnum");
+        }
+        case 6:
+        {
+            BypassAndExecuteCommand(client, "give", "crowbar");
         }
         default:
         {

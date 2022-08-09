@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-06-13 13:09:48
+ * @Last Modified time: 2022-06-19 17:51:44
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -16,7 +16,7 @@
 #include <left4dhooks>
 
 #define MAXSIZE 33
-#define VERSION "2022.06.09"
+#define VERSION "2022.06.19"
 
 public Plugin myinfo =
 {
@@ -35,6 +35,7 @@ enum Msgs
     Msg_PlayerSuicide,
     Msg_PlayerJoinFalse,
     Msg_HowToJoin,
+    Msg_ReachedLimit,
 };//Message enums for message array(as an index)
 
 char
@@ -47,6 +48,7 @@ char
         "[{olive}天使{default}] 提醒您：{blue}%N {default}心满意足的消失了",
         "[{olive}天使{default}] 提醒您：{default}当前无生还Bot，请在开局前使用 {orange}!jg",
         "[{olive}天使{default}] 提醒您：{default}使用 {orange}!jg {default}加入生还",
+        "[{olive}天使{default}] 提醒您：{default}生还数量已达上限 {orange}%d {default}，使用 {orange}!vote {default}修改生还上限",
     };//Messages for player to show
 
 bool
@@ -321,10 +323,13 @@ public Action Cmd_JoinSurvivor(int client, any args)
         //若执行完上述语句后，没有被playermanager插件自动添加假人
         //说明队伍已满，不再继续执行加入指令，以防炸服
         if(IsSurvivorTeamFull())
+        {
+            CPrintToChat(client, g_sMessages[Msg_ReachedLimit], GetSurvivorCount());
             return Plugin_Handled;
+        }
         ClientCommand(client, "jointeam survivor");
-        CreateTimer(0.1, Timer_NoWander, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     }
+    CreateTimer(0.1, Timer_NoWander, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 
     return Plugin_Handled;
 }
@@ -408,7 +413,7 @@ public Action Timer_AutoGive(Handle timer)
 //取消玩家闲置
 public Action Timer_NoWander(Handle timer, int client)
 {
-    if(IsSurvivorTeamFull() || !IsSurvivor(client))
+    if(!IsSurvivor(client))
         return Plugin_Continue;
 
     BypassAndExecuteCommand(client, "sb_takecontrol" ,"");

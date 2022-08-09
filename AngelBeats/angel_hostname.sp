@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-05-23 13:49:33
- * @Last Modified time: 2022-06-04 21:41:59
+ * @Last Modified time: 2022-06-19 13:53:50
  * @Github:             http://github.com/PaimonQwQ
  */
 #pragma semicolon 1
@@ -10,10 +10,12 @@
 
 #include <sdkhooks>
 #include <sourcemod>
+#include <keyvalues>
 #include <SteamWorks>
-#define VERSION "2022.06.04"
+#define VERSION "2022.06.19"
 
 char
+    g_sHostPath[256],
     g_sHostName[256];
 
 ConVar
@@ -35,6 +37,7 @@ public void OnPluginStart()
     g_hAngelSpawnLimit.AddChangeHook(CVarEvent_OnDirectorChanged);
     g_hAngelSpawnInterval = FindConVar("angel_special_respawn_interval");
     g_hAngelSpawnInterval.AddChangeHook(CVarEvent_OnDirectorChanged);
+    BuildPath(Path_SM, g_sHostPath, sizeof(g_sHostPath), "configs/AngelName.txt");
 
     ChangeHostName();
 }
@@ -60,14 +63,19 @@ void ChangeHostName()
 
 void GetHostName()
 {
-    char hostFile[256];
-    BuildPath(Path_SM, hostFile, 256, "configs/hostname/l4d2_hostname.txt");
-    Handle file = OpenFile(hostFile, "rb");
-    if (file)
-    {
-        while (!IsEndOfFile(file))
-            ReadFileLine(file, g_sHostName, 256);
+    char port[6];
+    Format(port, sizeof(port), "%d", FindConVar("hostport").IntValue);
 
-        CloseHandle(file);
+    KeyValues HostName = new KeyValues("AngelBeats");
+    HostName.ImportFromFile(g_sHostPath);
+
+    if (!HostName.JumpToKey(port))
+    {
+        delete HostName;
+        strcopy(g_sHostName, sizeof(g_sHostName), "Angel Beats!");
+        return;
     }
+
+    HostName.GetString("ServerName", g_sHostName, sizeof(g_sHostName));
+    delete HostName;
 }

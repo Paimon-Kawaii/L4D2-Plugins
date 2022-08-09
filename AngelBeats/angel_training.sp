@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   派蒙
  * @Create Date:        2022-04-26 11:45:56
- * @Last Modified time: 2022-05-22 14:01:29
+ * @Last Modified time: 2022-06-24 22:34:11
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -17,7 +17,7 @@
 #include <left4dhooks>
 #include <angel/training>
 
-#define VERSION "2022.05.22"
+#define VERSION "2022.06.24"
 #define NEQNULL(%1) Dynamic_IsValid(view_as<int>(%1))
 
 public Plugin myinfo =
@@ -102,9 +102,10 @@ public Action TraceAttack(int victim, int &attacker, int &inflictor, float &dama
 //单人解控
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damageType, int &weapon, float damageForce[3], float damagePosition[3])
 {
-    if (!IsSurvivor(victim) || !IsInfected(attacker) ||
-         IsTank(attacker) || GetSurvivorCount() > 3 ||
-         !IsSurvivorPinned(victim) || !IsPinningASurvivor(attacker))
+    if (IsTank(attacker) || GetSurvivorCount() > 3 ||
+        !IsSurvivor(victim) || !IsInfected(attacker) ||
+        !IsPlayerAlive(victim) || !IsPlayerAlive(attacker) ||
+        !IsSurvivorPinned(victim) || !IsPinningASurvivor(attacker))
         return Plugin_Continue;
 
     if (GetSurvivorCount() > 1)
@@ -123,7 +124,8 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
     else
         damage = 2.0;
     int remain = GetClientHealth(attacker);
-    SDKHooks_TakeDamage(victim, attacker, attacker, damage);
+    if(IsPlayerAlive(victim))
+        SDKHooks_TakeDamage(victim, attacker, attacker, damage);
 
     ForcePlayerSuicide(attacker);
     SetEntProp(victim, Prop_Send, "m_CollisionGroup", 17);
