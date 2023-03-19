@@ -1,8 +1,8 @@
 /*
  * @Author:             派蒙
- * @Last Modified by:   派蒙
+ * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2022-05-20 23:31:48
+ * @Last Modified time: 2023-03-04 17:02:19
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -21,14 +21,14 @@
 #define TEAM_SURVIVOR 2
 #define TEAM_INFECTED 3
 
-enum TEAM
+enum
 {
     Team_Spectator = 1,
     Team_Survivor,
     Team_Infected
 };
 
-enum ZCLASSES
+enum
 {
     ZC_Smoker = 1,
     ZC_Boomer,
@@ -40,7 +40,7 @@ enum ZCLASSES
     ZC_Tank
 };
 
-enum TANKATK
+enum
 {
     PC_UpperCut = 40,
     PC_RightHook = 43,
@@ -328,7 +328,7 @@ stock bool SetPlayerHealth(int client, int health)
  * @param strPrm    CmdParam string.
  * @return          True if succeed. False otherwise.
  */
-stock bool BypassAndExecuteCommand(int client, const char[] strCmd, const char[] strPrm)
+stock bool BypassAndExecuteCommand(int client, const char[] strCmd, const char[] strPrm = "")
 {
     if (!IsValidClient(client)) return false;
 
@@ -378,6 +378,22 @@ stock int GetSInfectedCount()
     int count = 0;
     for (int i = 1; i <= MaxClients; i++)
         if (IsInfected(i))
+            count++;
+
+    return count;
+}
+
+
+/**
+ * @brief Get client count without special infected.
+ * 
+ * @return          Client count without special infected.
+ */
+stock int GetClientNoSICount()
+{
+    int count = 0;
+    for (int i = 1; i <= MaxClients; i++)
+        if (IsValidClient(i) && IsClientInGame(i) && !IsInfected(i))
             count++;
 
     return count;
@@ -441,4 +457,18 @@ stock int GetAliveInfectedCount()
             count++;
 
     return count;
+}
+
+/**
+ * @brief Delete client items
+ * 
+ * @return          No return.
+ */
+stock void DeleteInventoryItem(int client)
+{
+    if (!IsValidClient(client)) return;
+
+    int item = GetPlayerWeaponSlot(client, 0);
+    if (item > 0)
+        RemovePlayerItem(client, item);
 }
