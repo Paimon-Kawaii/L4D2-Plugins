@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-19 20:14:47
+ * @Last Modified time: 2023-03-19 21:51:29
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -43,7 +43,8 @@ public void OnPluginStart()
 
 #if DEBUG
 // Seems only client side command, server couldnt catch them...
-// AddCommandListener is a better way to prevent input, if you are host player, I suggest you open DEBUG mode
+// AddCommandListener is a better way to prevent input,
+//if you are the host player, I suggest you open DEBUG mode.
     // Hook player movements.
     AddCommandListener(Movement_CallBack, "+back");
     AddCommandListener(Movement_CallBack, "-back");
@@ -53,7 +54,7 @@ public void OnPluginStart()
     AddCommandListener(Movement_CallBack, "-moveleft");
     AddCommandListener(Movement_CallBack, "+moveright");
     AddCommandListener(Movement_CallBack, "-moveright");
-    // Hook actions may interrupt dancing.
+    // Hook actions witch may interrupt dancing.
     AddCommandListener(Movement_CallBack, "+left");
     AddCommandListener(Movement_CallBack, "+right");
     AddCommandListener(Movement_CallBack, "+use");
@@ -194,6 +195,8 @@ Action Cmd_FreeCamera(int client, any args)
     g_iFreeCamera[client] = camera;
     SetClientViewEntity(client, camera);
 
+    FakeClientCommand(client, "sm_dance");
+
     return Plugin_Handled;
 }
 
@@ -251,7 +254,8 @@ int CreateVirtualCamera(int target)
     SetEntityRenderMode(camera, RENDER_TRANSCOLOR);
     SetEntityMoveType(camera, MOVETYPE_NOCLIP);
     SetEntityRenderColor(camera, 0, 0, 0, 0);
-    SetEntityCollisionGroup(camera, 0);
+    SetEntPropFloat(camera, Prop_Send, "m_flModelScale", 0.0);
+    SetEntProp(camera, Prop_Send, "m_CollisionGroup", 0);
 
     char name[64];
     for(int i = 0; i <= MaxEnities; i++)
@@ -267,6 +271,14 @@ int CreateVirtualCamera(int target)
                 AcceptEntityInput(i, "Kill");
         }
     }
+
+    float tpos[3], cpos[3];
+    GetClientAbsOrigin(target, tpos);
+    GetEntPropVector(camera, Prop_Send, "m_vecOrigin", cpos);
+    float dis = GetVectorDistance(tpos, cpos);
+    tpos[2] += 100;
+    if(dis > 1000)
+        TeleportEntity(camera, tpos, NULL_VECTOR, NULL_VECTOR);
 
     return camera;
 }
