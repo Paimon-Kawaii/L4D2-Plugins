@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-20 23:37:16
+ * @Last Modified time: 2023-03-20 23:42:16
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -337,14 +337,14 @@ int Menu_ExecCameraSettings(Menu menu, MenuAction action, int client, int item)
 
 Action Say_Callback(int client, const char[] command, int argc)
 {
-    // No need block, continue
+    // No need to block, continue
     if(!g_bWaitSpeed[client] || !IsValidClient(client))
         return Plugin_Continue;
 
     char buffer[4];
     GetCmdArg(1, buffer, sizeof(buffer));
     int speed = StringToInt(buffer);
-    // NaN or 0 Speed is invaild, let player input again
+    // NaN or 0 is invaild, let player input again
     if(speed < 1)
     {
         PrintToChat(client, "[FC] 速度应大于零，请重新输入");
