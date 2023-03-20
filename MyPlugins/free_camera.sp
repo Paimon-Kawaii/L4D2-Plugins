@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-20 23:29:23
+ * @Last Modified time: 2023-03-20 23:33:46
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -121,16 +121,6 @@ public void OnMapEnd()
         KillFreeCamera(i);
 }
 
-public void OnClientPostAdminCheck(int client)
-{
-    // Try get client camera settings
-    KeyValues KvCamera = GetCameraKeyValue(client);
-    g_bAutoCamera[client] = view_as<bool>(KvCamera.GetNum("IsAuto", 1));
-    g_fCameraSpeed[client] = KvCamera.GetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue);
-
-    delete KvCamera;
-}
-
 public void OnAllPluginsLoaded()
 {
     for(int client = 1; client <= MaxClients; client++)
@@ -143,6 +133,16 @@ public void OnAllPluginsLoaded()
 
         delete KvCamera;
     }
+}
+
+public void OnClientPostAdminCheck(int client)
+{
+    // Try get client camera settings
+    KeyValues KvCamera = GetCameraKeyValue(client);
+    g_bAutoCamera[client] = view_as<bool>(KvCamera.GetNum("IsAuto", 1));
+    g_fCameraSpeed[client] = KvCamera.GetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue);
+
+    delete KvCamera;
 }
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
