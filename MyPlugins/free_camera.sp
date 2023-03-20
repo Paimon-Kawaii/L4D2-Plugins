@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-20 23:33:46
+ * @Last Modified time: 2023-03-20 23:37:16
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -88,11 +88,15 @@ public void OnPluginStart()
 
     g_hCameraCookies = new Cookie(CAMERA_COOKIE_NAME, "Camera Settings", CookieAccess_Public);
 
+    // Create free camera
     RegConsoleCmd("sm_fc", Cmd_FreeCamera, "Free Camera");
     RegConsoleCmd("sm_freecam", Cmd_FreeCamera, "Free Camera");
+    // Kill free camera
     RegConsoleCmd("sm_kfc", Cmd_KillFreeCamera, "Kill Free Camera");
     RegConsoleCmd("sm_killfreecam", Cmd_KillFreeCamera, "Kill Free Camera");
+    // Open free camera menu
     RegConsoleCmd("sm_fcm", Cmd_FreeCameraMenu, "Free Camera Menu");
+    RegConsoleCmd("sm_freecammenu", Cmd_FreeCameraMenu, "Free Camera Menu");
 
     // Free camera speed
     g_hFreeCamSpeed = CreateConVar("fc_speed", "60", "自由相机移速");
