@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-20 23:21:21
+ * @Last Modified time: 2023-03-20 23:29:23
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -17,6 +17,7 @@
 #include <clientprefs>
 
 #define VERSION "2023.03.20"
+#define MAXSIZE 33
 // #define HOST 0
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
@@ -27,16 +28,16 @@
 // int g_iCameraInput[33] = {0, ...};
 // #endif
 int
-    g_iFreeCamera[33] = {-1, ...};
+    g_iFreeCamera[MAXSIZE] = {-1, ...};
 
 float
-    g_fCameraSpeed[33] = {0.0, ...};
+    g_fCameraSpeed[MAXSIZE] = {0.0, ...};
 
 bool
-    g_bWaitSpeed[33] = {false, ...},
-    g_bIsDancing[33] = {false, ...},
-    g_bFreeCamera[33] = {false, ...},
-    g_bAutoCamera[33] = {false, ...};
+    g_bWaitSpeed[MAXSIZE] = {false, ...},
+    g_bIsDancing[MAXSIZE] = {false, ...},
+    g_bFreeCamera[MAXSIZE] = {false, ...},
+    g_bAutoCamera[MAXSIZE] = {false, ...};
 
 Cookie
     g_hCameraCookies;
@@ -433,9 +434,7 @@ void KillFreeCamera(int client)
 int CreateVirtualCamera(int target)
 {
     int camera;
-    float origin[3];
-    float rotate[3];
-    float lookat[3];
+    float origin[3], rotate[3], lookat[3];
 
     GetEntPropVector(target, Prop_Send, "m_vecOrigin", origin);
     GetEntPropVector(target, Prop_Send, "m_angRotation", rotate);
@@ -464,8 +463,8 @@ int CreateVirtualCamera(int target)
     DispatchKeyValueVector(camera, "angles", rotate);
     DispatchSpawn(camera);
     ActivateEntity(camera);
-    // Record when camera has create
     // Vomit has no partice, so we no longer need this...
+    // // Record when camera has create
     // float camtime = GetGameTime();
 
     AcceptEntityInput(camera, "DisableShadow");
@@ -499,7 +498,7 @@ int CreateVirtualCamera(int target)
     GetEntPropVector(camera, Prop_Send, "m_vecOrigin", cpos);
     float dis = GetVectorDistance(tpos, cpos);
     tpos[2] += 100;
-    if (dis > 1000)
+    if (dis > 500)
         TeleportEntity(camera, tpos, NULL_VECTOR, NULL_VECTOR);
 
     return camera;
