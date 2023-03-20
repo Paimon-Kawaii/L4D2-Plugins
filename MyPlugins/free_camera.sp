@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-19 21:51:29
+ * @Last Modified time: 2023-03-20 09:53:51
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -13,12 +13,12 @@
 #include <l4d2tools>
 #include <sourcemod>
 
-#define VERSION "2023.03.19"
+#define VERSION "2023.03.20"
 #define DEBUG 0
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
 
-int MaxEnities;
+// int MaxEnities;
 
 #if DEBUG
 int g_iCameraInput[33] = {0, ...};
@@ -39,8 +39,7 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-    MaxEnities = GetMaxEntities();
-
+    // MaxEnities = GetMaxEntities();
 #if DEBUG
 // Seems only client side command, server couldnt catch them...
 // AddCommandListener is a better way to prevent input,
@@ -230,8 +229,9 @@ int CreateVirtualCamera(int target)
     GetEntPropVector(target, Prop_Send, "m_vecOrigin", origin);
     GetEntPropVector(target, Prop_Send, "m_angRotation", rotate);
 
-    // Only tank rock can get velocity...(dont know why)
-    camera = CreateEntityByName("tank_rock");
+    // Some ent like gift or rock or some projectiles can get velocity...(dont know why)
+    // Gift is the best choice !!
+    camera = CreateEntityByName("holiday_gift");
     if (!IsValidEntity(camera)) return -1;
 
     GetAngleVectors(rotate, lookat, NULL_VECTOR, NULL_VECTOR);
@@ -247,30 +247,34 @@ int CreateVirtualCamera(int target)
     DispatchSpawn(camera);
     ActivateEntity(camera);
     // Record when camera has create
-    float camtime = GetGameTime();
+    // Gift has no partice, so we no longer need this...
+    // float camtime = GetGameTime();
 
     AcceptEntityInput(camera, "DisableShadow");
     SetEntPropEnt(camera, Prop_Data, "m_hOwnerEntity", target);
     SetEntityRenderMode(camera, RENDER_TRANSCOLOR);
     SetEntityMoveType(camera, MOVETYPE_NOCLIP);
     SetEntityRenderColor(camera, 0, 0, 0, 0);
-    SetEntPropFloat(camera, Prop_Send, "m_flModelScale", 0.0);
-    SetEntProp(camera, Prop_Send, "m_CollisionGroup", 0);
+    SetEntProp(camera, Prop_Send, "m_nSolidType", 0);
 
-    char name[64];
-    for(int i = 0; i <= MaxEnities; i++)
-    {
-        if(!IsValidEntity(i)) continue;
-        GetEntityClassname(i, name, sizeof(name));
-        if(!strcmp(name, "info_particle_system", false))
-        {
-            // When particle create, kill it.(make sure player wont notice that she is a tank rock xD)
-            float partime = GetEntPropFloat(i, Prop_Send, "m_flStartTime");
-            // Make sure we
-            if(partime - camtime <= 2.0)
-                AcceptEntityInput(i, "Kill");
-        }
-    }
+    // Gift has no partice, so we no longer need this...
+    // char name[64];
+    // for(int i = 0; i <= MaxEnities; i++)
+    // {
+    //     if(!IsValidEntity(i)) continue;
+    //     GetEntityClassname(i, name, sizeof(name));
+    //     PrintToChatAll("%s", name);
+    //     if(!strcmp(name, "info_particle_system", false))
+    //     {
+    //         // When particle create, kill it.(make sure player wont notice that she is a tank rock xD)
+    //         float partime = GetEntPropFloat(i, Prop_Send, "m_flStartTime");
+    //         // Make sure we
+    //         if(partime - camtime <= 2.0)
+    //             AcceptEntityInput(i, "Kill");
+    //     }
+    // }
+
+    PrintToChatAll("%d", camera);
 
     float tpos[3], cpos[3];
     GetClientAbsOrigin(target, tpos);
