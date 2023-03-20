@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-20 14:10:29
+ * @Last Modified time: 2023-03-20 15:17:53
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -15,7 +15,7 @@
 #include <fnemotes>
 
 #define VERSION "2023.03.20"
-#define HOST 0
+// #define HOST 0
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
 
@@ -78,8 +78,11 @@ public void OnPluginStart()
     RegConsoleCmd("sm_kfc", Cmd_KillFreeCamera, "Kill Free Camera");
     RegConsoleCmd("sm_killfreecam", Cmd_KillFreeCamera, "Kill Free Camera");
 
+    // Free camera speed
     g_hFreeCamSpeed = CreateConVar("fc_speed", "60", "自由相机移速");
+    // Turn on/off free camera, 1 for on, 0 for off
     g_hFreeCamera = CreateConVar("fc_allow", "1", "开启自由相机, 1=开启 0=关闭");
+    // Turn on/off free camera cmd, 1 for on, 0 for off
     g_hFreeCamSwitch = CreateConVar("fc_cmd_switch", "0", "自由相机指令, 1=开启 0=关闭");
 
     AutoExecConfig(true, "free_camera");
@@ -255,7 +258,8 @@ void KillFreeCamera(int client)
         RemoveEntity(camera);
     }
     // Let player view herself.
-    SetClientViewEntity(client, client);
+    if(IsValidClient(client) && IsClientInGame(client))
+        SetClientViewEntity(client, client);
     g_bFreeCamera[client] = false;
     g_iFreeCamera[client] = -1;
 }
@@ -270,15 +274,15 @@ int CreateVirtualCamera(int target)
     GetEntPropVector(target, Prop_Send, "m_vecOrigin", origin);
     GetEntPropVector(target, Prop_Send, "m_angRotation", rotate);
 
-    // Some ent like gift or rock or some projectiles can get velocity...(dont know why)
+    // Only some ents like gift or rock or some projectiles can get velocity...(dont know why)
     // spitter_projectile : Not a choice because it may be hooked by other plugins...
     // tank_rock: Not a choice because it may be hooked by other plugins...
-    // holiday_gift: Not a choice because it will auto distory.
+    // holiday_gift: Not a choice because it will auto destroy.
     // grenade_launcher_projectile : You could see smoke above.
     // molotov_projectile: You could see a fire ball above.
     // pipe_bomb_projectile : You could see red flash light.
     // vomitjar_projectile: : Seems a best choice, no particle, no flash, no effect,
-    //              no auto distory, wont be hooked...Perfect!!!
+    //              no auto destroy, wont be hooked...Perfect!!!
     camera = CreateEntityByName("vomitjar_projectile");
     if (!IsValidEntity(camera)) return -1;
 
@@ -295,7 +299,7 @@ int CreateVirtualCamera(int target)
     DispatchSpawn(camera);
     ActivateEntity(camera);
     // Record when camera has create
-    // Gift has no partice, so we no longer need this...
+    // Vomit has no partice, so we no longer need this...
     // float camtime = GetGameTime();
 
     AcceptEntityInput(camera, "DisableShadow");
@@ -306,7 +310,7 @@ int CreateVirtualCamera(int target)
     SetEntProp(camera, Prop_Send, "m_CollisionGroup", 0);
     SetEntProp(camera, Prop_Send, "m_nSolidType", 0);
 
-    // Gift has no partice, so we no longer need this...
+    // Vomit has no partice, so we no longer need this...
     // char name[64];
     // for(int i = 0; i <= MaxEnities; i++)
     // {
