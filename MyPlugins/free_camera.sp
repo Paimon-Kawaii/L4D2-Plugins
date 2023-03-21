@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-20 23:42:16
+ * @Last Modified time: 2023-03-21 15:58:32
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -16,7 +16,7 @@
 #include <keyvalues>
 #include <clientprefs>
 
-#define VERSION "2023.03.20"
+#define VERSION "2023.03.21"
 #define MAXSIZE 33
 // #define HOST 0
 
