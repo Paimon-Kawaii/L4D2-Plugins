@@ -2,31 +2,29 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-22 11:42:06
+ * @Last Modified time: 2023-03-22 22:09:53
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#include <fnemotes>
 #include <sdktools>
 #include <l4d2tools>
 #include <sourcemod>
 #include <keyvalues>
 #include <clientprefs>
+#undef REQUIRE_PLUGIN
+#include <fnemotes>
 
 #define VERSION "2023.03.22"
 #define MAXSIZE 33
-// #define HOST 0
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
-#define CAMERA_COOKIE_NAME "FreeCameraSettingsCookies"
+#define CAMERA_AUTO_COOKIE_NAME "CameraAutoCookies"
+#define CAMERA_HINT_COOKIE_NAME "CameraHintCookies"
+#define CAMERA_SPEED_COOKIE_NAME "CameraSpeedCookies"
 
-int MaxEntities;
-// #if HOST
-// int g_iCameraInput[33] = {0, ...};
-// #endif
 int
     g_iFreeCamera[MAXSIZE] = {-1, ...};
 
@@ -34,18 +32,26 @@ float
     g_fCameraSpeed[MAXSIZE] = {0.0, ...};
 
 bool
-    g_bWaitSpeed[MAXSIZE] = {false, ...},
+    g_bDanceAvailable = false,
+    g_bMenuHint[MAXSIZE] = {true, ...},
     g_bIsDancing[MAXSIZE] = {false, ...},
-    g_bFreeCamera[MAXSIZE] = {false, ...},
+    g_bWaitSpeed[MAXSIZE] = {false, ...},
     g_bAutoCamera[MAXSIZE] = {false, ...};
 
 Cookie
-    g_hCameraCookies;
+    g_hCameraCookies[3];
 
 ConVar
     g_hFreeCamera,
     g_hFreeCamSpeed;
     // g_hFreeCamSwitch;
+
+enum
+{
+    CAMERA_AUTO_ITEM = 0,
+    CAMERA_HINT_ITEM,
+    CAMERA_SPEED_ITEM
+}
 
 public Plugin myinfo =
 {
@@ -58,36 +64,32 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-    MaxEntities = GetMaxEntities();
-// #if HOST
-// // Seems only client side command, server couldnt catch them...
-// // AddCommandListener is a better way to prevent input,
-// //if you are the host player, I suggest you open HOST mode.
-//     // Hook player movements.
-//     AddCommandListener(Movement_CallBack, "+back");
-//     AddCommandListener(Movement_CallBack, "-back");
-//     AddCommandListener(Movement_CallBack, "+forward");
-//     AddCommandListener(Movement_CallBack, "-forward");
-//     AddCommandListener(Movement_CallBack, "+moveleft");
-//     AddCommandListener(Movement_CallBack, "-moveleft");
-//     AddCommandListener(Movement_CallBack, "+moveright");
-//     AddCommandListener(Movement_CallBack, "-moveright");
-//     // Hook actions witch may interrupt dancing.
-//     // AddCommandListener(Movement_CallBack, "+left");
-//     // AddCommandListener(Movement_CallBack, "+right");
-//     // AddCommandListener(Movement_CallBack, "+use");
-//     // AddCommandListener(Movement_CallBack, "+duck");
-//     // AddCommandListener(Movement_CallBack, "+jump");
-//     // AddCommandListener(Movement_CallBack, "+reload");
-//     // AddCommandListener(Movement_CallBack, "+ATTACK");
-//     // AddCommandListener(Movement_CallBack, "+ATTACK2");
-//     // Hook shift key to allow 'camera' move faster.
-//     AddCommandListener(Movement_CallBack, "+speed");
-//     AddCommandListener(Movement_CallBack, "-speed");
-// #endif
+    // Cookies
+    InitCookies();
+    // Console cmds
+    RegCmds();
+    // Convars
+    CreateConVars();
+    // Commands
+    HookCommands();
+    // Execute cfg
+    AutoExecConfig(true, "free_camera");
+}
 
-    g_hCameraCookies = new Cookie(CAMERA_COOKIE_NAME, "Camera Settings", CookieAccess_Public);
+void InitCookies()
+{
+    // Reg cookies
+    g_hCameraCookies[CAMERA_AUTO_ITEM] = new Cookie(CAMERA_AUTO_COOKIE_NAME, "Camera Settings", CookieAccess_Public);
+    g_hCameraCookies[CAMERA_HINT_ITEM] = new Cookie(CAMERA_HINT_COOKIE_NAME, "Camera Settings", CookieAccess_Public);
+    g_hCameraCookies[CAMERA_SPEED_ITEM] = new Cookie(CAMERA_SPEED_COOKIE_NAME, "Camera Settings", CookieAccess_Public);
+    // Set menu handler
+    SetCookieMenuItem(Camera_CookieMenuHandler, CAMERA_AUTO_ITEM, "跳舞解锁视角: %s");
+    SetCookieMenuItem(Camera_CookieMenuHandler, CAMERA_HINT_ITEM, "菜单指令提示: %s");
+    SetCookieMenuItem(Camera_CookieMenuHandler, CAMERA_SPEED_ITEM, "自由视角移速: %.f");
+}
 
+void RegCmds()
+{
     // Create free camera
     RegConsoleCmd("sm_fc", Cmd_FreeCamera, "Free Camera");
     RegConsoleCmd("sm_freecam", Cmd_FreeCamera, "Free Camera");
@@ -97,7 +99,10 @@ public void OnPluginStart()
     // Open free camera menu
     RegConsoleCmd("sm_fcm", Cmd_FreeCameraMenu, "Free Camera Menu");
     RegConsoleCmd("sm_freecammenu", Cmd_FreeCameraMenu, "Free Camera Menu");
+}
 
+void CreateConVars()
+{
     // Free camera speed
     g_hFreeCamSpeed = CreateConVar("fc_speed", "60", "自由相机移速");
     // Turn on/off free camera, 1 for on, 0 for off
@@ -105,12 +110,48 @@ public void OnPluginStart()
     // Useless
     // // Turn on/off free camera cmd, 1 for on, 0 for off
     // g_hFreeCamSwitch = CreateConVar("fc_cmd_switch", "0", "自由相机指令, 1=开启 0=关闭");
+}
 
+void HookCommands()
+{
     // Hooked for player input speed
     AddCommandListener(Say_Callback, "say");
     AddCommandListener(Say_Callback, "say_team");
+}
 
-    AutoExecConfig(true, "free_camera");
+public void OnClientCookiesCached(int client)
+{
+    if(!IsValidClient(client) || !AreClientCookiesCached(client))
+        return;
+
+    g_bMenuHint[client] = view_as<bool>(g_hCameraCookies[CAMERA_HINT_ITEM].GetInt(client, 1));
+    g_bAutoCamera[client] = view_as<bool>(g_hCameraCookies[CAMERA_AUTO_ITEM].GetInt(client, 1));
+    g_fCameraSpeed[client] = g_hCameraCookies[CAMERA_SPEED_ITEM].GetFloat(client, g_hFreeCamSpeed.FloatValue);
+}
+
+public void OnAllPluginsLoaded()
+{
+    g_bDanceAvailable = LibraryExists("fnemotes");
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+    if (!strcmp(name, "fnemotes", false))
+        g_bDanceAvailable = true;
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+    if (!strcmp(name, "fnemotes", false))
+        g_bDanceAvailable = false;
+}
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+    RegPluginLibrary("freecamera");
+    CreateNative("FC_GetClientCamera", Native_GetClientCamera);
+    CreateNative("FC_SetClientCamera", Native_SetClientCamera);
+    return APLRes_Success;
 }
 
 public void OnMapStart()
@@ -125,39 +166,15 @@ public void OnMapEnd()
         KillFreeCamera(i);
 }
 
-public void OnAllPluginsLoaded()
-{
-    for(int client = 1; client <= MaxClients; client++)
-    {
-        if(!IsValidClient(client)) continue;
-        // Try get client camera settings
-        KeyValues KvCamera = GetCameraKeyValue(client);
-        g_bAutoCamera[client] = view_as<bool>(KvCamera.GetNum("AutoExec", 1));
-        g_fCameraSpeed[client] = KvCamera.GetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue);
-
-        delete KvCamera;
-    }
-}
-
-public void OnClientPostAdminCheck(int client)
-{
-    // Try get client camera settings
-    KeyValues KvCamera = GetCameraKeyValue(client);
-    g_bAutoCamera[client] = view_as<bool>(KvCamera.GetNum("AutoExec", 1));
-    g_fCameraSpeed[client] = KvCamera.GetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue);
-
-    delete KvCamera;
-}
-
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
     float vel[3], float angles[3], int& weapon, int& subtype,
     int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
-    int camera = g_iFreeCamera[client];
-    if (g_bFreeCamera[client] && IsValidEntity(camera))
+    int camera = GetClientCamera(client);
+    if (IsValidEntity(camera))
     {
         // When dance finish, kill camera
-        if (!fnemotes_IsClientEmoting(client) && g_bIsDancing[client])
+        if (g_bDanceAvailable && !fnemotes_IsClientEmoting(client) && g_bIsDancing[client])
         {
             g_bIsDancing[client] = false;
             KillFreeCamera(client);
@@ -167,27 +184,24 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
         MoveCamera(client, camera, buttons);
         TeleportEntity(camera, NULL_VECTOR, angles, NULL_VECTOR);
         // May be player needs to exit
-        int btnscopy = buttons & ~IN_FORWARD &
-            ~IN_BACK & ~IN_MOVELEFT & ~IN_MOVERIGHT & ~IN_SPEED;
-        if (btnscopy) KillFreeCamera(client);
+        static int btnAllowed = IN_BACK | IN_FORWARD | IN_MOVELEFT | IN_MOVERIGHT | IN_WALK | IN_SPEED | IN_SCORE;
+        if (buttons & ~btnAllowed) KillFreeCamera(client);
         vel[0] = vel[1] = vel[2] = 0.0;
     }
 
     return Plugin_Continue;
 }
 
-public void fnemotes_OnEmote(int client)
+public void fnemotes_OnEmote_Pre(int client)
 {
     if (IsSurvivor(client) && g_hFreeCamera.BoolValue)
-    {
-        g_bIsDancing[client] = true;
-        if(g_bAutoCamera[client])
+        if (g_bAutoCamera[client])
         {
             FreeCamera(client);
-            TryFetchSound(client);
-            PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
+            g_bIsDancing[client] = true;
+            if (g_bMenuHint[client])
+                PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
         }
-    }
 }
 
 void MoveCamera(int client, int camera, int buttons)
@@ -220,51 +234,6 @@ void MoveCamera(int client, int camera, int buttons)
     TeleportEntity(camera, NULL_VECTOR, NULL_VECTOR, result);
 }
 
-// #if HOST
-// Action Movement_CallBack(int client, const char[] command, int argc)
-// {
-//     // PrintToChatAll("捕获到 %N 动作： %s", client, command);
-//     // Sometimes player may be host, so 0 must be 1.
-//     if (client == 0) client = 1;
-//     if (!IsSurvivor(client))
-//         return Plugin_Continue;
-
-//     int camera = g_iFreeCamera[client];
-//     if (!g_bFreeCamera[client] || !IsValidEntity(camera))
-//         return Plugin_Continue;
-
-//     // Record our virtual buttons.
-//     // Forward
-//     if (!strcmp(command, "+forward", false))
-//         g_iCameraInput[client] |= IN_FORWARD;
-//     if (!strcmp(command, "-forward", false))
-//         g_iCameraInput[client] &= ~IN_FORWARD;
-//     // BackWard
-//     if (!strcmp(command, "+back", false))
-//         g_iCameraInput[client] |= IN_BACK;
-//     if (!strcmp(command, "-back", false))
-//         g_iCameraInput[client] &= ~IN_BACK;
-//     // MoveLeft
-//     if (!strcmp(command, "+moveleft", false))
-//         g_iCameraInput[client] |= IN_MOVELEFT;
-//     if (!strcmp(command, "-moveleft", false))
-//         g_iCameraInput[client] &= ~IN_MOVELEFT;
-//     // MoveRight
-//     if (!strcmp(command, "+moveright", false))
-//         g_iCameraInput[client] |= IN_MOVERIGHT;
-//     if (!strcmp(command, "-moveright", false))
-//         g_iCameraInput[client] &= ~IN_MOVERIGHT;
-//     // SpeedUp
-//     if (!strcmp(command, "+speed", false))
-//         g_iCameraInput[client] |= IN_SPEED;
-//     if (!strcmp(command, "-speed", false))
-//         g_iCameraInput[client] &= ~IN_SPEED;
-
-//     // We need to prevent player's input, so handle it.
-//     return Plugin_Handled;
-// }
-// #endif
-
 Action Cmd_FreeCamera(int client, any args)
 {
     if (g_hFreeCamera.BoolValue/* && g_hFreeCamSwitch.BoolValue*/)
@@ -284,69 +253,60 @@ Action Cmd_KillFreeCamera(int client, any args)
 
 Action Cmd_FreeCameraMenu(int client, any args)
 {
-    if(IsValidClient(client))
-        Menu_FreeCameraSettings(client);
+    if (IsValidClient(client))
+        ShowCookieMenu(client);
     return Plugin_Handled;
 }
 
-void Menu_FreeCameraSettings(int client)
+void Camera_CookieMenuHandler(int client, CookieMenuAction action, any info, char[] title, int maxlen)
 {
-    if(!IsValidClient(client)) return;
-    KeyValues KvCamera = GetCameraKeyValue(client);
-
-    char buffer[64];
-
-    Menu menu = new Menu(Menu_ExecCameraSettings);
-    menu.SetTitle("自由相机设置菜单");
-    Format(buffer, sizeof(buffer), "跳舞解锁视角: %s", g_bAutoCamera[client] ? "是" : "否");
-    menu.AddItem("Auto exec", buffer);
-    Format(buffer, sizeof(buffer), "自由视角移速: %.f", g_fCameraSpeed[client]);
-    menu.AddItem("Move speed", buffer);
-
-    menu.Pagination = MENU_NO_PAGINATION;
-    menu.ExitButton = true;
-    menu.Display(client, MENU_TIME_FOREVER);
-
-    delete KvCamera;
-}
-
-int Menu_ExecCameraSettings(Menu menu, MenuAction action, int client, int item)
-{
-    if (!IsSurvivor(client)) return 0;
-    if (action != MenuAction_Select) return 0;
-
-    // Get client camera settings
-    KeyValues KvCamera = GetCameraKeyValue(client);
-
-    if (item == 0)
+    switch(view_as<int>(info))
     {
-        g_bAutoCamera[client] = !view_as<bool>(KvCamera.GetNum("AutoExec", 1));
-        KvCamera.SetNum("AutoExec", 1 - KvCamera.GetNum("AutoExec", 1));
-        PrintToChat(client, "[FC] 跳舞时启动自由相机设置为: %s", g_bAutoCamera[client] ? "是" : "否");
-        // KvCamera.SetFloat("MoveSpeed", KvCamera.GetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue));
+        case CAMERA_AUTO_ITEM:
+        {
+            Format(title, maxlen, title, g_bAutoCamera[client] ? "开" : "关");
+            if (action == CookieMenuAction_SelectOption)
+            {
+                g_bAutoCamera[client] = !g_bAutoCamera[client];
+                g_hCameraCookies[info].SetInt(client, g_bAutoCamera[client]);
+                PrintToChat(client, "[FC] 跳舞解锁视角设置为: %s", g_bAutoCamera[client] ? "开" : "关");
+            }
+        }
+        case CAMERA_HINT_ITEM:
+        {
+            Format(title, maxlen, title, g_bMenuHint[client] ? "开" : "关");
+            if (action == CookieMenuAction_SelectOption)
+            {
+                g_bMenuHint[client] = !g_bMenuHint[client];
+                g_hCameraCookies[info].SetInt(client, g_bMenuHint[client]);
+                PrintToChat(client, "[FC] 菜单指令提示设置为: %s", g_bMenuHint[client] ? "开" : "关");
+            }
+        }
+        case CAMERA_SPEED_ITEM:
+        {
+            Format(title, maxlen, title, g_fCameraSpeed[client]);
+            if (action == CookieMenuAction_SelectOption)
+            {
+                g_bWaitSpeed[client] = true;
+                PrintToChat(client, "[FC] 请在聊天框输入整数");
+            }
+        }
+        default:
+            Format(title, maxlen, title, "加载菜单失败");
     }
-    if(item == 1)
-    {
-        g_bWaitSpeed[client] = true;
-        PrintToChat(client, "[FC] 请在聊天框输入整数");
-    }
-    SaveCameraKeyValue(client, KvCamera);
-    delete KvCamera;
-
-    return 1;
 }
 
 Action Say_Callback(int client, const char[] command, int argc)
 {
     // No need to block, continue
-    if(!g_bWaitSpeed[client] || !IsValidClient(client))
+    if (!g_bWaitSpeed[client] || !IsValidClient(client))
         return Plugin_Continue;
 
     char buffer[4];
     GetCmdArg(1, buffer, sizeof(buffer));
     int speed = StringToInt(buffer);
     // NaN or 0 is invaild, let player input again
-    if(speed < 1)
+    if (speed < 1)
     {
         PrintToChat(client, "[FC] 速度应大于零，请重新输入");
         return Plugin_Handled;
@@ -354,47 +314,10 @@ Action Say_Callback(int client, const char[] command, int argc)
 
     g_bWaitSpeed[client] = false;
     g_fCameraSpeed[client] = speed * 1.0;
-    KeyValues KvCamera = GetCameraKeyValue(client);
-    // KvCamera.SetNum("AutoExec", 1 - KvCamera.GetNum("AutoExec", 1));
-    KvCamera.SetFloat("MoveSpeed", g_fCameraSpeed[client]);
-    SaveCameraKeyValue(client, KvCamera);
+    g_hCameraCookies[CAMERA_SPEED_ITEM].SetFloat(client, g_fCameraSpeed[client]);
     PrintToChat(client, "[FC] 速度被设置为: %d", speed);
-    delete KvCamera;
 
     return Plugin_Handled;
-}
-
-KeyValues GetCameraKeyValue(int client)
-{
-    char buffer[128];
-    // Try get camera cookies
-    g_hCameraCookies.Get(client, buffer, sizeof(buffer));
-
-    KeyValues KvCamera = new KeyValues("FreeCamera");
-    if(strlen(buffer) < 1)
-    {
-        // No data found, create new one;
-        KvCamera.JumpToKey("Settings", true);
-        KvCamera.SetNum("AutoExec", 1);
-        KvCamera.SetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue);
-        KvCamera.ExportToString(buffer, sizeof(buffer));
-        g_hCameraCookies.Set(client, buffer);
-    }
-    else KvCamera.ImportFromString(buffer, "Try import camera settings");
-    // KvCamera.Rewind();
-    // KvCamera.JumpToKey("Settings", true);
-
-    return KvCamera;
-}
-
-void SaveCameraKeyValue(int client, KeyValues KvCamera)
-{
-    if (!IsValidClient(client)) return;
-
-    char buffer[64];
-    KvCamera.ExportToString(buffer, sizeof(buffer));
-    // Set camera cookies
-    g_hCameraCookies.Set(client, buffer);
 }
 
 void FreeCamera(int client)
@@ -402,8 +325,8 @@ void FreeCamera(int client)
     if (!IsSurvivor(client))
         return;
 
-    int camera = g_iFreeCamera[client];
-    if (g_bFreeCamera[client] && IsValidEntity(camera))
+    int camera = GetClientCamera(client);
+    if (IsValidEntity(camera))
         return;
 
     // Try get a 'camera'
@@ -412,8 +335,7 @@ void FreeCamera(int client)
         return;
 
     // Now we got our camera, let player view it.
-    g_bFreeCamera[client] = true;
-    g_iFreeCamera[client] = camera;
+    SetClientCamera(client, camera);
     SetClientViewEntity(client, camera);
 }
 
@@ -422,7 +344,7 @@ void KillFreeCamera(int client)
     if (!IsSurvivor(client))
         return;
 
-    int camera = g_iFreeCamera[client];
+    int camera = GetClientCamera(client);
     // If she has a camera, kill it.
     if (IsValidEntity(camera))
     {
@@ -430,10 +352,9 @@ void KillFreeCamera(int client)
         RemoveEntity(camera);
     }
     // Let player view herself.
-    if (IsValidClient(client) && IsClientInGame(client))
+    if (IsValidClient(client))
         SetClientViewEntity(client, client);
-    g_bFreeCamera[client] = false;
-    g_iFreeCamera[client] = -1;
+    SetClientCamera(client, -1);
 }
 
 int CreateVirtualCamera(int target)
@@ -463,10 +384,10 @@ int CreateVirtualCamera(int target)
     rotate[0] = 30.0;
     origin[2] += 100.0;
 
-    char camName[64];
-    Format(camName, sizeof(camName), "VirtualCamera_%N", target);
+    // char camName[64];
+    // Format(camName, sizeof(camName), "VirtualCamera_%N", target);
+    // DispatchKeyValue(camera, "targetname", camName);
 
-    DispatchKeyValue(camera, "targetname", camName);
     DispatchKeyValue(camera, "model", CAMERA_MODEL);
     DispatchKeyValueVector(camera, "origin", origin);
     DispatchKeyValueVector(camera, "angles", rotate);
@@ -513,48 +434,29 @@ int CreateVirtualCamera(int target)
     return camera;
 }
 
-void TryFetchSound(int client)
+int Native_GetClientCamera(Handle plugin, int numParams)
 {
-    int camera = g_iFreeCamera[client];
-    if(!IsValidEntity(camera)) return;
+    return GetClientCamera(GetNativeCell(1));
+}
 
-    // Try get dance entity
-    int soundEnt = -1, danceEnt = GetEntPropEnt(client, Prop_Send, "moveparent");
-    if(!IsValidEntity(danceEnt)) return;
+int Native_SetClientCamera(Handle plugin, int numParams)
+{
+    return view_as<int>(SetClientCamera(GetNativeCell(1), GetNativeCell(2)));
+}
 
-    char name[64];
-    GetEntityClassname(danceEnt, name, sizeof(name));
-    // May not be dance ent, skip fetching.
-    if(strcmp(name, "prop_dynamic") != 0) return;
+int GetClientCamera(int client)
+{
+    if (!IsValidClient(client))
+        return -1;
 
-    for(int i = 0; i <= MaxEntities; i++)
-        if(IsValidEntity(i))
-        {
-            GetEntityClassname(i, name, sizeof(name));
-            // May not be sound ent, skip it
-            if(strcmp(name, "info_target") != 0) continue;
-            int ent = GetEntPropEnt(i, Prop_Send, "moveparent");
-            if(IsValidEntity(ent) && ent == danceEnt)
-            {
-                // Find sound ent, break loop
-                soundEnt = i;
-                break;
-            }
-        }
+    return EntRefToEntIndex(g_iFreeCamera[client]);
+}
 
-    // May be no ent found after loop, so check it
-    if(!IsValidEntity(soundEnt)) return;
+bool SetClientCamera(int client, int entity)
+{
+    if (!IsValidClient(client))
+        return false;
 
-    // Found sound ent, set its parent to our camera.
-    Format(name, sizeof(name), "VirtualCamera_%N", client);
-    SetVariantString(name);
-    AcceptEntityInput(soundEnt, "SetParent");
-    // Check it
-    // PrintToChat(client, "cam: %d parent: %d", g_iFreeCamera[client], GetEntPropEnt(soundEnt, Prop_Send, "moveparent"));
-
-    float pos[3];
-    GetEntPropVector(camera, Prop_Send, "m_vecOrigin", pos);
-    pos[2] += 30;
-    // TP sound to player's camera
-    TeleportEntity(soundEnt, pos, NULL_VECTOR, NULL_VECTOR);
+    g_iFreeCamera[client] = IsValidEntity(entity) ? EntIndexToEntRef(entity) : -1;
+    return true;
 }
