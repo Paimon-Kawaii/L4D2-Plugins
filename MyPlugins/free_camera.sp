@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-22 11:32:53
+ * @Last Modified time: 2023-03-22 11:42:06
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -184,7 +184,7 @@ public void fnemotes_OnEmote(int client)
         if(g_bAutoCamera[client])
         {
             FreeCamera(client);
-            TryFatchSound(client);
+            TryFetchSound(client);
             PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
         }
     }
@@ -513,7 +513,7 @@ int CreateVirtualCamera(int target)
     return camera;
 }
 
-void TryFatchSound(int client)
+void TryFetchSound(int client)
 {
     int camera = g_iFreeCamera[client];
     if(!IsValidEntity(camera)) return;
@@ -524,7 +524,7 @@ void TryFatchSound(int client)
 
     char name[64];
     GetEntityClassname(danceEnt, name, sizeof(name));
-    // May not be dance ent, skip fatching.
+    // May not be dance ent, skip fetching.
     if(strcmp(name, "prop_dynamic") != 0) return;
 
     for(int i = 0; i <= MaxEntities; i++)
@@ -551,4 +551,10 @@ void TryFatchSound(int client)
     AcceptEntityInput(soundEnt, "SetParent");
     // Check it
     // PrintToChat(client, "cam: %d parent: %d", g_iFreeCamera[client], GetEntPropEnt(soundEnt, Prop_Send, "moveparent"));
+
+    float pos[3];
+    GetEntPropVector(camera, Prop_Send, "m_vecOrigin", pos);
+    pos[2] += 30;
+    // TP sound to player's camera
+    TeleportEntity(soundEnt, pos, NULL_VECTOR, NULL_VECTOR);
 }
