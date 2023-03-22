@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-21 15:58:32
+ * @Last Modified time: 2023-03-22 11:32:53
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -16,14 +16,14 @@
 #include <keyvalues>
 #include <clientprefs>
 
-#define VERSION "2023.03.21"
+#define VERSION "2023.03.22"
 #define MAXSIZE 33
 // #define HOST 0
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
 #define CAMERA_COOKIE_NAME "FreeCameraSettingsCookies"
 
-// int MaxEnities;
+int MaxEntities;
 // #if HOST
 // int g_iCameraInput[33] = {0, ...};
 // #endif
@@ -58,7 +58,7 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-//     // MaxEnities = GetMaxEntities();
+    MaxEntities = GetMaxEntities();
 // #if HOST
 // // Seems only client side command, server couldnt catch them...
 // // AddCommandListener is a better way to prevent input,
@@ -132,7 +132,7 @@ public void OnAllPluginsLoaded()
         if(!IsValidClient(client)) continue;
         // Try get client camera settings
         KeyValues KvCamera = GetCameraKeyValue(client);
-        g_bAutoCamera[client] = view_as<bool>(KvCamera.GetNum("IsAuto", 1));
+        g_bAutoCamera[client] = view_as<bool>(KvCamera.GetNum("AutoExec", 1));
         g_fCameraSpeed[client] = KvCamera.GetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue);
 
         delete KvCamera;
@@ -143,7 +143,7 @@ public void OnClientPostAdminCheck(int client)
 {
     // Try get client camera settings
     KeyValues KvCamera = GetCameraKeyValue(client);
-    g_bAutoCamera[client] = view_as<bool>(KvCamera.GetNum("IsAuto", 1));
+    g_bAutoCamera[client] = view_as<bool>(KvCamera.GetNum("AutoExec", 1));
     g_fCameraSpeed[client] = KvCamera.GetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue);
 
     delete KvCamera;
@@ -183,8 +183,9 @@ public void fnemotes_OnEmote(int client)
         g_bIsDancing[client] = true;
         if(g_bAutoCamera[client])
         {
-            PrintToChat(client, "[FC] 聊天框输入/fcm设置自由相机属性");
             FreeCamera(client);
+            TryFatchSound(client);
+            PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
         }
     }
 }
@@ -297,14 +298,14 @@ void Menu_FreeCameraSettings(int client)
 
     Menu menu = new Menu(Menu_ExecCameraSettings);
     menu.SetTitle("自由相机设置菜单");
-    Format(buffer, sizeof(buffer), "跳舞自由视角: %s", g_bAutoCamera[client] ? "是" : "否");
-    menu.AddItem("Auto detect", buffer);
+    Format(buffer, sizeof(buffer), "跳舞解锁视角: %s", g_bAutoCamera[client] ? "是" : "否");
+    menu.AddItem("Auto exec", buffer);
     Format(buffer, sizeof(buffer), "自由视角移速: %.f", g_fCameraSpeed[client]);
     menu.AddItem("Move speed", buffer);
 
     menu.Pagination = MENU_NO_PAGINATION;
     menu.ExitButton = true;
-    menu.Display(client, 20);
+    menu.Display(client, MENU_TIME_FOREVER);
 
     delete KvCamera;
 }
@@ -319,8 +320,8 @@ int Menu_ExecCameraSettings(Menu menu, MenuAction action, int client, int item)
 
     if (item == 0)
     {
-        g_bAutoCamera[client] = !view_as<bool>(KvCamera.GetNum("IsAuto", 1));
-        KvCamera.SetNum("IsAuto", 1 - KvCamera.GetNum("IsAuto", 1));
+        g_bAutoCamera[client] = !view_as<bool>(KvCamera.GetNum("AutoExec", 1));
+        KvCamera.SetNum("AutoExec", 1 - KvCamera.GetNum("AutoExec", 1));
         PrintToChat(client, "[FC] 跳舞时启动自由相机设置为: %s", g_bAutoCamera[client] ? "是" : "否");
         // KvCamera.SetFloat("MoveSpeed", KvCamera.GetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue));
     }
@@ -354,7 +355,7 @@ Action Say_Callback(int client, const char[] command, int argc)
     g_bWaitSpeed[client] = false;
     g_fCameraSpeed[client] = speed * 1.0;
     KeyValues KvCamera = GetCameraKeyValue(client);
-    // KvCamera.SetNum("IsAuto", 1 - KvCamera.GetNum("IsAuto", 1));
+    // KvCamera.SetNum("AutoExec", 1 - KvCamera.GetNum("AutoExec", 1));
     KvCamera.SetFloat("MoveSpeed", g_fCameraSpeed[client]);
     SaveCameraKeyValue(client, KvCamera);
     PrintToChat(client, "[FC] 速度被设置为: %d", speed);
@@ -374,7 +375,7 @@ KeyValues GetCameraKeyValue(int client)
     {
         // No data found, create new one;
         KvCamera.JumpToKey("Settings", true);
-        KvCamera.SetNum("IsAuto", 1);
+        KvCamera.SetNum("AutoExec", 1);
         KvCamera.SetFloat("MoveSpeed", g_hFreeCamSpeed.FloatValue);
         KvCamera.ExportToString(buffer, sizeof(buffer));
         g_hCameraCookies.Set(client, buffer);
@@ -450,7 +451,7 @@ int CreateVirtualCamera(int target)
     // grenade_launcher_projectile : You could see smoke above.
     // molotov_projectile: You could see a fire ball above.
     // pipe_bomb_projectile : You could see red flash light.
-    // vomitjar_projectile: : Seems a best choice, no particle, no flash, no effect,
+    // vomitjar_projectile: : Seems the best choice, no particle, no flash, no effect,
     //              no auto destroy, wont be hooked...Perfect!!!
     camera = CreateEntityByName("vomitjar_projectile");
     if (!IsValidEntity(camera)) return -1;
@@ -462,6 +463,10 @@ int CreateVirtualCamera(int target)
     rotate[0] = 30.0;
     origin[2] += 100.0;
 
+    char camName[64];
+    Format(camName, sizeof(camName), "VirtualCamera_%N", target);
+
+    DispatchKeyValue(camera, "targetname", camName);
     DispatchKeyValue(camera, "model", CAMERA_MODEL);
     DispatchKeyValueVector(camera, "origin", origin);
     DispatchKeyValueVector(camera, "angles", rotate);
@@ -481,7 +486,7 @@ int CreateVirtualCamera(int target)
 
     // Vomit has no partice, so we no longer need this...
     // char name[64];
-    // for (int i = 0; i <= MaxEnities; i++)
+    // for (int i = 0; i <= MaxEntities; i++)
     // {
     //     if (!IsValidEntity(i)) continue;
     //     GetEntityClassname(i, name, sizeof(name));
@@ -506,4 +511,44 @@ int CreateVirtualCamera(int target)
         TeleportEntity(camera, tpos, NULL_VECTOR, NULL_VECTOR);
 
     return camera;
+}
+
+void TryFatchSound(int client)
+{
+    int camera = g_iFreeCamera[client];
+    if(!IsValidEntity(camera)) return;
+
+    // Try get dance entity
+    int soundEnt = -1, danceEnt = GetEntPropEnt(client, Prop_Send, "moveparent");
+    if(!IsValidEntity(danceEnt)) return;
+
+    char name[64];
+    GetEntityClassname(danceEnt, name, sizeof(name));
+    // May not be dance ent, skip fatching.
+    if(strcmp(name, "prop_dynamic") != 0) return;
+
+    for(int i = 0; i <= MaxEntities; i++)
+        if(IsValidEntity(i))
+        {
+            GetEntityClassname(i, name, sizeof(name));
+            // May not be sound ent, skip it
+            if(strcmp(name, "info_target") != 0) continue;
+            int ent = GetEntPropEnt(i, Prop_Send, "moveparent");
+            if(IsValidEntity(ent) && ent == danceEnt)
+            {
+                // Find sound ent, break loop
+                soundEnt = i;
+                break;
+            }
+        }
+
+    // May be no ent found after loop, so check it
+    if(!IsValidEntity(soundEnt)) return;
+
+    // Found sound ent, set its parent to our camera.
+    Format(name, sizeof(name), "VirtualCamera_%N", client);
+    SetVariantString(name);
+    AcceptEntityInput(soundEnt, "SetParent");
+    // Check it
+    // PrintToChat(client, "cam: %d parent: %d", g_iFreeCamera[client], GetEntPropEnt(soundEnt, Prop_Send, "moveparent"));
 }
