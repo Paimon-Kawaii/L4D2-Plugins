@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-22 22:09:53
+ * @Last Modified time: 2023-03-23 13:47:39
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -17,7 +17,7 @@
 #undef REQUIRE_PLUGIN
 #include <fnemotes>
 
-#define VERSION "2023.03.22"
+#define VERSION "2023.03.23"
 #define MAXSIZE 33
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
@@ -36,7 +36,7 @@ bool
     g_bMenuHint[MAXSIZE] = {true, ...},
     g_bIsDancing[MAXSIZE] = {false, ...},
     g_bWaitSpeed[MAXSIZE] = {false, ...},
-    g_bAutoCamera[MAXSIZE] = {false, ...};
+    g_bAutoCamera[MAXSIZE] = {true, ...};
 
 Cookie
     g_hCameraCookies[3];
@@ -124,14 +124,16 @@ public void OnClientCookiesCached(int client)
     if(!IsValidClient(client) || !AreClientCookiesCached(client))
         return;
 
-    g_bMenuHint[client] = view_as<bool>(g_hCameraCookies[CAMERA_HINT_ITEM].GetInt(client, 1));
-    g_bAutoCamera[client] = view_as<bool>(g_hCameraCookies[CAMERA_AUTO_ITEM].GetInt(client, 1));
-    g_fCameraSpeed[client] = g_hCameraCookies[CAMERA_SPEED_ITEM].GetFloat(client, g_hFreeCamSpeed.FloatValue);
+    GetClientCameraCookies(client);
 }
 
 public void OnAllPluginsLoaded()
 {
     g_bDanceAvailable = LibraryExists("fnemotes");
+
+    for(int i = 1; i <= MaxClients; i++)
+        if(IsValidClient(i) && AreClientCookiesCached(i))
+            GetClientCameraCookies(i);
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -183,6 +185,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
         // Move camera
         MoveCamera(client, camera, buttons);
         TeleportEntity(camera, NULL_VECTOR, angles, NULL_VECTOR);
+
         // May be player needs to exit
         static int btnAllowed = IN_BACK | IN_FORWARD | IN_MOVELEFT | IN_MOVERIGHT | IN_WALK | IN_SPEED | IN_SCORE;
         if (buttons & ~btnAllowed) KillFreeCamera(client);
@@ -202,6 +205,13 @@ public void fnemotes_OnEmote_Pre(int client)
             if (g_bMenuHint[client])
                 PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
         }
+}
+
+void GetClientCameraCookies(int client)
+{
+    g_bMenuHint[client] = view_as<bool>(g_hCameraCookies[CAMERA_HINT_ITEM].GetInt(client, 1));
+    g_bAutoCamera[client] = view_as<bool>(g_hCameraCookies[CAMERA_AUTO_ITEM].GetInt(client, 1));
+    g_fCameraSpeed[client] = g_hCameraCookies[CAMERA_SPEED_ITEM].GetFloat(client, g_hFreeCamSpeed.FloatValue);
 }
 
 void MoveCamera(int client, int camera, int buttons)
