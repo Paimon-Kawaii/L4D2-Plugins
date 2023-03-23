@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-23 13:47:39
+ * @Last Modified time: 2023-03-23 20:16:21
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -117,6 +117,14 @@ void HookCommands()
     // Hooked for player input speed
     AddCommandListener(Say_Callback, "say");
     AddCommandListener(Say_Callback, "say_team");
+}
+
+public void OnClientPutInServer(int client)
+{
+    if(!IsValidClient(client) || !AreClientCookiesCached(client))
+        return;
+
+    GetClientCameraCookies(client);
 }
 
 public void OnClientCookiesCached(int client)
