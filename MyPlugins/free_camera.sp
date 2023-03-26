@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-23 20:16:21
+ * @Last Modified time: 2023-03-25 23:50:46
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -17,7 +17,7 @@
 #undef REQUIRE_PLUGIN
 #include <fnemotes>
 
-#define VERSION "2023.03.23"
+#define VERSION "2023.03.25"
 #define MAXSIZE 33
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
@@ -46,6 +46,12 @@ ConVar
     g_hFreeCamSpeed;
     // g_hFreeCamSwitch;
 
+GlobalForward
+    g_hOnPlayerCameraActived,
+    g_hOnPlayerCameraActivedPost,
+    g_hOnPlayerCameraDeactived,
+    g_hOnPlayerCameraDeactivedPost;
+
 enum
 {
     CAMERA_AUTO_ITEM = 0,
@@ -72,6 +78,8 @@ public void OnPluginStart()
     CreateConVars();
     // Commands
     HookCommands();
+    // Global forwards
+    CreateForwards();
     // Execute cfg
     AutoExecConfig(true, "free_camera");
 }
@@ -119,9 +127,17 @@ void HookCommands()
     AddCommandListener(Say_Callback, "say_team");
 }
 
+void CreateForwards()
+{
+    g_hOnPlayerCameraActived = new GlobalForward("FC_OnPlayerCameraActived", ET_Event, Param_CellByRef);
+    g_hOnPlayerCameraActivedPost = new GlobalForward("FC_OnPlayerCameraActived_Post", ET_Ignore, Param_Cell);
+    g_hOnPlayerCameraDeactived = new GlobalForward("FC_OnPlayerCameraDeactived", ET_Event, Param_CellByRef);
+    g_hOnPlayerCameraDeactivedPost = new GlobalForward("FC_OnPlayerCameraDeactived_Post", ET_Ignore, Param_Cell);
+}
+
 public void OnClientPutInServer(int client)
 {
-    if(!IsValidClient(client) || !AreClientCookiesCached(client))
+    if (!IsValidClient(client) || !AreClientCookiesCached(client))
         return;
 
     GetClientCameraCookies(client);
@@ -129,7 +145,7 @@ public void OnClientPutInServer(int client)
 
 public void OnClientCookiesCached(int client)
 {
-    if(!IsValidClient(client) || !AreClientCookiesCached(client))
+    if (!IsValidClient(client) || !AreClientCookiesCached(client))
         return;
 
     GetClientCameraCookies(client);
@@ -139,8 +155,8 @@ public void OnAllPluginsLoaded()
 {
     g_bDanceAvailable = LibraryExists("fnemotes");
 
-    for(int i = 1; i <= MaxClients; i++)
-        if(IsValidClient(i) && AreClientCookiesCached(i))
+    for (int i = 1; i <= MaxClients; i++)
+        if (IsValidClient(i) && AreClientCookiesCached(i))
             GetClientCameraCookies(i);
 }
 
@@ -160,7 +176,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
     RegPluginLibrary("freecamera");
     CreateNative("FC_GetClientCamera", Native_GetClientCamera);
-    CreateNative("FC_SetClientCamera", Native_SetClientCamera);
+    CreateNative("FC_IsClientCameraAvailable", Native_IsClientCameraAvailable);
+    // CreateNative("FC_SetClientCamera", Native_SetClientCamera);
     return APLRes_Success;
 }
 
@@ -173,7 +190,7 @@ public void OnMapStart()
 public void OnMapEnd()
 {
     for (int i = 1; i <= MaxClients; i++)
-        KillFreeCamera(i);
+        KillFreeCamera(i, true);
 }
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
@@ -310,7 +327,7 @@ void Camera_CookieMenuHandler(int client, CookieMenuAction action, any info, cha
             }
         }
         default:
-            Format(title, maxlen, title, "加载菜单失败");
+            Format(title, maxlen, "加载菜单失败");
     }
 }
 
@@ -343,6 +360,14 @@ void FreeCamera(int client)
     if (!IsSurvivor(client))
         return;
 
+    // Call forward
+    Action result = Plugin_Continue;
+    Call_StartForward(g_hOnPlayerCameraActived);
+    Call_PushCellRef(client);
+    Call_Finish(result);
+    // Return if forward returns stop
+    if (result == Plugin_Handled || result == Plugin_Stop) return;
+
     int camera = GetClientCamera(client);
     if (IsValidEntity(camera))
         return;
@@ -355,15 +380,31 @@ void FreeCamera(int client)
     // Now we got our camera, let player view it.
     SetClientCamera(client, camera);
     SetClientViewEntity(client, camera);
+
+    // Call forward
+    Call_StartForward(g_hOnPlayerCameraActivedPost);
+    Call_PushCell(client);
+    Call_Finish();
 }
 
-void KillFreeCamera(int client)
+void KillFreeCamera(int client, bool force = false)
 {
     if (!IsSurvivor(client))
         return;
 
+    if(!force)
+    {
+        // Call forward
+        Action result = Plugin_Continue;
+        Call_StartForward(g_hOnPlayerCameraDeactived);
+        Call_PushCellRef(client);
+        Call_Finish(result);
+        // Return if forward returns stop, except map end(Force kill camera to prevent bug occur when changing map)
+        if (result == Plugin_Handled || result == Plugin_Stop) return;
+    }
+
     int camera = GetClientCamera(client);
-    // If she has a camera, kill it.
+    // If player has a camera, kill it.
     if (IsValidEntity(camera))
     {
         AcceptEntityInput(camera, "Kill");
@@ -373,6 +414,11 @@ void KillFreeCamera(int client)
     if (IsValidClient(client))
         SetClientViewEntity(client, client);
     SetClientCamera(client, -1);
+
+    // Call forward
+    Call_StartForward(g_hOnPlayerCameraDeactivedPost);
+    Call_PushCell(client);
+    Call_Finish();
 }
 
 int CreateVirtualCamera(int target)
@@ -457,9 +503,14 @@ int Native_GetClientCamera(Handle plugin, int numParams)
     return GetClientCamera(GetNativeCell(1));
 }
 
-int Native_SetClientCamera(Handle plugin, int numParams)
+// int Native_SetClientCamera(Handle plugin, int numParams)
+// {
+//     return view_as<int>(SetClientCamera(GetNativeCell(1), GetNativeCell(2)));
+// }
+
+int Native_IsClientCameraAvailable(Handle plugin, int numParams)
 {
-    return view_as<int>(SetClientCamera(GetNativeCell(1), GetNativeCell(2)));
+    return view_as<int>(IsValidEntity(GetClientCamera(GetNativeCell(1))));
 }
 
 int GetClientCamera(int client)
