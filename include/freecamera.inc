@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-22 19:08:40
- * @Last Modified time: 2023-03-25 23:47:49
+ * @Last Modified time: 2023-04-26 16:39:06
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -37,6 +37,14 @@ native int FC_GetClientCamera(int client);
  * @return          True / False
  */
 native bool FC_IsClientCameraAvailable(int client);
+
+/**
+ * Is client camera activied.
+ *
+ * @param client    Client index
+ * @return          True / False
+ */
+native bool FC_IsClientCameraActive(int client);
 
 /**
  * When a client's free camera actived
