@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-03-25 23:50:46
+ * @Last Modified time: 2023-04-25 18:08:49
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -10,6 +10,7 @@
 #pragma newdecls required
 
 #include <sdktools>
+#include <sdkhooks>
 #include <l4d2tools>
 #include <sourcemod>
 #include <keyvalues>
@@ -17,7 +18,7 @@
 #undef REQUIRE_PLUGIN
 #include <fnemotes>
 
-#define VERSION "2023.03.25"
+#define VERSION "2023.04.25"
 #define MAXSIZE 33
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
@@ -36,7 +37,8 @@ bool
     g_bMenuHint[MAXSIZE] = {true, ...},
     g_bIsDancing[MAXSIZE] = {false, ...},
     g_bWaitSpeed[MAXSIZE] = {false, ...},
-    g_bAutoCamera[MAXSIZE] = {true, ...};
+    g_bAutoCamera[MAXSIZE] = {true, ...},
+    g_bIsCameraActive[MAXSIZE] = {false, ...};
 
 Cookie
     g_hCameraCookies[3];
@@ -76,10 +78,14 @@ public void OnPluginStart()
     RegCmds();
     // Convars
     CreateConVars();
+    // Events
+    HookEvents();
     // Commands
     HookCommands();
     // Global forwards
     CreateForwards();
+    // Translations
+    LoadTranslations("freecamera.phrases");
     // Execute cfg
     AutoExecConfig(true, "free_camera");
 }
@@ -91,9 +97,9 @@ void InitCookies()
     g_hCameraCookies[CAMERA_HINT_ITEM] = new Cookie(CAMERA_HINT_COOKIE_NAME, "Camera Settings", CookieAccess_Public);
     g_hCameraCookies[CAMERA_SPEED_ITEM] = new Cookie(CAMERA_SPEED_COOKIE_NAME, "Camera Settings", CookieAccess_Public);
     // Set menu handler
-    SetCookieMenuItem(Camera_CookieMenuHandler, CAMERA_AUTO_ITEM, "跳舞解锁视角: %s");
-    SetCookieMenuItem(Camera_CookieMenuHandler, CAMERA_HINT_ITEM, "菜单指令提示: %s");
-    SetCookieMenuItem(Camera_CookieMenuHandler, CAMERA_SPEED_ITEM, "自由视角移速: %.f");
+    SetCookieMenuItem(Camera_CookieMenuHandler, CAMERA_AUTO_ITEM, "TITLE_ERROR");
+    SetCookieMenuItem(Camera_CookieMenuHandler, CAMERA_HINT_ITEM, "TITLE_ERROR");
+    SetCookieMenuItem(Camera_CookieMenuHandler, CAMERA_SPEED_ITEM, "TITLE_ERROR");
 }
 
 void RegCmds()
@@ -127,6 +133,12 @@ void HookCommands()
     AddCommandListener(Say_Callback, "say_team");
 }
 
+void HookEvents()
+{
+    HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Pre);
+    HookEvent("player_death", Event_PlayerDead, EventHookMode_Pre);
+}
+
 void CreateForwards()
 {
     g_hOnPlayerCameraActived = new GlobalForward("FC_OnPlayerCameraActived", ET_Event, Param_CellByRef);
@@ -135,12 +147,53 @@ void CreateForwards()
     g_hOnPlayerCameraDeactivedPost = new GlobalForward("FC_OnPlayerCameraDeactived_Post", ET_Ignore, Param_Cell);
 }
 
+void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
+{
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if(!IsSurvivor(client)) return;
+
+    // Fix survivor view
+    EnableFreeCamera(client);
+    DisableFreeCamera(client);
+}
+
+void Event_PlayerDead(Event event, const char[] name, bool dontBroadcast)
+{
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if(!IsSurvivor(client)) return;
+    int camera = GetClientCamera(client);
+    if(!IsValidEntity(camera)) return;
+
+    // Fix survivor view
+    g_iFreeCamera[client] = -1;
+    g_bIsCameraActive[client] = false;
+    AcceptEntityInput(camera, "Disable");
+    AcceptEntityInput(camera, "Kill");
+    RemoveEntity(camera);
+}
+
 public void OnClientPutInServer(int client)
 {
     if (!IsValidClient(client) || !AreClientCookiesCached(client))
         return;
 
+    SDKHook(client, SDKHook_TraceAttack, TraceAttack);
     GetClientCameraCookies(client);
+}
+
+public void OnClientDisconnect(int client)
+{
+    int camera = GetClientCamera(client);
+    // If player has a camera, kill it.
+    if (IsValidEntity(camera))
+    {
+        g_iFreeCamera[client] = -1;
+        g_bIsCameraActive[client] = false;
+        AcceptEntityInput(camera, "Disable");
+        AcceptEntityInput(camera, "Kill");
+        RemoveEntity(camera);
+    }
+    SDKUnhook(client, SDKHook_TraceAttack, TraceAttack);
 }
 
 public void OnClientCookiesCached(int client)
@@ -158,6 +211,10 @@ public void OnAllPluginsLoaded()
     for (int i = 1; i <= MaxClients; i++)
         if (IsValidClient(i) && AreClientCookiesCached(i))
             GetClientCameraCookies(i);
+
+    for (int i = 1; i <= MaxClients; i++)
+        if (IsValidClient(i))
+            SDKHook(i, SDKHook_TraceAttack, TraceAttack);
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -176,6 +233,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
     RegPluginLibrary("freecamera");
     CreateNative("FC_GetClientCamera", Native_GetClientCamera);
+    CreateNative("FC_IsClientCameraActive", Native_IsClientCameraActive);
     CreateNative("FC_IsClientCameraAvailable", Native_IsClientCameraAvailable);
     // CreateNative("FC_SetClientCamera", Native_SetClientCamera);
     return APLRes_Success;
@@ -190,7 +248,7 @@ public void OnMapStart()
 public void OnMapEnd()
 {
     for (int i = 1; i <= MaxClients; i++)
-        KillFreeCamera(i, true);
+        DisableFreeCamera(i, true);
 }
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
@@ -198,13 +256,13 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
     int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
     int camera = GetClientCamera(client);
-    if (IsValidEntity(camera))
+    if (IsValidEntity(camera) && IsClientCameraActive(client))
     {
-        // When dance finish, kill camera
+        // When dance finish, disable camera
         if (g_bDanceAvailable && !fnemotes_IsClientEmoting(client) && g_bIsDancing[client])
         {
             g_bIsDancing[client] = false;
-            KillFreeCamera(client);
+            DisableFreeCamera(client);
             return Plugin_Continue;
         }
         // Move camera
@@ -213,7 +271,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
 
         // May be player needs to exit
         static int btnAllowed = IN_BACK | IN_FORWARD | IN_MOVELEFT | IN_MOVERIGHT | IN_WALK | IN_SPEED | IN_SCORE;
-        if (buttons & ~btnAllowed) KillFreeCamera(client);
+        if (buttons & ~btnAllowed) DisableFreeCamera(client);
         vel[0] = vel[1] = vel[2] = 0.0;
     }
 
@@ -225,11 +283,20 @@ public void fnemotes_OnEmote_Pre(int client)
     if (IsSurvivor(client) && g_hFreeCamera.BoolValue)
         if (g_bAutoCamera[client])
         {
-            FreeCamera(client);
+            EnableFreeCamera(client);
             g_bIsDancing[client] = true;
             if (g_bMenuHint[client])
                 PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
         }
+}
+
+Action TraceAttack(int victim)
+{
+    // Prevent god mode
+    if(IsSurvivor(victim))
+        DisableFreeCamera(victim);
+
+    return Plugin_Continue;
 }
 
 void GetClientCameraCookies(int client)
@@ -272,7 +339,7 @@ void MoveCamera(int client, int camera, int buttons)
 Action Cmd_FreeCamera(int client, any args)
 {
     if (g_hFreeCamera.BoolValue/* && g_hFreeCamSwitch.BoolValue*/)
-        FreeCamera(client);
+        EnableFreeCamera(client);
     return Plugin_Handled;
 }
 
@@ -281,7 +348,7 @@ Action Cmd_KillFreeCamera(int client, any args)
     if (g_hFreeCamera.BoolValue/* && g_hFreeCamSwitch.BoolValue*/)
     {
         g_bIsDancing[client] = false;
-        KillFreeCamera(client);
+        DisableFreeCamera(client);
     }
     return Plugin_Handled;
 }
@@ -289,7 +356,9 @@ Action Cmd_KillFreeCamera(int client, any args)
 Action Cmd_FreeCameraMenu(int client, any args)
 {
     if (IsValidClient(client))
-        ShowCookieMenu(client);
+        if(!AreClientCookiesCached(client))
+            PrintToChat(client, "%T", "MENU_PREPARE", client);
+        else ShowCookieMenu(client);
     return Plugin_Handled;
 }
 
@@ -299,35 +368,39 @@ void Camera_CookieMenuHandler(int client, CookieMenuAction action, any info, cha
     {
         case CAMERA_AUTO_ITEM:
         {
-            Format(title, maxlen, title, g_bAutoCamera[client] ? "开" : "关");
+            Format(title, maxlen, "%T: %T", "AUTO_TITLE", client,
+                g_bAutoCamera[client] ? "ITEM_ON" : "ITEM_OFF", client);
             if (action == CookieMenuAction_SelectOption)
             {
                 g_bAutoCamera[client] = !g_bAutoCamera[client];
                 g_hCameraCookies[info].SetInt(client, g_bAutoCamera[client]);
-                PrintToChat(client, "[FC] 跳舞解锁视角设置为: %s", g_bAutoCamera[client] ? "开" : "关");
+                PrintToChat(client, "%T: %T", "AUTO_HINT", client,
+                    g_bAutoCamera[client] ? "ITEM_ON" : "ITEM_OFF", client);
             }
         }
         case CAMERA_HINT_ITEM:
         {
-            Format(title, maxlen, title, g_bMenuHint[client] ? "开" : "关");
+            Format(title, maxlen, "%T: %T", "HINT_TITLE", client,
+                g_bMenuHint[client] ? "ITEM_ON" : "ITEM_OFF", client);
             if (action == CookieMenuAction_SelectOption)
             {
                 g_bMenuHint[client] = !g_bMenuHint[client];
                 g_hCameraCookies[info].SetInt(client, g_bMenuHint[client]);
-                PrintToChat(client, "[FC] 菜单指令提示设置为: %s", g_bMenuHint[client] ? "开" : "关");
+                PrintToChat(client, "%T: %T", "HINT_HINT", client,
+                    g_bMenuHint[client] ? "ITEM_ON" : "ITEM_OFF", client);
             }
         }
         case CAMERA_SPEED_ITEM:
         {
-            Format(title, maxlen, title, g_fCameraSpeed[client]);
+            Format(title, maxlen, "%T: %.f", "SPEED_TITLE", client, g_fCameraSpeed[client]);
             if (action == CookieMenuAction_SelectOption)
             {
                 g_bWaitSpeed[client] = true;
-                PrintToChat(client, "[FC] 请在聊天框输入整数");
+                PrintToChat(client, "%T", "SPEED_HINT", client);
             }
         }
         default:
-            Format(title, maxlen, "加载菜单失败");
+            Format(title, maxlen, "%T", "ERROR_TITLE", client);
     }
 }
 
@@ -343,19 +416,19 @@ Action Say_Callback(int client, const char[] command, int argc)
     // NaN or 0 is invaild, let player input again
     if (speed < 1)
     {
-        PrintToChat(client, "[FC] 速度应大于零，请重新输入");
+        PrintToChat(client, "%T", "SPEED_INVALID", client);
         return Plugin_Handled;
     }
 
     g_bWaitSpeed[client] = false;
     g_fCameraSpeed[client] = speed * 1.0;
     g_hCameraCookies[CAMERA_SPEED_ITEM].SetFloat(client, g_fCameraSpeed[client]);
-    PrintToChat(client, "[FC] 速度被设置为: %d", speed);
+    PrintToChat(client, "%T: %d", "SPEED_SET_FINISH", client, speed);
 
     return Plugin_Handled;
 }
 
-void FreeCamera(int client)
+void EnableFreeCamera(int client)
 {
     if (!IsSurvivor(client))
         return;
@@ -368,18 +441,20 @@ void FreeCamera(int client)
     // Return if forward returns stop
     if (result == Plugin_Handled || result == Plugin_Stop) return;
 
-    int camera = GetClientCamera(client);
-    if (IsValidEntity(camera))
-        return;
+    // int camera = GetClientCamera(client);
+    // if (IsValidEntity(camera))
+    //     return;
 
     // Try get a 'camera'
-    camera = CreateVirtualCamera(client);
+    int camera = CreateFreeCamera(client);
     if (!IsValidEntity(camera))
         return;
 
     // Now we got our camera, let player view it.
     SetClientCamera(client, camera);
-    SetClientViewEntity(client, camera);
+    g_bIsCameraActive[client] = true;
+    AcceptEntityInput(camera, "Enable", client);
+    // SetClientViewEntity(client, camera);
 
     // Call forward
     Call_StartForward(g_hOnPlayerCameraActivedPost);
@@ -387,7 +462,7 @@ void FreeCamera(int client)
     Call_Finish();
 }
 
-void KillFreeCamera(int client, bool force = false)
+void DisableFreeCamera(int client, bool force = false)
 {
     if (!IsSurvivor(client))
         return;
@@ -404,16 +479,18 @@ void KillFreeCamera(int client, bool force = false)
     }
 
     int camera = GetClientCamera(client);
-    // If player has a camera, kill it.
+    // If player has a camera, disable it.
     if (IsValidEntity(camera))
     {
-        AcceptEntityInput(camera, "Kill");
-        RemoveEntity(camera);
+        // AcceptEntityInput(camera, "Kill");
+        // RemoveEntity(camera);
+        g_bIsCameraActive[client] = false;
+        AcceptEntityInput(camera, "Disable", client);
     }
     // Let player view herself.
-    if (IsValidClient(client))
-        SetClientViewEntity(client, client);
-    SetClientCamera(client, -1);
+    // if (IsValidClient(client))
+    //     SetClientViewEntity(client, client);
+    // SetClientCamera(client, -1);
 
     // Call forward
     Call_StartForward(g_hOnPlayerCameraDeactivedPost);
@@ -421,7 +498,7 @@ void KillFreeCamera(int client, bool force = false)
     Call_Finish();
 }
 
-int CreateVirtualCamera(int target)
+int CreateFreeCamera(int target)
 {
     int camera;
     float origin[3], rotate[3], lookat[3];
@@ -438,7 +515,9 @@ int CreateVirtualCamera(int target)
     // pipe_bomb_projectile : You could see red flash light.
     // vomitjar_projectile: : Seems the best choice, no particle, no flash, no effect,
     //              no auto destroy, wont be hooked...Perfect!!!
-    camera = CreateEntityByName("vomitjar_projectile");
+    camera = GetClientCamera(target);
+    if(!IsValidEntity(camera))
+        camera = CreateEntityByName("point_viewcontrol");
     if (!IsValidEntity(camera)) return -1;
 
     GetAngleVectors(rotate, lookat, NULL_VECTOR, NULL_VECTOR);
@@ -461,13 +540,13 @@ int CreateVirtualCamera(int target)
     // // Record when camera has create
     // float camtime = GetGameTime();
 
-    AcceptEntityInput(camera, "DisableShadow");
-    SetEntPropEnt(camera, Prop_Data, "m_hOwnerEntity", target);
-    SetEntityRenderMode(camera, RENDER_TRANSCOLOR);
-    SetEntityMoveType(camera, MOVETYPE_NOCLIP);
-    SetEntityRenderColor(camera, 0, 0, 0, 0);
-    SetEntProp(camera, Prop_Send, "m_CollisionGroup", 0);
-    SetEntProp(camera, Prop_Send, "m_nSolidType", 0);
+    // AcceptEntityInput(camera, "DisableShadow");
+    // SetEntPropEnt(camera, Prop_Data, "m_hOwnerEntity", target);
+    // SetEntityRenderMode(camera, RENDER_TRANSCOLOR);
+    // SetEntityMoveType(camera, MOVETYPE_NOCLIP);
+    // SetEntityRenderColor(camera, 0, 0, 0, 0);
+    // SetEntProp(camera, Prop_Send, "m_CollisionGroup", 0);
+    // SetEntProp(camera, Prop_Send, "m_nSolidType", 0);
 
     // Vomit has no partice, so we no longer need this...
     // char name[64];
@@ -480,7 +559,7 @@ int CreateVirtualCamera(int target)
     //     {
     //         // When particle create, kill it.(make sure player wont notice that she is a tank rock xD)
     //         float partime = GetEntPropFloat(i, Prop_Send, "m_flStartTime");
-    //         // Make sure we
+    //         // Make sure we find rock particle
     //         if (partime - camtime <= 2.0)
     //             AcceptEntityInput(i, "Kill");
     //     }
@@ -519,6 +598,19 @@ int GetClientCamera(int client)
         return -1;
 
     return EntRefToEntIndex(g_iFreeCamera[client]);
+}
+
+int Native_IsClientCameraActive(Handle plugin, int numParams)
+{
+    return view_as<int>(IsClientCameraActive(GetNativeCell(1)));
+}
+
+bool IsClientCameraActive(int client)
+{
+    if (!IsValidClient(client))
+        return false;
+
+    return g_bIsCameraActive[client];
 }
 
 bool SetClientCamera(int client, int entity)
