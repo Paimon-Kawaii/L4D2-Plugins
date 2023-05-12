@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-04-25 18:08:49
+ * @Last Modified time: 2023-04-29 12:17:15
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -18,7 +18,7 @@
 #undef REQUIRE_PLUGIN
 #include <fnemotes>
 
-#define VERSION "2023.04.25"
+#define VERSION "2023.04.29"
 #define MAXSIZE 33
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
@@ -135,7 +135,7 @@ void HookCommands()
 
 void HookEvents()
 {
-    HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Pre);
+    // HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Pre);
     HookEvent("player_death", Event_PlayerDead, EventHookMode_Pre);
 }
 
@@ -147,15 +147,15 @@ void CreateForwards()
     g_hOnPlayerCameraDeactivedPost = new GlobalForward("FC_OnPlayerCameraDeactived_Post", ET_Ignore, Param_Cell);
 }
 
-void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
-{
-    int client = GetClientOfUserId(event.GetInt("userid"));
-    if(!IsSurvivor(client)) return;
+// void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
+// {
+//     int client = GetClientOfUserId(event.GetInt("userid"));
+//     if(!IsSurvivor(client)) return;
 
-    // Fix survivor view
-    EnableFreeCamera(client);
-    DisableFreeCamera(client);
-}
+//     // Fix survivor view
+//     // EnableFreeCamera(client);
+//     // DisableFreeCamera(client);
+// }
 
 void Event_PlayerDead(Event event, const char[] name, bool dontBroadcast)
 {
@@ -170,6 +170,9 @@ void Event_PlayerDead(Event event, const char[] name, bool dontBroadcast)
     AcceptEntityInput(camera, "Disable");
     AcceptEntityInput(camera, "Kill");
     RemoveEntity(camera);
+
+    SetEntProp(client, Prop_Send, "m_bDrawViewmodel", 1, 1);
+    SetViewEntity(client, -1);
 }
 
 public void OnClientPutInServer(int client)
@@ -430,7 +433,7 @@ Action Say_Callback(int client, const char[] command, int argc)
 
 void EnableFreeCamera(int client)
 {
-    if (!IsSurvivor(client))
+    if (!IsSurvivor(client) || !IsPlayerAlive(client))
         return;
 
     // Call forward
@@ -503,8 +506,10 @@ int CreateFreeCamera(int target)
     int camera;
     float origin[3], rotate[3], lookat[3];
 
-    GetEntPropVector(target, Prop_Send, "m_vecOrigin", origin);
-    GetEntPropVector(target, Prop_Send, "m_angRotation", rotate);
+    GetClientAbsOrigin(target, origin);
+    GetClientAbsAngles(target, rotate);
+    // GetEntPropVector(target, Prop_Send, "m_vecOrigin", origin);
+    // GetEntPropVector(target, Prop_Send, "m_angRotation", rotate);
 
     // Only some ents like gift or rock or some projectiles can get velocity...(dont know why)
     // spitter_projectile : Not a choice because it may be hooked by other plugins...
@@ -566,13 +571,13 @@ int CreateFreeCamera(int target)
     // }
 
     // Fix position
-    float tpos[3], cpos[3];
-    GetClientAbsOrigin(target, tpos);
-    GetEntPropVector(camera, Prop_Send, "m_vecOrigin", cpos);
-    float dis = GetVectorDistance(tpos, cpos);
-    tpos[2] += 100;
-    if (dis > 500)
-        TeleportEntity(camera, tpos, NULL_VECTOR, NULL_VECTOR);
+    // float tpos[3], cpos[3];
+    // GetClientAbsOrigin(target, tpos);
+    // GetEntPropVector(camera, Prop_Send, "m_vecOrigin", cpos);
+    // float dis = GetVectorDistance(tpos, cpos);
+    // tpos[2] += 100;
+    // if (dis > 500)
+    //     TeleportEntity(camera, tpos, NULL_VECTOR, NULL_VECTOR);
 
     return camera;
 }
@@ -620,4 +625,10 @@ bool SetClientCamera(int client, int entity)
 
     g_iFreeCamera[client] = IsValidEntity(entity) ? EntIndexToEntRef(entity) : -1;
     return true;
+}
+
+void SetViewEntity(int client, int view)
+{
+    SetEntPropEnt(client, Prop_Send, "m_hViewEntity", view);
+    SetClientViewEntity(client, IsValidEdict(view) ? view : client);
 }
