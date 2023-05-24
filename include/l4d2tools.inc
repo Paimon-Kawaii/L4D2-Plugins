@@ -2,14 +2,14 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2023-03-04 17:02:19
+ * @Last Modified time: 2023-05-24 16:19:29
  * @Github:             http://github.com/PaimonQwQ
  */
 
 /* #################################################################### *
                                 L4D2 Tools
                             Author: 我是派蒙啊
-                             Version: 1.3.4
+                           Version: 2023.05.24
  * #################################################################### */
 
 #if defined _l4d2tools_included
@@ -52,6 +52,16 @@ enum
     TH_FromHip = 50,
     TH_OverHead = 51
 };
+
+enum
+{
+    BOT_CMD_ATTACK = 0,     // Force the bot to attack a specific target, even bypassing CTerrorPlayer::SetSenseFlags (DirectorScript.BOT_CANT_SEE).
+    BOT_CMD_MOVE = 1,       // Force the bot to move to a specific location, which then they will do it unconditionally without performing any other AI behaviours controlled by themselves.
+                            // This means that Survivor Bots and most player-controllable Special Infected won't attack anything when commanded, but Common Infected still automatically attack enemies if they close in enough.
+    BOT_CMD_RETREAT = 2,    // Force the bot to retreat from a target entity. Only works when used on Survivor Bots, and if target is a Tank.
+    BOT_CMD_RESET = 3       // Removes the active bot command and lets the AI resume controlling the bot.
+};
+
 
 /**
  * @brief Returns true if client is correct.
@@ -154,9 +164,57 @@ stock int GetSurvivorPinner(int client)
             GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") > 0 ?  //charger pounded
             GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") :
             GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") > 0 ?  //jockey ridden
-            GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") : -1);     
+            GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") : -1);
 }
 
+/**
+ * @brief Returns true if client is pinning a survivor.
+ * 
+ * @param client    Client index.
+ * @return          Survivor index for closest client. -1 otherwise.
+ */
+stock int GetClosestSurvivor(int client, bool incap = false)
+{
+    if(!IsValidClient(client)) return -1;
+
+    int target = -1;
+    float pos[3], tarPos[3], minDis = -1.0;
+    GetClientAbsOrigin(client, pos);
+    for(int i = 1; i <= MaxClients; i++)
+    {
+        if(!IsSurvivor(i) || !IsPlayerAlive(i) ||
+            (!incap && IsPlayerIncap(i))) continue;
+        GetClientAbsOrigin(i, tarPos);
+        float dis = GetVectorDistance(pos, tarPos);
+        if(dis >= minDis && minDis != -1.0)
+            continue;
+        minDis = dis;
+        target = i;
+    }
+
+    return target;
+}
+
+/**
+ * @brief Returns true if client is pinning a survivor.
+ * 
+ * @param client    Client index.
+ * @return          Survivor index if client is pinning a survivor. -1 otherwise.
+ */
+stock int GetPinningSurvivor(int client)
+{
+    if(!IsInfected(client)) return -1;
+    return (GetEntPropEnt(client, Prop_Send, "m_tongueVictim") > 0 ?     //smoker grabbed
+            GetEntPropEnt(client, Prop_Send, "m_tongueVictim") : 
+            GetEntPropEnt(client, Prop_Send, "m_pounceVictim") > 0 ?   //hunter pounded
+            GetEntPropEnt(client, Prop_Send, "m_pounceVictim") : 
+            GetEntPropEnt(client, Prop_Send, "m_carryVictim") > 0 ?  //charger carred
+            GetEntPropEnt(client, Prop_Send, "m_carryVictim") : 
+            GetEntPropEnt(client, Prop_Send, "m_pummelVictim") > 0 ?  //charger pounded
+            GetEntPropEnt(client, Prop_Send, "m_pummelVictim") :
+            GetEntPropEnt(client, Prop_Send, "m_jockeyVictim") > 0 ?  //jockey ridden
+            GetEntPropEnt(client, Prop_Send, "m_jockeyVictim") : -1);
+}
 
 /**
  * @brief Returns true if client is pinning a survivor.
@@ -328,7 +386,7 @@ stock bool SetPlayerHealth(int client, int health)
  * @param strPrm    CmdParam string.
  * @return          True if succeed. False otherwise.
  */
-stock bool BypassAndExecuteCommand(int client, const char[] strCmd, const char[] strPrm = "")
+stock bool ExecuteCommand(int client, const char[] strCmd, const char[] strPrm = "")
 {
     if (!IsValidClient(client)) return false;
 
@@ -468,7 +526,41 @@ stock void DeleteInventoryItem(int client)
 {
     if (!IsValidClient(client)) return;
 
-    int item = GetPlayerWeaponSlot(client, 0);
-    if (item > 0)
-        RemovePlayerItem(client, item);
+    for(int s = 0; s < 5; s++)
+    {
+        int item = GetPlayerWeaponSlot(client, s);
+        if (item > 0)
+            RemovePlayerItem(client, item);
+    }
+}
+
+/**
+ * @brief Uses the VScript "CommandABot" function to command a bot to attack, move, retreat or reset previous command
+ *
+ * @param       entity          The bot or infected to command
+ * @param       target          The Special Infected to target (used for types "BOT_CMD_ATTACK" and "BOT_CMD_RETREAT")
+ * @param       type            Type of command
+ * @param       vecPos          Move to this location (Used for type "BOT_CMD_MOVE")
+ *
+ * @return      Returns false when unable to perform, true otherwise.
+ */
+stock bool CommandABot(int entity, int target, int type, float pos[3] = NULL_VECTOR)
+{
+    if(!IsValidClient(entity) || !IsFakeClient(entity)) return false;
+    char param[PLATFORM_MAX_PATH];
+    switch(type)
+    {
+        case BOT_CMD_ATTACK, BOT_CMD_RETREAT:
+            Format(param, sizeof(param), "CommandABot({cmd = %d, bot = GetPlayerFromUserID(%i), target = GetPlayerFromUserID(%i)})", type, GetClientUserId(entity), GetClientUserId(target));
+        case BOT_CMD_MOVE:
+            Format(param, sizeof(param), "CommandABot({cmd = %d, pos = Vector(%f, %f, %f), bot = GetPlayerFromUserID(%i)})", type, pos[0], pos[1], pos[2], GetClientUserId(entity));
+        case BOT_CMD_RESET:
+            Format(param, sizeof(param), "CommandABot({cmd = %d, bot = GetPlayerFromUserID(%i)})", type, GetClientUserId(entity));
+
+        default:
+            return false;
+    }
+    ExecuteCommand(entity, "script", param);
+
+    return true;
 }
