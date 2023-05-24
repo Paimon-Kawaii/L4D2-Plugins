@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-24 16:15:06
+ * @Last Modified time: 2023-05-24 19:59:50
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -15,6 +15,7 @@
 
 #define VERSION "2023.05.24"
 #define MAXSIZE 33
+#define TRACE_TICK 100
 #define POUNCE_TICK 10
 
 ConVar
@@ -28,12 +29,16 @@ int
     g_iFloorHunterCount = 0,
     // 仅用于记录ht目标，便于查找
     g_iPounceTarget[MAXSIZE] = {0, ...},
+    // 用于记录上次射线的tick，用于设置间隔
+    g_iLastTraceTick[MAXSIZE] = {0, ...},
     // 用于记录生还被谁瞄准并设定目标
     g_iTargetWhoAimed[MAXSIZE] = {0, ...},
     // 记录上次使用技能的tick，用于设置间隔
     g_iLastPounceTick[MAXSIZE] = {0, ...};
 
 bool
+    // 标记ht是否在飞天花板
+    g_bIsFlyingFloor[MAXSIZE] = {false, ...},
     // 用于标记是否允许使用天花板高扑
     g_bIsFloorPounce[MAXSIZE] = {false, ...},
     // 用于标记ht是否准备从天花板扑人
@@ -101,8 +106,8 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 
     // 当ht落地时，标记pounce为false
     // P.S.这个东西的目的是为了后面高扑完成也就是落地后不再接管ht
-    //     也就是199行的判断，但是有木有用我就布吉岛了XD
-    if (isgrounded) g_bAttemptPounce[hunter] = false;
+    //     也就是202行的判断，但是有木有用我就布吉岛了XD
+    if (isgrounded) g_bIsFlyingFloor[hunter] = g_bAttemptPounce[hunter] = false;
 
     // 玩家ht是否允许接管操作
     if (!IsFakeClient(hunter) && !g_hHFHuman.BoolValue)
@@ -113,8 +118,9 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     GetClientAbsOrigin(hunter, htpos);
 
     // 在地面上时，检测头顶是否为天花板
-    if(isgrounded)
+    if(isgrounded && GetGameTickCount() - g_iLastTraceTick[hunter] >= TRACE_TICK)
     {
+        g_iLastTraceTick[hunter] = GetGameTickCount();
         Handle trace = TR_TraceRayFilterEx(htpos, {-90.0, 0.0, 0.0}, MASK_ALL, RayType_Infinite, SelfIgnore_TraceFilter);
         if(TR_DidHit(trace))
         {
@@ -170,7 +176,8 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     dis = GetVectorDistance(htpos, surpos, false);
 
     // 距离小于预定值 且 未标记为扑人时，取消接管ht
-    if (dis <= g_hHFStopDis.IntValue && !g_bAttemptPounce[hunter])
+    if (dis <= g_hHFStopDis.IntValue &&
+        !g_bIsFlyingFloor[hunter] && !g_bAttemptPounce[hunter])
         return Plugin_Continue;
 
     // 修正天花板ht数量
@@ -183,7 +190,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     // 获取ht速度
     GetEntPropVector(hunter, Prop_Data, "m_vecVelocity", velocity);
     // 未扑人时记录速度 并 修正天花板z轴速度为0
-    if (!g_bAttemptPounce[hunter])
+    if (g_bIsFlyingFloor[hunter])
     {
         velocity[2] = 0.0;
         g_fPounceSpeed[hunter][0] = velocity[0];
@@ -233,6 +240,8 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         TeleportEntity(hunter, NULL_VECTOR, NULL_VECTOR, htvel);
         // 标记为准备扑人
         g_bAttemptPounce[hunter] = true;
+        // 标记为离开天花板
+        g_bIsFlyingFloor[hunter] = false;
 
         return Plugin_Continue;
     }
@@ -253,7 +262,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     }
 
     // 当btn包含atk指令 且 ht 在地面上
-    if ((buttons & IN_ATTACK) && isgrounded)
+    if ((buttons & IN_ATTACK) && isgrounded && !g_bIsFlyingFloor[hunter])
     {
         // 给予ht 6666的垂直速度使ht可以飞到天花板上XD
         velocity[0] = 0.0;
@@ -284,6 +293,9 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     // 修正ai ht真实角度为11.8
     if (IsFakeClient(hunter))
         TeleportEntity(hunter, NULL_VECTOR, ang, NULL_VECTOR);
+
+    // 标记为在飞天花板
+    g_bIsFlyingFloor[hunter] = true;
 
     return Plugin_Changed;
 }
