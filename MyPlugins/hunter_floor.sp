@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-25 22:24:24
+ * @Last Modified time: 2023-05-25 22:28:24
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -123,7 +123,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     float htpos[3];
     GetClientAbsOrigin(hunter, htpos);
 
-    // 在地面上时，检测头顶是否为天花板
+    // 在地面上 且 是ai ht 且 到达检测间隔时，检测头顶是否为天花板
     if(isgrounded && IsFakeClient(hunter) &&
         GetGameTickCount() - g_iLastTraceTick[hunter] >= TRACE_TICK)
     {
@@ -140,7 +140,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         }
     }
 
-    // 不是天花板，取消接管
+    // 天花板不可用 且 是ai ht时，取消接管
     if(!g_bIsFloorAvaliable[hunter] && IsFakeClient(hunter))
         return Plugin_Continue;
 
