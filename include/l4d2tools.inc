@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2023-05-24 16:19:29
+ * @Last Modified time: 2023-05-24 21:27:23
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -563,4 +563,26 @@ stock bool CommandABot(int entity, int target, int type, float pos[3] = NULL_VEC
     ExecuteCommand(entity, "script", param);
 
     return true;
+}
+
+
+/**
+ * Sets custom ability cooldown of client.
+ *
+ * Note: Used for the Infected class abilities.
+ *
+ * @param client        Client index.
+ * @param time          How long before client can use their custom ability.
+ * @return              True if set, false if no ability found.
+ */
+stock bool SetAbilityCooldown(int client, float time)
+{
+    int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
+    if (ability > 0 && IsValidEdict(ability))
+    {
+        SetEntPropFloat(ability, Prop_Send, "m_duration", time);
+        SetEntPropFloat(ability, Prop_Send, "m_timestamp", GetGameTime() + time);
+        return true;
+    }
+    return false;
 }
