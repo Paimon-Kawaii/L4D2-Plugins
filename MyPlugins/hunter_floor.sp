@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-25 15:16:47
+ * @Last Modified time: 2023-05-25 22:07:56
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -148,11 +148,8 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     {
         bool result = TryAimSurvivor(hunter);
         if(!result) return Plugin_Continue;
-    }
 
-    // 修正ai ht的btn指令
-    if (IsFakeClient(hunter))
-    {
+        // 修正ai ht的btn指令
         buttons |= IN_ATTACK;
         buttons &= ~IN_ATTACK2;
     }
