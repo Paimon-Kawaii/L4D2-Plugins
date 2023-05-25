@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-25 09:54:29
+ * @Last Modified time: 2023-05-25 10:21:31
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -13,7 +13,7 @@
 #include <l4d2tools>
 #include <sourcemod>
 
-#define VERSION "2023.05.24"
+#define VERSION "2023.05.25"
 #define MAXSIZE 33
 #define TRACE_TICK 100
 #define POUNCE_TICK 10
@@ -146,6 +146,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         buttons &= ~IN_ATTACK2;
     }
 
+    // 玩家ht需要先使用一次技能
     bool canfly = IsFakeClient(hunter) || view_as<bool>(
         GetEntProp(GetEntPropEnt(hunter, Prop_Send,
         "m_customAbility"), Prop_Send, "m_hasBeenUsed"));
@@ -201,6 +202,7 @@ bool SelfIgnore_TraceFilter(int entity, int mask, int self)
     return true;
 }
 
+// 瞄准生还飞扑
 bool TryAimSurvivor(int hunter)
 {
     int sur = -1;
