@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-25 10:21:31
+ * @Last Modified time: 2023-05-25 11:19:36
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -43,7 +43,9 @@ bool
     // 用于标记是否允许使用天花板高扑
     g_bIsFloorPounce[MAXSIZE] = {false, ...},
     // 用于标记ht是否准备从天花板扑人
-    g_bAttemptPounce[MAXSIZE] = {false, ...};
+    g_bAttemptPounce[MAXSIZE] = {false, ...},
+    // 用于标记头顶是否是天花板
+    g_bIsFloorAvaliable[MAXSIZE] = {false, ...};
 
 float
     // 用于修正抛物线速度
@@ -98,8 +100,11 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         g_bIsFloorPounce[hunter] = false;
         // 取消标记pounce
         g_bAttemptPounce[hunter] = false;
+        // 标记天花板为可不用
+        g_bIsFloorAvaliable[hunter] = false;
         // 修正技能tick
         g_iLastPounceTick[hunter] = GetGameTickCount();
+
         return Plugin_Continue;
     }
 
@@ -126,11 +131,17 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         if(TR_DidHit(trace))
         {
             int flags = TR_GetSurfaceFlags(trace);
-            // 不是天花板，取消接管
+            // 检测是否为天花板 并 标记
+            g_bIsFloorAvaliable[hunter] = false;
             if(!(flags & SURF_SKY) && !(flags & SURF_SKY2D))
                 return Plugin_Continue;
+            g_bIsFloorAvaliable[hunter] = true;
         }
     }
+
+    // 不是天花板，取消接管
+    if(!g_bIsFloorAvaliable[hunter])
+        return Plugin_Continue;
 
     // 让ai ht瞄准生还
     if(IsFakeClient(hunter))
