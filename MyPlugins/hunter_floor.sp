@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-24 19:59:50
+ * @Last Modified time: 2023-05-24 22:20:06
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -23,6 +23,7 @@ ConVar
     g_hHFHuman,
     g_hHFLimit,
     g_hHFStopDis,
+    g_hHTEnhance,
     g_hFloorHunter;
 
 int
@@ -60,6 +61,7 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
     g_hGravity = FindConVar("sv_gravity");
+    g_hHTEnhance = FindConVar("ai_hunter_angle_mean");
     g_hHFStopDis = CreateConVar("hf_stop_dis", "600", "停止飞天花板距离", FCVAR_NONE, true, 0.0);
     g_hHFHuman = CreateConVar("hf_human", "0", "允许玩家HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
     g_hFloorHunter = CreateConVar("hunter_floor", "1", "允许HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
@@ -113,8 +115,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     if (!IsFakeClient(hunter) && !g_hHFHuman.BoolValue)
         return Plugin_Continue;
 
-    int sur = -1;
-    float surpos[3], htpos[3], atkang[3], dis = -1.0;
+    float htpos[3];
     GetClientAbsOrigin(hunter, htpos);
 
     // 在地面上时，检测头顶是否为天花板
@@ -131,6 +132,79 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         }
     }
 
+    // 让ai ht瞄准生还
+    if(IsFakeClient(hunter))
+    {
+        bool result = TryAimSurvivor(hunter);
+        if(!result) return Plugin_Continue;
+    }
+
+    // 修正ai ht的btn指令
+    if (IsFakeClient(hunter))
+    {
+        buttons |= IN_ATTACK;
+        buttons &= ~IN_ATTACK2;
+    }
+
+    bool canfly = IsFakeClient(hunter) || view_as<bool>(
+        GetEntProp(GetEntPropEnt(hunter, Prop_Send,
+        "m_customAbility"), Prop_Send, "m_hasBeenUsed"));
+
+    // 当ht在弹天花板 且 btn包含atk指令 且 pounce间隔达到pounce_tick，取消btn的atk指令
+    if (!isgrounded && (buttons & IN_ATTACK) && g_bIsFlyingFloor[hunter] &&
+        GetGameTickCount() - g_iLastPounceTick[hunter] >= POUNCE_TICK)
+    {
+        g_iLastPounceTick[hunter] = GetGameTickCount();
+        buttons &= ~IN_ATTACK;
+    }
+
+    float velocity[3];
+    // 当btn包含atk指令 且 ht 在地面上
+    if ((buttons & IN_ATTACK) && isgrounded && !g_bIsFlyingFloor[hunter] && canfly)
+    {
+        // 给予ht 6666的垂直速度使ht可以飞到天花板上XD
+        velocity[0] = 0.0;
+        velocity[1] = 0.0;
+        velocity[2] = 6666.0;
+
+        // 标记为未准备扑人
+        g_bAttemptPounce[hunter] = false;
+        // 命令ht蹲下
+        SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
+        // 发射ht（不是
+        TeleportEntity(hunter, NULL_VECTOR, NULL_VECTOR, velocity);
+    }
+
+    // 修正玩家ht角度
+    // P.S.这个角度不影响真实角度，故玩家可以随便转动视角
+    //     但ai角度必须是真实角度，故需要使用tp函数
+    ang[0] = 11.8;
+    // 修正ai ht真实角度为11.8
+    if (IsFakeClient(hunter))
+        TeleportEntity(hunter, NULL_VECTOR, ang, NULL_VECTOR);
+
+    // 标记为在飞天花板
+    g_bIsFlyingFloor[hunter] = true;
+    // 修正3方增强插件(音理提供)
+    if(g_hHTEnhance != INVALID_HANDLE)
+        g_hHTEnhance.SetInt(0);
+
+    return Plugin_Changed;
+}
+
+// 忽略自身碰撞
+bool SelfIgnore_TraceFilter(int entity, int mask, int self)
+{
+    if(entity == self || IsValidClient(entity))
+        return false;
+
+    return true;
+}
+
+bool TryAimSurvivor(int hunter)
+{
+    int sur = -1;
+    float surpos[3], htpos[3], atkang[3], dis = -1.0;
     // 选择最近的可用的生还目标
     for (int i = 1; i <= MaxClients; i++)
     {
@@ -148,7 +222,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     // 目标不可用时，选择最近的生还
     if (!IsSurvivor(sur)) sur = GetClosestSurvivor(hunter);
     // 最近的生还也不可用时，取消接管，让ai自行发挥ww
-    if (!IsSurvivor(sur)) return Plugin_Continue;
+    if (!IsSurvivor(sur)) return false;
     // 记录我们选择的目标
     g_iPounceTarget[hunter] = sur;
     g_iTargetWhoAimed[sur] = hunter;
@@ -178,7 +252,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     // 距离小于预定值 且 未标记为扑人时，取消接管ht
     if (dis <= g_hHFStopDis.IntValue &&
         !g_bIsFlyingFloor[hunter] && !g_bAttemptPounce[hunter])
-        return Plugin_Continue;
+        return false;
 
     // 修正天花板ht数量
     if(!g_bIsFloorPounce[hunter])
@@ -213,7 +287,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         TeleportEntity(hunter, NULL_VECTOR, atkang, NULL_VECTOR);
 
         // 高度低于100，可能即将扑中，取消接管防止ht卡在生还头顶
-        if (height < 100) return Plugin_Continue;
+        if (height < 100) return false;
 
         // 获取玩家移动速度，准备抵消生还在xOy面的移动
         GetEntPropVector(sur, Prop_Data, "m_vecVelocity", survel);
@@ -242,79 +316,12 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         g_bAttemptPounce[hunter] = true;
         // 标记为离开天花板
         g_bIsFlyingFloor[hunter] = false;
+        // 修正3方增强插件(音理提供)
+        if(g_hHTEnhance != INVALID_HANDLE)
+            g_hHTEnhance.SetInt(30);
 
-        return Plugin_Continue;
-    }
-
-    // 修正ai ht的btn指令
-    if (IsFakeClient(hunter))
-    {
-        buttons |= IN_ATTACK;
-        buttons &= ~IN_ATTACK2;
-    }
-
-    // 当ht在弹天花板 且 btn包含atk指令 且 pounce间隔达到pounce_tick，取消btn的atk指令
-    if (!isgrounded && (buttons & IN_ATTACK) &&
-        GetGameTickCount() - g_iLastPounceTick[hunter] >= POUNCE_TICK)
-    {
-        g_iLastPounceTick[hunter] = GetGameTickCount();
-        buttons &= ~IN_ATTACK;
-    }
-
-    // 当btn包含atk指令 且 ht 在地面上
-    if ((buttons & IN_ATTACK) && isgrounded && !g_bIsFlyingFloor[hunter])
-    {
-        // 给予ht 6666的垂直速度使ht可以飞到天花板上XD
-        velocity[0] = 0.0;
-        velocity[1] = 0.0;
-        velocity[2] = 6666.0;
-
-        // 命令ht蹲下
-        buttons |= IN_DUCK;
-        SetEntityFlags(hunter, GetEntityFlags(hunter) | FL_DUCKING);
-        SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
-        SetEntProp(hunter, Prop_Send, "m_bDucking", 1);
-
-        // 标记为未准备扑人
-        g_bAttemptPounce[hunter] = false;
-        // 获取ht技能
-        int ability = GetEntPropEnt(hunter, Prop_Send, "m_customAbility");
-        // 重置技能cd
-        SetEntPropFloat(ability, Prop_Send, "m_timestamp", 0.0);
-
-        // 发射ht（不是
-        TeleportEntity(hunter, NULL_VECTOR, NULL_VECTOR, velocity);
-    }
-
-    // 修正玩家ht角度
-    // P.S.这个角度不影响真实角度，故玩家可以随便转动视角
-    //     但ai角度必须是真实角度，故需要使用tp函数
-    ang[0] = 11.8;
-    // 修正ai ht真实角度为11.8
-    if (IsFakeClient(hunter))
-        TeleportEntity(hunter, NULL_VECTOR, ang, NULL_VECTOR);
-
-    // 标记为在飞天花板
-    g_bIsFlyingFloor[hunter] = true;
-
-    return Plugin_Changed;
-}
-
-// 忽略自身碰撞
-bool SelfIgnore_TraceFilter(int entity, int mask, int self)
-{
-    if(entity == self || IsValidClient(entity))
         return false;
+    }
 
     return true;
 }
-
-// // 获取天花板ht数量
-// int GetFloorHunterCount()
-// {
-//     int count = 0;
-//     for(int i = 1; i <= MaxClients; i++)
-//         if(g_bIsFloorPounce[i]) count++;
-
-//     return count;
-// }
