@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-24 22:20:06
+ * @Last Modified time: 2023-05-25 09:54:29
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -108,7 +108,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 
     // 当ht落地时，标记pounce为false
     // P.S.这个东西的目的是为了后面高扑完成也就是落地后不再接管ht
-    //     也就是202行的判断，但是有木有用我就布吉岛了XD
+    //     也就是280行的判断，但是有木有用我就布吉岛了XD
     if (isgrounded) g_bIsFlyingFloor[hunter] = g_bAttemptPounce[hunter] = false;
 
     // 玩家ht是否允许接管操作
@@ -249,7 +249,7 @@ bool TryAimSurvivor(int hunter)
     // 用函数获得距离
     dis = GetVectorDistance(htpos, surpos, false);
 
-    // 距离小于预定值 且 未标记为扑人时，取消接管ht
+    // 距离小于预定值 且 未标记为扑人 且 不是在天花板上时，取消接管ht
     if (dis <= g_hHFStopDis.IntValue &&
         !g_bIsFlyingFloor[hunter] && !g_bAttemptPounce[hunter])
         return false;
@@ -276,14 +276,14 @@ bool TryAimSurvivor(int hunter)
     speed = SquareRoot(Pow(velocity[0], 2.0) + Pow(velocity[1], 2.0));
     // 计算delta time
     delta = dis / speed - time;
-    // 当dt小于0.01，近似认为ht接近抛物线定点顶点，准备扑人
+    // 当dt小于0.01，近似认为ht接近抛物线顶点，准备扑人
     if (delta <= 0.01 || g_bAttemptPounce[hunter])
     {
         float htvel[3], survel[3];
 
         // 将方向向量转换为角度
         GetVectorAngles(atkang, atkang);
-        // 命令ai瞄准
+        // 调整ai角度
         TeleportEntity(hunter, NULL_VECTOR, atkang, NULL_VECTOR);
 
         // 高度低于100，可能即将扑中，取消接管防止ht卡在生还头顶
