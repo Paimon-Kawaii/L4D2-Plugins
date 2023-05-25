@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-25 22:07:56
+ * @Last Modified time: 2023-05-25 22:24:24
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -124,10 +124,11 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     GetClientAbsOrigin(hunter, htpos);
 
     // 在地面上时，检测头顶是否为天花板
-    if(isgrounded && GetGameTickCount() - g_iLastTraceTick[hunter] >= TRACE_TICK)
+    if(isgrounded && IsFakeClient(hunter) &&
+        GetGameTickCount() - g_iLastTraceTick[hunter] >= TRACE_TICK)
     {
         g_iLastTraceTick[hunter] = GetGameTickCount();
-        Handle trace = TR_TraceRayFilterEx(htpos, {-90.0, 0.0, 0.0}, MASK_ALL, RayType_Infinite, SelfIgnore_TraceFilter);
+        Handle trace = TR_TraceRayFilterEx(htpos, {-90.0, 0.0, 0.0}, MASK_SOLID, RayType_Infinite, SelfIgnore_TraceFilter);
         if(TR_DidHit(trace))
         {
             int flags = TR_GetSurfaceFlags(trace);
@@ -140,7 +141,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     }
 
     // 不是天花板，取消接管
-    if(!g_bIsFloorAvaliable[hunter])
+    if(!g_bIsFloorAvaliable[hunter] && IsFakeClient(hunter))
         return Plugin_Continue;
 
     // 让ai ht瞄准生还
