@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-25 11:19:36
+ * @Last Modified time: 2023-05-25 15:16:47
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -57,7 +57,7 @@ public Plugin myinfo =
     author = "我是派蒙啊",
     description = "让 AI Hunter 飞天花板",
     version = VERSION,
-    url = "http:// github.com/Paimon-Kawaii/L4D2-Plugins"
+    url = "http://github.com/Paimon-Kawaii/L4D2-Plugins"
 }
 
 public void OnPluginStart()
@@ -93,7 +93,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
             g_iTargetWhoAimed[g_iPounceTarget[hunter]] = 0;
             g_iPounceTarget[hunter] = 0;
         }
-        // // 修正天花板ht的数量
+        // 修正天花板ht的数量
         if (g_bIsFloorPounce[hunter])
             g_iFloorHunterCount = g_iFloorHunterCount > 0 ? g_iFloorHunterCount - 1 : 0;
         // 取消ht的天花板标记
@@ -113,7 +113,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 
     // 当ht落地时，标记pounce为false
     // P.S.这个东西的目的是为了后面高扑完成也就是落地后不再接管ht
-    //     也就是280行的判断，但是有木有用我就布吉岛了XD
+    //     也就是293行的判断，但是有木有用我就布吉岛了XD
     if (isgrounded) g_bIsFlyingFloor[hunter] = g_bAttemptPounce[hunter] = false;
 
     // 玩家ht是否允许接管操作
