@@ -2,14 +2,14 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2023-05-26 13:15:34
+ * @Last Modified time: 2023-05-26 15:45:54
  * @Github:             http://github.com/PaimonQwQ
  */
 
 /* #################################################################### *
                                 L4D2 Tools
                             Author: 我是派蒙啊
-                           Version: 2023.05.24
+                           Version: 2023.05.26
  * #################################################################### */
 
 #if defined _l4d2tools_included
@@ -574,18 +574,30 @@ stock bool CommandABot(int entity, int target, int type, float pos[3] = NULL_VEC
  *
  * @return                True on success, false otherwise.
  */
-stock bool ExecuteVscript(const char[] code, char[] result, int maxlength)
+#pragma deprecated This is nonachievement.
+stock bool ExecuteVscript(char[] code, char[] result, int maxlength)
 {
     int script = CreateEntityByName("logic_script");
     if(!IsValidEdict(script)) return false;
     DispatchSpawn(script);
 
-    SetVariantString(code);
+    if((StrContains(code, "<r>") | StrContains(code, "</r>")) < 0) return false;
+
+    char buffer[1024], put[] = "NetProps.SetPropString(%d, \"m_iName\", ";
+    Format(put, sizeof(put), put, script);
+    strcopy(buffer, sizeof(buffer), code);
+    ReplaceString(buffer, sizeof(buffer), "<r>", put);
+    ReplaceString(buffer, sizeof(buffer), "</r>", ");");
+    SetVariantString(buffer);
+    PrintToChatAll("%s", buffer);
+
     AcceptEntityInput(script, "RunScriptCode");
+    GetEntPropString(script, Prop_Data, "m_iName", result, maxlength);
+
     AcceptEntityInput(script, "Kill");
     RemoveEdict(script);
 
-    return true
+    return true;
 }
 
 /**
