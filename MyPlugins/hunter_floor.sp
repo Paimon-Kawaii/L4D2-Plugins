@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-26 16:27:19
+ * @Last Modified time: 2023-05-26 16:55:55
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -74,6 +74,14 @@ public void OnPluginStart()
     g_hFloorHunter = CreateConVar("hunter_floor", "1", "允许HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
     g_hHFResetInterval = CreateConVar("hf_reset_interval", "4.0", "重置起飞次数的时钟间隔", FCVAR_NONE, true, 0.0);
     g_hHFLimit = CreateConVar("hf_limit", "0", "允许HT弹天花板的数量，0=不限制", FCVAR_NONE, true, 0.0, true, 32.0);
+}
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+    RegPluginLibrary("hunterfloor");
+    CreateNative("HF_IsFlyingFloor", Native_IsFlyingFloor);
+
+    return APLRes_Success;
 }
 
 // 地图加载时重置信息
@@ -234,6 +242,11 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         g_hHTEnhance.SetInt(0);
 
     return Plugin_Changed;
+}
+
+int Native_IsFlyingFloor(Handle plugin, int numParams)
+{
+    return g_bIsFlyingFloor[GetNativeCell(1)];
 }
 
 // 忽略自身碰撞
