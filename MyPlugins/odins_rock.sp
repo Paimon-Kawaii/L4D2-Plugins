@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 14:59:54
- * @Last Modified time: 2023-03-19 10:01:43
+ * @Last Modified time: 2023-04-13 14:08:11
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -14,10 +14,10 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define VERSION "2023.03.18"
+#define VERSION "2023.04.13"
 #define DEBUG 0
 
-ConVar g_hOdinsRock;
+ConVar g_hOdinsRock, g_hOdinsTeleport;
 bool g_bIsRockTime[33] = {true, ...};
 
 public Plugin myinfo =
@@ -32,6 +32,7 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
     g_hOdinsRock = CreateConVar("odins_rock", "0", "开关因果律武器(笑");
+    g_hOdinsTeleport = CreateConVar("odins_tp", "0", "开关因果律武器(笑");
 }
 
 public void OnMapStart()
@@ -44,7 +45,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
 {
     if(!IsTank(client)) return Plugin_Continue;
 
-    if(g_bIsRockTime[client] && !CanPlayerSeeThreats(client))
+    if(g_hOdinsRock.BoolValue && g_bIsRockTime[client] && IsFakeClient(client) && !CanPlayerSeeThreats(client))
     {
         g_bIsRockTime[client] = false;
         buttons |= IN_ATTACK2;
@@ -58,7 +59,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
 
 public Action L4D_TankRock_OnRelease(int tank, int rock, float vecPos[3], float vecAng[3], float vecVel[3], float vecRot[3])
 {
-    if(!g_hOdinsRock.BoolValue)
+    if(!g_hOdinsRock.BoolValue || !IsTank(tank))
         return Plugin_Continue;
 
 #if DEBUG
@@ -90,11 +91,18 @@ public Action L4D_TankRock_OnRelease(int tank, int rock, float vecPos[3], float 
         return Plugin_Continue;
 
     PrintHintText(target, "奥丁之饼降临(笑");
-    PrintCenterTextAll("奥丁：%N 饿了，请你吃饼(笑", target);
+    for(int i = 1; i <= MaxClients; i++)
+        if(IsValidClient(i) && i != target)
+            PrintHintText(i, "奥丁：%N 饿了，请你吃饼(笑", target);
     GetClientAbsOrigin(target, pos);
     for(int i = 0; i < 3; i++)
         vecPos[i] = pos[i];
     vecPos[2] += 10;
+
+    pos[0] += 20;
+    pos[2] += 100;
+    if(IsTank(tank) && g_hOdinsTeleport.BoolValue)
+        TeleportEntity(tank, pos, NULL_VECTOR, NULL_VECTOR);
 
     return Plugin_Changed;
 }

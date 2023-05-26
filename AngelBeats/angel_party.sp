@@ -1,8 +1,8 @@
 /*
  * @Author:             派蒙
- * @Last Modified by:   派蒙
+ * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-04-14 11:20:56
- * @Last Modified time: 2022-06-09 14:04:23
+ * @Last Modified time: 2023-02-15 22:41:57
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -18,7 +18,7 @@
 
 ConVar
     g_hAngelParty;//0=Disable, 1=Smoker, 2=Boomer, 3=Hunter,
-                  //4=Spitter, 5=Jockey, 6=Charger
+                  //4=Spitter, 5=Jockey, 6=Charger, 8=Tank
 
 public Plugin myinfo =
 {
@@ -53,6 +53,14 @@ public Action L4D_OnSpawnSpecial(int &zombieClass, const float vecPos[3], const 
     return Plugin_Changed;
 }
 
+//TankParty
+public void L4D_OnSpawnSpecial_Post(int client, int zombieClass, const float vecPos[3], const float vecAng[3]);
+{
+    if(g_hAngelParty.IntValue != 8) return;
+
+    L4D_SetClass(client, 8);
+}
+
 //处死被刀的舌头
 public Action Event_TonguePullStopped(Event event, const char[] name, bool dontBroadcast)
 {
@@ -64,8 +72,9 @@ public Action Event_TonguePullStopped(Event event, const char[] name, bool dontB
     {
         char weapon[32];
         GetClientWeapon(attacker, weapon, 32);
+        float damage = GetPlayerHealth(smoker);
         if(StrEqual(weapon, "weapon_melee", false))
-            ForcePlayerSuicide(smoker);
+            SDKHooks_TakeDamage(smoker, attacker, attacker, damage);
     }
 
     return Plugin_Continue;

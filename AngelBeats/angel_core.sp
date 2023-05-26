@@ -1,8 +1,8 @@
 /*
  * @Author:             派蒙
- * @Last Modified by:   派蒙
+ * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2022-06-19 17:51:44
+ * @Last Modified time: 2023-03-02 20:20:12
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -348,7 +348,7 @@ public Action Cmd_JoinSpectator(int client, any args)
         {
             int surPlayerCount = GetSurvivorPlayerCount();
             //设置生还数量为：如果生还玩家数量不为0，设置为生还玩家数量，否则设置为1
-            g_hServerMaxSurvivor.SetInt(surPlayerCount ? surPlayerCount : 1);
+            g_hServerMaxSurvivor.SetInt(surPlayerCount > 1 ? surPlayerCount : 1);
         }
     }
 
