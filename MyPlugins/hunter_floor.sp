@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-26 14:25:44
+ * @Last Modified time: 2023-05-26 16:27:19
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -72,7 +72,7 @@ public void OnPluginStart()
     g_hHFMaxPounce = CreateConVar("hf_max_pounce", "3", "HT起飞的最大尝试次数", FCVAR_NONE, true, 0.0);
     g_hHFHuman = CreateConVar("hf_human", "0", "允许玩家HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
     g_hFloorHunter = CreateConVar("hunter_floor", "1", "允许HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
-    g_hHFResetInterval = CreateConVar("hf_reset_interval", "3.0", "重置起飞次数的时钟间隔", FCVAR_NONE, true, 0.0);
+    g_hHFResetInterval = CreateConVar("hf_reset_interval", "4.0", "重置起飞次数的时钟间隔", FCVAR_NONE, true, 0.0);
     g_hHFLimit = CreateConVar("hf_limit", "0", "允许HT弹天花板的数量，0=不限制", FCVAR_NONE, true, 0.0, true, 32.0);
 }
 
@@ -201,7 +201,6 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     {
         // 起飞次数+1
         g_iPounceTimes[hunter]++;
-        PrintToChatAll("%d", g_iPounceTimes[hunter]);
         // 达到最大尝试次数，启动重置时钟
         if(g_iPounceTimes[hunter] >= g_hHFMaxPounce.IntValue)
             CreateTimer(g_hHFResetInterval.FloatValue,
