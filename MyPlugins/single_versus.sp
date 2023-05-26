@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-21 15:57:19
- * @Last Modified time: 2023-05-22 19:45:29
+ * @Last Modified time: 2023-05-26 18:30:53
  * @Github:             https://github.com/Paimon-Kawaii
  */
 #pragma semicolon 1
@@ -61,7 +61,7 @@ void InitCVars()
     FindConVar("z_boomer_limit").SetInt(0);
     FindConVar("z_spitter_limit").SetInt(0);
     FindConVar("z_charger_limit").SetInt(0);
-    FindConVar("l4d2_addons_eclipse").SetInt(1);
+    FindConVar("l4d2_addons_eclipse").SetInt(0);
     FindConVar("mp_gamemode").SetString("versus");
     // FindConVar("sv_cheats").AddChangeHook(CVarEvent_CVChanged);
     FindConVar("z_hunter_limit").AddChangeHook(CVarEvent_CVChanged);
@@ -103,7 +103,12 @@ void InitCVars()
 //Convar值改变
 void CVarEvent_CVChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-    if(convar == FindConVar("l4d2_addons_eclipse") || convar == FindConVar("sv_cheats"))
+    if(convar == FindConVar("l4d2_addons_eclipse") )
+    {
+        if(convar.IntValue != 0)
+            convar.SetInt(0, true);
+    }
+    else if(/*convar == FindConVar("l4d2_addons_eclipse") || */convar == FindConVar("sv_cheats"))
     {
         if(convar.IntValue != 1)
             convar.SetInt(1, true);
