@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2023-05-24 21:27:23
+ * @Last Modified time: 2023-05-26 08:53:27
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -55,11 +55,11 @@ enum
 
 enum
 {
-    BOT_CMD_ATTACK = 0,     // Force the bot to attack a specific target, even bypassing CTerrorPlayer::SetSenseFlags (DirectorScript.BOT_CANT_SEE).
-    BOT_CMD_MOVE = 1,       // Force the bot to move to a specific location, which then they will do it unconditionally without performing any other AI behaviours controlled by themselves.
+    CMDBOT_ATTACK = 0,     // Force the bot to attack a specific target, even bypassing CTerrorPlayer::SetSenseFlags (DirectorScript.BOT_CANT_SEE).
+    CMDBOT_MOVE = 1,       // Force the bot to move to a specific location, which then they will do it unconditionally without performing any other AI behaviours controlled by themselves.
                             // This means that Survivor Bots and most player-controllable Special Infected won't attack anything when commanded, but Common Infected still automatically attack enemies if they close in enough.
-    BOT_CMD_RETREAT = 2,    // Force the bot to retreat from a target entity. Only works when used on Survivor Bots, and if target is a Tank.
-    BOT_CMD_RESET = 3       // Removes the active bot command and lets the AI resume controlling the bot.
+    CMDBOT_RETREAT = 2,    // Force the bot to retreat from a target entity. Only works when used on Survivor Bots, and if target is a Tank.
+    CMDBOT_RESET = 3       // Removes the active bot command and lets the AI resume controlling the bot.
 };
 
 
@@ -538,9 +538,9 @@ stock void DeleteInventoryItem(int client)
  * @brief Uses the VScript "CommandABot" function to command a bot to attack, move, retreat or reset previous command
  *
  * @param       entity          The bot or infected to command
- * @param       target          The Special Infected to target (used for types "BOT_CMD_ATTACK" and "BOT_CMD_RETREAT")
+ * @param       target          The Special Infected to target (used for types "CMDBOT_ATTACK" and "CMDBOT_RETREAT")
  * @param       type            Type of command
- * @param       vecPos          Move to this location (Used for type "BOT_CMD_MOVE")
+ * @param       vecPos          Move to this location (Used for type "CMDBOT_MOVE")
  *
  * @return      Returns false when unable to perform, true otherwise.
  */
@@ -550,11 +550,11 @@ stock bool CommandABot(int entity, int target, int type, float pos[3] = NULL_VEC
     char param[PLATFORM_MAX_PATH];
     switch(type)
     {
-        case BOT_CMD_ATTACK, BOT_CMD_RETREAT:
+        case CMDBOT_ATTACK, CMDBOT_RETREAT:
             Format(param, sizeof(param), "CommandABot({cmd = %d, bot = GetPlayerFromUserID(%i), target = GetPlayerFromUserID(%i)})", type, GetClientUserId(entity), GetClientUserId(target));
-        case BOT_CMD_MOVE:
+        case CMDBOT_MOVE:
             Format(param, sizeof(param), "CommandABot({cmd = %d, pos = Vector(%f, %f, %f), bot = GetPlayerFromUserID(%i)})", type, pos[0], pos[1], pos[2], GetClientUserId(entity));
-        case BOT_CMD_RESET:
+        case CMDBOT_RESET:
             Format(param, sizeof(param), "CommandABot({cmd = %d, bot = GetPlayerFromUserID(%i)})", type, GetClientUserId(entity));
 
         default:
