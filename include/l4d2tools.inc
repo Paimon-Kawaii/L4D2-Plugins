@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2023-05-26 08:53:27
+ * @Last Modified time: 2023-05-26 13:15:34
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -537,12 +537,12 @@ stock void DeleteInventoryItem(int client)
 /**
  * @brief Uses the VScript "CommandABot" function to command a bot to attack, move, retreat or reset previous command
  *
- * @param       entity          The bot or infected to command
- * @param       target          The Special Infected to target (used for types "CMDBOT_ATTACK" and "CMDBOT_RETREAT")
- * @param       type            Type of command
- * @param       vecPos          Move to this location (Used for type "CMDBOT_MOVE")
+ * @param entity      The bot or infected to command
+ * @param target      The Special Infected to target (used for types "CMDBOT_ATTACK" and "CMDBOT_RETREAT")
+ * @param type        Type of command
+ * @param vecPos      Move to this location (Used for type "CMDBOT_MOVE")
  *
- * @return      Returns false when unable to perform, true otherwise.
+ * @return  Returns false when unable to perform, true otherwise.
  */
 stock bool CommandABot(int entity, int target, int type, float pos[3] = NULL_VECTOR)
 {
@@ -565,6 +565,28 @@ stock bool CommandABot(int entity, int target, int type, float pos[3] = NULL_VEC
     return true;
 }
 
+/**
+ * @brief Runs a specified VScript code and returns values from it.
+ *
+ * @param code            The VScript code to execute. Maximum length seems to be 1006 characters.
+ * @param result          Buffer to copy return data to. You can use StringToInt or StringToFloat if required.
+ * @param maxlength       Maximum size of the result.
+ *
+ * @return                True on success, false otherwise.
+ */
+stock bool ExecuteVscript(const char[] code, char[] result, int maxlength)
+{
+    int script = CreateEntityByName("logic_script");
+    if(!IsValidEdict(script)) return false;
+    DispatchSpawn(script);
+
+    SetVariantString(code);
+    AcceptEntityInput(script, "RunScriptCode");
+    AcceptEntityInput(script, "Kill");
+    RemoveEdict(script);
+
+    return true
+}
 
 /**
  * Sets custom ability cooldown of client.
@@ -573,6 +595,7 @@ stock bool CommandABot(int entity, int target, int type, float pos[3] = NULL_VEC
  *
  * @param client        Client index.
  * @param time          How long before client can use their custom ability.
+ *
  * @return              True if set, false if no ability found.
  */
 stock bool SetAbilityCooldown(int client, float time)
