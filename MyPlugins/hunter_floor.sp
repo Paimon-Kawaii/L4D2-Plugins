@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-26 16:55:55
+ * @Last Modified time: 2023-05-26 18:57:29
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -105,9 +105,10 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 {
     // 不是ht 或 插件关闭 或 数量超过设定上限 或 达到最大起飞次数，不接管ht
     if (!IsInfected(hunter) || GetInfectedClass(hunter) != ZC_Hunter ||
-        !g_hFloorHunter.BoolValue || g_iPounceTimes[hunter] >= g_hHFMaxPounce.IntValue ||
-        (g_iFloorHunterCount >= g_hHFLimit.IntValue &&
-        !g_bIsFloorPounce[hunter] && g_hHFLimit.BoolValue))
+        !g_hFloorHunter.BoolValue || GetEntityMoveType(hunter) == MOVETYPE_NOCLIP ||
+        g_iPounceTimes[hunter] >= g_hHFMaxPounce.IntValue ||
+        (!g_bIsFloorPounce[hunter] && g_hHFLimit.BoolValue &&
+            g_iFloorHunterCount >= g_hHFLimit.IntValue))
         return Plugin_Continue;
 
     // ht死亡时 或 控制生还时
@@ -208,7 +209,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     if ((buttons & IN_ATTACK) && isgrounded && !g_bIsFlyingFloor[hunter] && canfly)
     {
         // 起飞次数+1
-        g_iPounceTimes[hunter]++;
+        if(IsFakeClient(hunter)) g_iPounceTimes[hunter]++;
         // 达到最大尝试次数，启动重置时钟
         if(g_iPounceTimes[hunter] >= g_hHFMaxPounce.IntValue)
             CreateTimer(g_hHFResetInterval.FloatValue,
