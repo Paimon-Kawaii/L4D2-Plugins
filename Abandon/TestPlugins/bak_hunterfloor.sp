@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-25 11:20:44
+ * @Last Modified time: 2023-05-26 14:49:50
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -13,7 +13,7 @@
 #include <l4d2tools>
 #include <sourcemod>
 
-#define VERSION "2023.05.25"
+#define VERSION "2023.05.26"
 #define MAXSIZE 33
 #define TRACE_TICK 100
 #define POUNCE_TICK 10
@@ -24,10 +24,14 @@ ConVar
     g_hHFLimit,
     g_hHFStopDis,
     g_hHTEnhance,
-    g_hFloorHunter;
+    g_hHFMaxPounce,
+    g_hFloorHunter,
+    g_hHFResetInterval;
 
 int
     g_iFloorHunterCount = 0,
+    // 用于记录ht起飞次数，避免不停尝试
+    g_iPounceTimes[MAXSIZE] = {0, ...},
     // 仅用于记录ht目标，便于查找
     g_iPounceTarget[MAXSIZE] = {0, ...},
     // 用于记录上次射线的tick，用于设置间隔
@@ -42,7 +46,7 @@ bool
     g_bIsFlyingFloor[MAXSIZE] = {false, ...},
     // 用于标记是否允许使用天花板高扑
     g_bIsFloorPounce[MAXSIZE] = {false, ...},
-    // 用于标记ht是否准备从天花板扑人
+    // 用于标记ht是否准备从天花板突袭
     g_bAttemptPounce[MAXSIZE] = {false, ...},
     // 用于标记头顶是否是天花板
     g_bIsFloorAvaliable[MAXSIZE] = {false, ...};
@@ -57,7 +61,7 @@ public Plugin myinfo =
     author = "我是派蒙啊",
     description = "让 AI Hunter 飞天花板",
     version = VERSION,
-    url = "http:// github.com/Paimon-Kawaii/L4D2-Plugins"
+    url = "http://github.com/Paimon-Kawaii/L4D2-Plugins"
 }
 
 public void OnPluginStart()
@@ -65,17 +69,37 @@ public void OnPluginStart()
     g_hGravity = FindConVar("sv_gravity");
     g_hHTEnhance = FindConVar("ai_hunter_angle_mean");
     g_hHFStopDis = CreateConVar("hf_stop_dis", "600", "停止飞天花板距离", FCVAR_NONE, true, 0.0);
+    g_hHFMaxPounce = CreateConVar("hf_max_pounce", "3", "HT起飞的最大尝试次数", FCVAR_NONE, true, 0.0);
     g_hHFHuman = CreateConVar("hf_human", "0", "允许玩家HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
     g_hFloorHunter = CreateConVar("hunter_floor", "1", "允许HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
+    g_hHFResetInterval = CreateConVar("hf_reset_interval", "3.0", "重置起飞次数的时钟间隔", FCVAR_NONE, true, 0.0);
     g_hHFLimit = CreateConVar("hf_limit", "0", "允许HT弹天花板的数量，0=不限制", FCVAR_NONE, true, 0.0, true, 32.0);
+}
+
+// 地图加载时重置信息
+public void OnMapStart()
+{
+    g_iFloorHunterCount = 0;
+    for(int i = 0; i <= MaxClients; i++)
+    {
+        g_iPounceTimes[i] = g_iPounceTarget[i] =
+            g_iLastTraceTick[i] = g_iTargetWhoAimed[i] =
+            g_iLastPounceTick[i] = 0;
+
+        g_bIsFlyingFloor[i] = g_bIsFloorPounce[i] =
+            g_bIsFloorAvaliable[i] = g_bAttemptPounce[i] = false;
+
+        g_fPounceSpeed[i][0] = g_fPounceSpeed[i][1] = 0.0;
+    }
 }
 
 public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3], float ang[3])
 {
-    // 不是ht 或 插件关闭 或 数量超过设定上限，不接管ht
+    // 不是ht 或 插件关闭 或 数量超过设定上限 或 达到最大起飞次数，不接管ht
     if (!IsInfected(hunter) || GetInfectedClass(hunter) != ZC_Hunter ||
-        !g_hFloorHunter.BoolValue || (!g_bIsFloorPounce[hunter] &&
-        g_iFloorHunterCount >= g_hHFLimit.IntValue && g_hHFLimit.BoolValue))
+        !g_hFloorHunter.BoolValue || g_iPounceTimes[hunter] >= g_hHFMaxPounce.IntValue ||
+        (g_iFloorHunterCount >= g_hHFLimit.IntValue &&
+        !g_bIsFloorPounce[hunter] && g_hHFLimit.BoolValue))
         return Plugin_Continue;
 
     // ht死亡时 或 控制生还时
@@ -83,7 +107,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     {
         if (IsPinningASurvivor(hunter))
         {
-            // 修正控制的玩家(扑人可能被旁边的生还吸走XD)
+            // 修正控制的玩家(突袭可能被旁边的生还吸走XD)
             g_iTargetWhoAimed[GetPinningSurvivor(hunter)] = hunter;
             g_iPounceTarget[hunter] = GetPinningSurvivor(hunter);
         }
@@ -93,9 +117,11 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
             g_iTargetWhoAimed[g_iPounceTarget[hunter]] = 0;
             g_iPounceTarget[hunter] = 0;
         }
-        // // 修正天花板ht的数量
+        // 修正天花板ht的数量
         if (g_bIsFloorPounce[hunter])
             g_iFloorHunterCount = g_iFloorHunterCount > 0 ? g_iFloorHunterCount - 1 : 0;
+        // 重置起飞次数
+        g_iPounceTimes[hunter] = 0;
         // 取消ht的天花板标记
         g_bIsFloorPounce[hunter] = false;
         // 取消标记pounce
@@ -113,7 +139,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 
     // 当ht落地时，标记pounce为false
     // P.S.这个东西的目的是为了后面高扑完成也就是落地后不再接管ht
-    //     也就是280行的判断，但是有木有用我就布吉岛了XD
+    //     也就是291行的判断，但是有木有用我就布吉岛了XD
     if (isgrounded) g_bIsFlyingFloor[hunter] = g_bAttemptPounce[hunter] = false;
 
     // 玩家ht是否允许接管操作
@@ -123,11 +149,12 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     float htpos[3];
     GetClientAbsOrigin(hunter, htpos);
 
-    // 在地面上时，检测头顶是否为天花板
-    if(isgrounded && GetGameTickCount() - g_iLastTraceTick[hunter] >= TRACE_TICK)
+    // 在地面上 且 是ai ht 且 到达检测间隔时，检测头顶是否为天花板
+    if(isgrounded && IsFakeClient(hunter) &&
+        GetGameTickCount() - g_iLastTraceTick[hunter] >= TRACE_TICK)
     {
         g_iLastTraceTick[hunter] = GetGameTickCount();
-        Handle trace = TR_TraceRayFilterEx(htpos, {-90.0, 0.0, 0.0}, MASK_ALL, RayType_Infinite, SelfIgnore_TraceFilter);
+        Handle trace = TR_TraceRayFilterEx(htpos, {-90.0, 0.0, 0.0}, MASK_SOLID, RayType_Infinite, SelfIgnore_TraceFilter);
         if(TR_DidHit(trace))
         {
             int flags = TR_GetSurfaceFlags(trace);
@@ -139,8 +166,8 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         }
     }
 
-    // 不是天花板，取消接管
-    if(!g_bIsFloorAvaliable[hunter])
+    // 天花板不可用 且 是ai ht时，取消接管
+    if(!g_bIsFloorAvaliable[hunter] && IsFakeClient(hunter))
         return Plugin_Continue;
 
     // 让ai ht瞄准生还
@@ -148,11 +175,8 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     {
         bool result = TryAimSurvivor(hunter);
         if(!result) return Plugin_Continue;
-    }
 
-    // 修正ai ht的btn指令
-    if (IsFakeClient(hunter))
-    {
+        // 修正ai ht的btn指令
         buttons |= IN_ATTACK;
         buttons &= ~IN_ATTACK2;
     }
@@ -166,6 +190,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     if (!isgrounded && (buttons & IN_ATTACK) && g_bIsFlyingFloor[hunter] &&
         GetGameTickCount() - g_iLastPounceTick[hunter] >= POUNCE_TICK)
     {
+        // 记录突袭时间
         g_iLastPounceTick[hunter] = GetGameTickCount();
         buttons &= ~IN_ATTACK;
     }
@@ -174,12 +199,20 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     // 当btn包含atk指令 且 ht 在地面上
     if ((buttons & IN_ATTACK) && isgrounded && !g_bIsFlyingFloor[hunter] && canfly)
     {
+        // 起飞次数+1
+        g_iPounceTimes[hunter]++;
+        PrintToChatAll("%d", g_iPounceTimes[hunter]);
+        // 达到最大尝试次数，启动重置时钟
+        if(g_iPounceTimes[hunter] >= g_hHFMaxPounce.IntValue)
+            CreateTimer(g_hHFResetInterval.FloatValue,
+                Timer_ResetPounceTimes, hunter, TIMER_FLAG_NO_MAPCHANGE);
+
         // 给予ht 6666的垂直速度使ht可以飞到天花板上XD
         velocity[0] = 0.0;
         velocity[1] = 0.0;
         velocity[2] = 6666.0;
 
-        // 标记为未准备扑人
+        // 标记为未准备突袭
         g_bAttemptPounce[hunter] = false;
         // 命令ht蹲下
         SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
@@ -213,7 +246,7 @@ bool SelfIgnore_TraceFilter(int entity, int mask, int self)
     return true;
 }
 
-// 瞄准生还飞扑
+// 瞄准生还并突袭
 bool TryAimSurvivor(int hunter)
 {
     int sur = -1;
@@ -240,7 +273,7 @@ bool TryAimSurvivor(int hunter)
     g_iPounceTarget[hunter] = sur;
     g_iTargetWhoAimed[sur] = hunter;
     // 命令ai瞄准选择的目标
-    CommandABot(hunter, sur, BOT_CMD_ATTACK);
+    CommandABot(hunter, sur, CMDBOT_ATTACK);
 
     // 获取ht和生还位置
     GetClientAbsOrigin(sur, surpos);
@@ -262,7 +295,7 @@ bool TryAimSurvivor(int hunter)
     // 用函数获得距离
     dis = GetVectorDistance(htpos, surpos, false);
 
-    // 距离小于预定值 且 未标记为扑人 且 不是在天花板上时，取消接管ht
+    // 距离小于预定值 且 不是在天花板上 且 未标记为准备突袭时，取消接管ht
     if (dis <= g_hHFStopDis.IntValue &&
         !g_bIsFlyingFloor[hunter] && !g_bAttemptPounce[hunter])
         return false;
@@ -276,7 +309,7 @@ bool TryAimSurvivor(int hunter)
 
     // 获取ht速度
     GetEntPropVector(hunter, Prop_Data, "m_vecVelocity", velocity);
-    // 未扑人时记录速度 并 修正天花板z轴速度为0
+    // 在天花板上时记录速度 并 修正天花板z轴速度为0
     if (g_bIsFlyingFloor[hunter])
     {
         velocity[2] = 0.0;
@@ -289,7 +322,7 @@ bool TryAimSurvivor(int hunter)
     speed = SquareRoot(Pow(velocity[0], 2.0) + Pow(velocity[1], 2.0));
     // 计算delta time
     delta = dis / speed - time;
-    // 当dt小于0.01，近似认为ht接近抛物线顶点，准备扑人
+    // 当dt小于0.01，近似认为ht接近抛物线顶点，准备突袭
     if (delta <= 0.01 || g_bAttemptPounce[hunter])
     {
         float htvel[3], survel[3];
@@ -325,7 +358,7 @@ bool TryAimSurvivor(int hunter)
 
         // 修正ht速度
         TeleportEntity(hunter, NULL_VECTOR, NULL_VECTOR, htvel);
-        // 标记为准备扑人
+        // 标记为准备突袭
         g_bAttemptPounce[hunter] = true;
         // 标记为离开天花板
         g_bIsFlyingFloor[hunter] = false;
@@ -337,4 +370,12 @@ bool TryAimSurvivor(int hunter)
     }
 
     return true;
+}
+
+// 重置起飞次数
+Action Timer_ResetPounceTimes(Handle timer, int hunter)
+{
+    g_iPounceTimes[hunter] = 0;
+
+    return Plugin_Stop;
 }
