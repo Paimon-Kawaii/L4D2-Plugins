@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-25 22:56:21
+ * @Last Modified time: 2023-05-26 08:50:57
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -238,7 +238,7 @@ bool TryAimSurvivor(int hunter)
     g_iPounceTarget[hunter] = sur;
     g_iTargetWhoAimed[sur] = hunter;
     // 命令ai瞄准选择的目标
-    CommandABot(hunter, sur, BOT_CMD_ATTACK);
+    CommandABot(hunter, sur, CMDBOT_ATTACK);
 
     // 获取ht和生还位置
     GetClientAbsOrigin(sur, surpos);
