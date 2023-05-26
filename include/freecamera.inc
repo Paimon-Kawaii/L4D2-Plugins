@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-22 19:08:40
- * @Last Modified time: 2023-04-26 16:39:06
+ * @Last Modified time: 2023-05-26 16:59:45
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -93,4 +93,6 @@ public void __pl_freecamera_SetNTVOptional()
 {
     MarkNativeAsOptional("FC_GetClientCamera");
     // MarkNativeAsOptional("FC_SetClientCamera");
+    MarkNativeAsOptional("FC_IsClientCameraAvailable");
+    MarkNativeAsOptional("FC_IsClientCameraActive");
 }
