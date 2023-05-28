@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-21 15:57:19
- * @Last Modified time: 2023-05-26 18:30:53
+ * @Last Modified time: 2023-05-28 17:35:20
  * @Github:             https://github.com/Paimon-Kawaii
  */
 #pragma semicolon 1
@@ -103,10 +103,10 @@ void InitCVars()
 //Convar值改变
 void CVarEvent_CVChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-    if(convar == FindConVar("l4d2_addons_eclipse") )
+    if(convar == FindConVar("l4d2_addons_eclipse"))
     {
-        if(convar.IntValue != 0)
-            convar.SetInt(0, true);
+        if(convar.IntValue != 1)
+            convar.SetInt(1, true);
     }
     else if(/*convar == FindConVar("l4d2_addons_eclipse") || */convar == FindConVar("sv_cheats"))
     {
