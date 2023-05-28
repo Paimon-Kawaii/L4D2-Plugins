@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-28 17:34:44
+ * @Last Modified time: 2023-05-28 17:37:59
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -244,7 +244,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         TeleportEntity(hunter, NULL_VECTOR, ang, NULL_VECTOR);
 
     // 命令ht蹲下
-    buttons |= IN_DUCK;
+    if(IsFakeClient(hunter)) buttons |= IN_DUCK;
     SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
     // 标记为在飞天花板
     g_bIsFlyingFloor[hunter] = true;
