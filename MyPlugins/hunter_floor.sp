@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-28 19:59:10
+ * @Last Modified time: 2023-05-28 21:53:37
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -68,7 +68,9 @@ public void OnPluginStart()
 {
     g_hGravity = FindConVar("sv_gravity");
     g_hHTEnhance = FindConVar("ai_hunter_angle_mean");
-    g_hHTEnhance.Flags &= ~FCVAR_NOTIFY;//取消插件的通知属性
+    //取消插件的通知属性
+    if(g_hHTEnhance != INVALID_HANDLE)
+        g_hHTEnhance.Flags &= ~FCVAR_NOTIFY;
 
     g_hHFStopDis = CreateConVar("hf_stop_dis", "600", "停止飞天花板距离", FCVAR_NONE, true, 0.0);
     g_hHFMaxPounce = CreateConVar("hf_max_pounce", "3", "HT起飞的最大尝试次数", FCVAR_NONE, true, 0.0);
@@ -146,8 +148,8 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     }
 
     // 命令ht蹲下
-    if(IsFakeClient(hunter) && g_bIsFlyingFloor[hunter])
-        buttons |= IN_DUCK;
+    // if(IsFakeClient(hunter) && g_bIsFlyingFloor[hunter])
+    //     buttons |= IN_DUCK;
 
     // 是否在地面上
     bool isgrounded = GetEntPropEnt(hunter, Prop_Send, "m_hGroundEntity") != -1;
@@ -214,7 +216,6 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         // 记录突袭时间
         g_iLastPounceTick[hunter] = GetGameTickCount();
         buttons &= ~IN_ATTACK;
-        SetEntPropFloat(hunter, Prop_Send, "m_flNextAttack", 0.0);
     }
 
     float velocity[3];
@@ -233,8 +234,6 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         velocity[1] = 0.0;
         velocity[2] = 6666.0;
 
-        // 设置ht蹲下
-        SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
         // 标记为未准备突袭
         g_bAttemptPounce[hunter] = false;
         // 发射ht（不是
@@ -249,6 +248,9 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     if (IsFakeClient(hunter))
         TeleportEntity(hunter, NULL_VECTOR, ang, NULL_VECTOR);
 
+    // 命令ht蹲下
+    if(IsFakeClient(hunter)) buttons |= IN_DUCK;
+    SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
     // 标记为在飞天花板
     g_bIsFlyingFloor[hunter] = true;
     // 修正3方增强插件(音理提供)
