@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-26 18:57:29
+ * @Last Modified time: 2023-05-28 17:34:44
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -13,7 +13,7 @@
 #include <l4d2tools>
 #include <sourcemod>
 
-#define VERSION "2023.05.26"
+#define VERSION "2023.05.28"
 #define MAXSIZE 33
 #define TRACE_TICK 100
 #define POUNCE_TICK 10
@@ -68,6 +68,8 @@ public void OnPluginStart()
 {
     g_hGravity = FindConVar("sv_gravity");
     g_hHTEnhance = FindConVar("ai_hunter_angle_mean");
+    g_hHTEnhance.Flags &= ~FCVAR_NOTIFY;//取消插件的通知属性
+
     g_hHFStopDis = CreateConVar("hf_stop_dis", "600", "停止飞天花板距离", FCVAR_NONE, true, 0.0);
     g_hHFMaxPounce = CreateConVar("hf_max_pounce", "3", "HT起飞的最大尝试次数", FCVAR_NONE, true, 0.0);
     g_hHFHuman = CreateConVar("hf_human", "0", "允许玩家HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
@@ -149,7 +151,13 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     // 当ht落地时，标记pounce为false
     // P.S.这个东西的目的是为了后面高扑完成也就是落地后不再接管ht
     //     也就是291行的判断，但是有木有用我就布吉岛了XD
-    if (isgrounded) g_bIsFlyingFloor[hunter] = g_bAttemptPounce[hunter] = false;
+    if (isgrounded)
+    {
+        g_bIsFlyingFloor[hunter] = g_bAttemptPounce[hunter] = false;
+        // 修正3方增强插件(音理提供)
+        if(g_hHTEnhance != INVALID_HANDLE)
+            g_hHTEnhance.SetInt(30);
+    }
 
     // 玩家ht是否允许接管操作
     if (!IsFakeClient(hunter) && !g_hHFHuman.BoolValue)
@@ -202,6 +210,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         // 记录突袭时间
         g_iLastPounceTick[hunter] = GetGameTickCount();
         buttons &= ~IN_ATTACK;
+        SetEntPropFloat(hunter, Prop_Send, "m_flNextAttack", 0.0);
     }
 
     float velocity[3];
@@ -222,8 +231,6 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 
         // 标记为未准备突袭
         g_bAttemptPounce[hunter] = false;
-        // 命令ht蹲下
-        SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
         // 发射ht（不是
         TeleportEntity(hunter, NULL_VECTOR, NULL_VECTOR, velocity);
     }
@@ -236,6 +243,9 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     if (IsFakeClient(hunter))
         TeleportEntity(hunter, NULL_VECTOR, ang, NULL_VECTOR);
 
+    // 命令ht蹲下
+    buttons |= IN_DUCK;
+    SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
     // 标记为在飞天花板
     g_bIsFlyingFloor[hunter] = true;
     // 修正3方增强插件(音理提供)
@@ -375,9 +385,6 @@ bool TryAimSurvivor(int hunter)
         g_bAttemptPounce[hunter] = true;
         // 标记为离开天花板
         g_bIsFlyingFloor[hunter] = false;
-        // 修正3方增强插件(音理提供)
-        if(g_hHTEnhance != INVALID_HANDLE)
-            g_hHTEnhance.SetInt(30);
 
         return false;
     }
