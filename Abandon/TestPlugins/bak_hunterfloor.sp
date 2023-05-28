@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-28 21:54:55
+ * @Last Modified time: 2023-05-28 22:59:17
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -64,14 +64,9 @@ public Plugin myinfo =
     url = "http://github.com/Paimon-Kawaii/L4D2-Plugins"
 }
 
+// 注册ConVar
 public void OnPluginStart()
 {
-    g_hGravity = FindConVar("sv_gravity");
-    g_hHTEnhance = FindConVar("ai_hunter_angle_mean");
-    //取消插件的通知属性
-    if(g_hHTEnhance != INVALID_HANDLE)
-        g_hHTEnhance.Flags &= ~FCVAR_NOTIFY;
-
     g_hHFStopDis = CreateConVar("hf_stop_dis", "600", "停止飞天花板距离", FCVAR_NONE, true, 0.0);
     g_hHFMaxPounce = CreateConVar("hf_max_pounce", "3", "HT起飞的最大尝试次数", FCVAR_NONE, true, 0.0);
     g_hHFHuman = CreateConVar("hf_human", "0", "允许玩家HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
@@ -80,6 +75,17 @@ public void OnPluginStart()
     g_hHFLimit = CreateConVar("hf_limit", "0", "允许HT弹天花板的数量，0=不限制", FCVAR_NONE, true, 0.0, true, 32.0);
 }
 
+// 获取ConVar
+public void OnAllPluginsLoaded()
+{
+    g_hGravity = FindConVar("sv_gravity");
+    g_hHTEnhance = FindConVar("ai_hunter_angle_mean");
+    //取消插件的通知属性
+    if(g_hHTEnhance != INVALID_HANDLE)
+        g_hHTEnhance.Flags &= ~FCVAR_NOTIFY;
+}
+
+// 注册依赖
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
     RegPluginLibrary("hunterfloor");
@@ -105,6 +111,7 @@ public void OnMapStart()
     }
 }
 
+// 接管ht
 public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3], float ang[3])
 {
     // 不是ht 或 插件关闭 或 数量超过设定上限 或 达到最大起飞次数，不接管ht
@@ -146,10 +153,6 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 
         return Plugin_Continue;
     }
-
-    // 命令ht蹲下
-    // if(IsFakeClient(hunter) && g_bIsFlyingFloor[hunter])
-    //     buttons |= IN_DUCK;
 
     // 是否在地面上
     bool isgrounded = GetEntPropEnt(hunter, Prop_Send, "m_hGroundEntity") != -1;
@@ -260,6 +263,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     return Plugin_Changed;
 }
 
+// 注册Native
 int Native_IsFlyingFloor(Handle plugin, int numParams)
 {
     return g_bIsFlyingFloor[GetNativeCell(1)];
