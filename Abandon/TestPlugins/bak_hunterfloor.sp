@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-28 17:38:47
+ * @Last Modified time: 2023-05-28 19:59:14
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -145,6 +145,10 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         return Plugin_Continue;
     }
 
+    // 命令ht蹲下
+    if(IsFakeClient(hunter) && g_bIsFlyingFloor[hunter])
+        buttons |= IN_DUCK;
+
     // 是否在地面上
     bool isgrounded = GetEntPropEnt(hunter, Prop_Send, "m_hGroundEntity") != -1;
 
@@ -229,6 +233,8 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         velocity[1] = 0.0;
         velocity[2] = 6666.0;
 
+        // 设置ht蹲下
+        SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
         // 标记为未准备突袭
         g_bAttemptPounce[hunter] = false;
         // 发射ht（不是
@@ -243,9 +249,6 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     if (IsFakeClient(hunter))
         TeleportEntity(hunter, NULL_VECTOR, ang, NULL_VECTOR);
 
-    // 命令ht蹲下
-    if(IsFakeClient(hunter)) buttons |= IN_DUCK;
-    SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
     // 标记为在飞天花板
     g_bIsFlyingFloor[hunter] = true;
     // 修正3方增强插件(音理提供)
