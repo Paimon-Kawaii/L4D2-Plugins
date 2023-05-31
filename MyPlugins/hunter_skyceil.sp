@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-31 19:51:55
+ * @Last Modified time: 2023-05-31 19:58:58
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -88,7 +88,7 @@ public void OnAllPluginsLoaded()
 // 注册依赖
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-    RegPluginLibrary("hunterskyceil");
+    RegPluginLibrary("htskyceil");
     CreateNative("HSC_IsFlyingCeil", Native_IsFlyingCeil);
 
     return APLRes_Success;
