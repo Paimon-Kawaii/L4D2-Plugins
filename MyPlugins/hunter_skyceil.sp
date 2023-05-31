@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-31 19:31:40
+ * @Last Modified time: 2023-05-31 19:51:55
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -25,8 +25,8 @@ ConVar
     g_hHTEnhance,
     g_hHSCEnable,
     g_hHSCStopDis,
-    g_hHSCMaxPounce,
-    g_hHSCResetInterval;
+    g_hHSCMaxLeap,
+    g_hHSCResetInv;
 
 int
     g_iCeilHunterCount = 0,
@@ -68,10 +68,10 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
     g_hHSCStopDis = CreateConVar("hsc_stop_dis", "600", "停止飞天花板距离", FCVAR_NONE, true, 0.0);
+    g_hHSCMaxLeap = CreateConVar("hsc_max_leap", "3", "HT起飞的最大尝试次数", FCVAR_NONE, true, 0.0);
     g_hHSCEnable = CreateConVar("hsc_enable", "1", "允许HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
-    g_hHSCMaxPounce = CreateConVar("hsc_max_pounce", "3", "HT起飞的最大尝试次数", FCVAR_NONE, true, 0.0);
     g_hHSCHuman = CreateConVar("hsc_human", "0", "允许玩家HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
-    g_hHSCResetInterval = CreateConVar("hsc_reset_interval", "4.0", "重置起飞次数的时钟间隔", FCVAR_NONE, true, 0.0);
+    g_hHSCResetInv = CreateConVar("hsc_reset_interval", "4.0", "重置起飞次数的时钟间隔", FCVAR_NONE, true, 0.0);
     g_hHSCLimit = CreateConVar("hsc_limit", "0", "允许HT弹天花板的数量，0=不限制", FCVAR_NONE, true, 0.0, true, 32.0);
 }
 
@@ -117,7 +117,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     // 不是ht 或 插件关闭 或 数量超过设定上限 或 达到最大起飞次数，不接管ht
     if (!IsInfected(hunter) || GetInfectedClass(hunter) != ZC_Hunter ||
         !g_hHSCEnable.BoolValue || GetEntityMoveType(hunter) == MOVETYPE_NOCLIP ||
-        g_iPounceTimes[hunter] >= g_hHSCMaxPounce.IntValue ||
+        g_iPounceTimes[hunter] >= g_hHSCMaxLeap.IntValue ||
         (!g_bIsHighPounce[hunter] && g_hHSCLimit.BoolValue &&
             g_iCeilHunterCount >= g_hHSCLimit.IntValue))
         return Plugin_Continue;
@@ -229,8 +229,8 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         // 起飞次数+1
         if(IsFakeClient(hunter)) g_iPounceTimes[hunter]++;
         // 达到最大尝试次数，启动重置时钟
-        if(g_iPounceTimes[hunter] >= g_hHSCMaxPounce.IntValue)
-            CreateTimer(g_hHSCResetInterval.FloatValue,
+        if(g_iPounceTimes[hunter] >= g_hHSCMaxLeap.IntValue)
+            CreateTimer(g_hHSCResetInv.FloatValue,
                 Timer_ResetPounceTimes, hunter, TIMER_FLAG_NO_MAPCHANGE);
 
         // 给予ht 6666的垂直速度使ht可以飞到天花板上XD
