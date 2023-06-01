@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-21 15:57:19
- * @Last Modified time: 2023-05-28 17:35:20
+ * @Last Modified time: 2023-06-01 16:28:46
  * @Github:             https://github.com/Paimon-Kawaii
  */
 #pragma semicolon 1
@@ -40,12 +40,13 @@ public void OnPluginStart()
 
 Action Noclip_Callback(int client, const char[] command, int argc)
 {
+    if(FindConVar("sv_cheats").BoolValue) return Plugin_Continue;
     MoveType movetype = GetEntityMoveType(client);
     if(movetype != MOVETYPE_NOCLIP)
         SetEntityMoveType(client, MOVETYPE_NOCLIP);
     else SetEntityMoveType(client, MOVETYPE_WALK);
 
-    return Plugin_Continue;
+    return Plugin_Handled;
 }
 
 //创建ConVar
