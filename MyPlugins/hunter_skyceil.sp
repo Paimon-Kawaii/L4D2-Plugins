@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-06-01 09:44:53
+ * @Last Modified time: 2023-06-01 17:46:09
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -185,12 +185,14 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         if (TR_DidHit(trace))
         {
             int flags = TR_GetSurfaceFlags(trace);
+            delete trace;
             // 检测是否为天花板 并 标记
             g_bIsCeilAvaliable[hunter] = false;
             if (!(flags & SURF_SKY) && !(flags & SURF_SKY2D))
                 return Plugin_Continue;
             g_bIsCeilAvaliable[hunter] = true;
         }
+        delete trace;
     }
 
     // 天花板不可用 且 是ai ht时，取消接管
