@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-04-29 12:17:15
+ * @Last Modified time: 2023-06-01 17:06:20
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -289,7 +289,8 @@ public void fnemotes_OnEmote_Pre(int client)
             EnableFreeCamera(client);
             g_bIsDancing[client] = true;
             if (g_bMenuHint[client])
-                PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
+                PrintToChat(client, "%T", "MENU_HINT", client);
+                // PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
         }
 }
 
