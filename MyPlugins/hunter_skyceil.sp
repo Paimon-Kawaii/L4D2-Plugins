@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-06-01 09:16:29
+ * @Last Modified time: 2023-06-01 09:44:53
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -81,7 +81,7 @@ public void OnAllPluginsLoaded()
     g_hGravity = FindConVar("sv_gravity");
     g_hHTEnhance = FindConVar("ai_hunter_angle_mean");
     //取消插件的通知属性
-    if(g_hHTEnhance != INVALID_HANDLE)
+    if (g_hHTEnhance != INVALID_HANDLE)
         g_hHTEnhance.Flags &= ~FCVAR_NOTIFY;
 }
 
@@ -98,7 +98,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnMapStart()
 {
     g_iCeilHunterCount = 0;
-    for(int i = 0; i <= MaxClients; i++)
+    for (int i = 0; i <= MaxClients; i++)
     {
         g_iLeapTimes[i] = g_iPounceTarget[i] =
             g_iLastRayTick[i] = g_iTargetWhoAimed[i] =
@@ -164,7 +164,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     {
         g_bIsFlyingCeil[hunter] = g_bAttemptPounce[hunter] = false;
         // 修正3方增强插件(音理提供)
-        if(g_hHTEnhance != INVALID_HANDLE)
+        if (g_hHTEnhance != INVALID_HANDLE)
             g_hHTEnhance.SetInt(30);
     }
 
@@ -176,32 +176,32 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     GetClientAbsOrigin(hunter, htpos);
 
     // 在地面上 且 是ai ht 且 到达检测间隔时，检测头顶是否为天花板
-    if(isgrounded && IsFakeClient(hunter) &&
+    if (isgrounded && IsFakeClient(hunter) &&
         GetGameTickCount() - g_iLastRayTick[hunter] >= TRACE_TICK)
     {
         g_iLastRayTick[hunter] = GetGameTickCount();
         Handle trace = TR_TraceRayFilterEx(htpos, {-90.0, 0.0, 0.0},
             MASK_SOLID, RayType_Infinite, SelfIgnore_TraceFilter);
-        if(TR_DidHit(trace))
+        if (TR_DidHit(trace))
         {
             int flags = TR_GetSurfaceFlags(trace);
             // 检测是否为天花板 并 标记
             g_bIsCeilAvaliable[hunter] = false;
-            if(!(flags & SURF_SKY) && !(flags & SURF_SKY2D))
+            if (!(flags & SURF_SKY) && !(flags & SURF_SKY2D))
                 return Plugin_Continue;
             g_bIsCeilAvaliable[hunter] = true;
         }
     }
 
     // 天花板不可用 且 是ai ht时，取消接管
-    if(!g_bIsCeilAvaliable[hunter] && IsFakeClient(hunter))
+    if (!g_bIsCeilAvaliable[hunter] && IsFakeClient(hunter))
         return Plugin_Continue;
 
     // 让ai ht瞄准生还
-    if(IsFakeClient(hunter))
+    if (IsFakeClient(hunter))
     {
         bool result = TryAimSurvivor(hunter);
-        if(!result) return Plugin_Continue;
+        if (!result) return Plugin_Continue;
 
         // 修正ai ht的btn指令
         buttons |= IN_ATTACK;
@@ -227,9 +227,9 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     if ((buttons & IN_ATTACK) && isgrounded && !g_bIsFlyingCeil[hunter] && canfly)
     {
         // 起飞次数+1
-        if(IsFakeClient(hunter)) g_iLeapTimes[hunter]++;
+        if (IsFakeClient(hunter)) g_iLeapTimes[hunter]++;
         // 达到最大尝试次数，启动重置时钟
-        if(g_iLeapTimes[hunter] >= g_hHSCMaxLeap.IntValue)
+        if (g_iLeapTimes[hunter] >= g_hHSCMaxLeap.IntValue)
             CreateTimer(g_hHSCResetInv.FloatValue,
                 Timer_ResetLeapTimes, hunter, TIMER_FLAG_NO_MAPCHANGE);
 
@@ -253,12 +253,12 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         TeleportEntity(hunter, NULL_VECTOR, ang, NULL_VECTOR);
 
     // 命令ht蹲下
-    if(IsFakeClient(hunter)) buttons |= IN_DUCK;
+    if (IsFakeClient(hunter)) buttons |= IN_DUCK;
     SetEntProp(hunter, Prop_Send, "m_bDucked", 1);
     // 标记为在飞天花板
     g_bIsFlyingCeil[hunter] = true;
     // 修正3方增强插件(音理提供)
-    if(g_hHTEnhance != INVALID_HANDLE)
+    if (g_hHTEnhance != INVALID_HANDLE)
         g_hHTEnhance.SetInt(0);
 
     return Plugin_Changed;
@@ -273,7 +273,7 @@ int Native_IsFlyingCeil(Handle plugin, int numParams)
 // 忽略自身碰撞
 bool SelfIgnore_TraceFilter(int entity, int mask, int self)
 {
-    if(entity == self || IsValidClient(entity))
+    if (entity == self || IsValidClient(entity))
         return false;
 
     return true;
@@ -334,7 +334,7 @@ bool TryAimSurvivor(int hunter)
         return false;
 
     // 修正天花板ht数量
-    if(!g_bIsHighPounce[hunter])
+    if (!g_bIsHighPounce[hunter])
     {
         g_bIsHighPounce[hunter] = true;
         g_iCeilHunterCount++;
