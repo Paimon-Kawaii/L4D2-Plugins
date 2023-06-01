@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-05-31 19:58:58
+ * @Last Modified time: 2023-06-01 09:16:02
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -31,7 +31,7 @@ ConVar
 int
     g_iCeilHunterCount = 0,
     // 用于记录ht起飞次数，避免不停尝试
-    g_iPounceTimes[MAXSIZE] = {0, ...},
+    g_iLeapTimes[MAXSIZE] = {0, ...},
     // 用于记录上次射线的tick，用于设置间隔
     g_iLastRayTick[MAXSIZE] = {0, ...},
     // 仅用于记录ht目标，便于查找
@@ -100,7 +100,7 @@ public void OnMapStart()
     g_iCeilHunterCount = 0;
     for(int i = 0; i <= MaxClients; i++)
     {
-        g_iPounceTimes[i] = g_iPounceTarget[i] =
+        g_iLeapTimes[i] = g_iPounceTarget[i] =
             g_iLastRayTick[i] = g_iTargetWhoAimed[i] =
             g_iLastPounceTick[i] = 0;
 
@@ -117,7 +117,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     // 不是ht 或 插件关闭 或 数量超过设定上限 或 达到最大起飞次数，不接管ht
     if (!IsInfected(hunter) || GetInfectedClass(hunter) != ZC_Hunter ||
         !g_hHSCEnable.BoolValue || GetEntityMoveType(hunter) == MOVETYPE_NOCLIP ||
-        g_iPounceTimes[hunter] >= g_hHSCMaxLeap.IntValue ||
+        g_iLeapTimes[hunter] >= g_hHSCMaxLeap.IntValue ||
         (!g_bIsHighPounce[hunter] && g_hHSCLimit.BoolValue &&
             g_iCeilHunterCount >= g_hHSCLimit.IntValue))
         return Plugin_Continue;
@@ -141,7 +141,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         if (g_bIsHighPounce[hunter])
             g_iCeilHunterCount = g_iCeilHunterCount > 0 ? g_iCeilHunterCount - 1 : 0;
         // 重置起飞次数
-        g_iPounceTimes[hunter] = 0;
+        g_iLeapTimes[hunter] = 0;
         // 取消ht的天花板标记
         g_bIsHighPounce[hunter] = false;
         // 取消标记pounce
@@ -227,11 +227,11 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     if ((buttons & IN_ATTACK) && isgrounded && !g_bIsFlyingCeil[hunter] && canfly)
     {
         // 起飞次数+1
-        if(IsFakeClient(hunter)) g_iPounceTimes[hunter]++;
+        if(IsFakeClient(hunter)) g_iLeapTimes[hunter]++;
         // 达到最大尝试次数，启动重置时钟
-        if(g_iPounceTimes[hunter] >= g_hHSCMaxLeap.IntValue)
+        if(g_iLeapTimes[hunter] >= g_hHSCMaxLeap.IntValue)
             CreateTimer(g_hHSCResetInv.FloatValue,
-                Timer_ResetPounceTimes, hunter, TIMER_FLAG_NO_MAPCHANGE);
+                Timer_ResetLeapTimes, hunter, TIMER_FLAG_NO_MAPCHANGE);
 
         // 给予ht 6666的垂直速度使ht可以飞到天花板上XD
         velocity[0] = 0.0;
@@ -403,9 +403,9 @@ bool TryAimSurvivor(int hunter)
 }
 
 // 重置起飞次数
-Action Timer_ResetPounceTimes(Handle timer, int hunter)
+Action Timer_ResetLeapTimes(Handle timer, int hunter)
 {
-    g_iPounceTimes[hunter] = 0;
+    g_iLeapTimes[hunter] = 0;
 
     return Plugin_Stop;
 }
