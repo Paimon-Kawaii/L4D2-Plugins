@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-06-01 17:46:09
+ * @Last Modified time: 2023-06-01 23:04:35
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -47,7 +47,7 @@ bool
     // 用于标记是否允许使用天花板高扑
     g_bIsHighPounce[MAXSIZE] = {false, ...},
     // 用于标记ht是否准备从天花板突袭
-    g_bAttemptPounce[MAXSIZE] = {false, ...},
+    g_bIsAttemptPounce[MAXSIZE] = {false, ...},
     // 用于标记头顶是否是天花板
     g_bIsCeilAvaliable[MAXSIZE] = {false, ...};
 
@@ -105,7 +105,7 @@ public void OnMapStart()
             g_iLastPounceTick[i] = 0;
 
         g_bIsFlyingCeil[i] = g_bIsHighPounce[i] =
-            g_bIsCeilAvaliable[i] = g_bAttemptPounce[i] = false;
+            g_bIsCeilAvaliable[i] = g_bIsAttemptPounce[i] = false;
 
         g_fPounceSpeed[i][0] = g_fPounceSpeed[i][1] = 0.0;
     }
@@ -145,7 +145,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         // 取消ht的天花板标记
         g_bIsHighPounce[hunter] = false;
         // 取消标记pounce
-        g_bAttemptPounce[hunter] = false;
+        g_bIsAttemptPounce[hunter] = false;
         // 标记天花板为可不用
         g_bIsCeilAvaliable[hunter] = false;
         // 修正技能tick
@@ -162,7 +162,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     //     也就是291行的判断，但是有木有用我就布吉岛了XD
     if (isgrounded)
     {
-        g_bIsFlyingCeil[hunter] = g_bAttemptPounce[hunter] = false;
+        g_bIsFlyingCeil[hunter] = g_bIsAttemptPounce[hunter] = false;
         // 修正3方增强插件(音理提供)
         if (g_hHTEnhance != INVALID_HANDLE)
             g_hHTEnhance.SetInt(30);
@@ -241,7 +241,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         velocity[2] = 6666.0;
 
         // 标记为未准备突袭
-        g_bAttemptPounce[hunter] = false;
+        g_bIsAttemptPounce[hunter] = false;
         // 发射ht（不是
         TeleportEntity(hunter, NULL_VECTOR, NULL_VECTOR, velocity);
     }
@@ -332,7 +332,7 @@ bool TryAimSurvivor(int hunter)
 
     // 距离小于预定值 且 不是在天花板上 且 未标记为准备突袭时，取消接管ht
     if (dis <= g_hHSCStopDis.IntValue &&
-        !g_bIsFlyingCeil[hunter] && !g_bAttemptPounce[hunter])
+        !g_bIsFlyingCeil[hunter] && !g_bIsAttemptPounce[hunter])
         return false;
 
     // 修正天花板ht数量
@@ -358,7 +358,7 @@ bool TryAimSurvivor(int hunter)
     // 计算delta time
     delta = dis / speed - time;
     // 当dt小于0.01，近似认为ht接近抛物线顶点，准备突袭
-    if (delta <= 0.01 || g_bAttemptPounce[hunter])
+    if (delta <= 0.01 || g_bIsAttemptPounce[hunter])
     {
         float htvel[3], survel[3];
 
@@ -394,7 +394,7 @@ bool TryAimSurvivor(int hunter)
         // 修正ht速度
         TeleportEntity(hunter, NULL_VECTOR, NULL_VECTOR, htvel);
         // 标记为准备突袭
-        g_bAttemptPounce[hunter] = true;
+        g_bIsAttemptPounce[hunter] = true;
         // 标记为离开天花板
         g_bIsFlyingCeil[hunter] = false;
 
