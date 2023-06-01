@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-06-01 09:16:02
+ * @Last Modified time: 2023-06-01 09:16:29
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -13,7 +13,7 @@
 #include <l4d2tools>
 #include <sourcemod>
 
-#define VERSION "2023.05.31"
+#define VERSION "2023.06.01"
 #define MAXSIZE 33
 #define TRACE_TICK 100
 #define POUNCE_TICK 10
