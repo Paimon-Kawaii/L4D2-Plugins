@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2023-05-26 15:45:54
+ * @Last Modified time: 2023-06-05 21:08:11
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -71,7 +71,7 @@ enum
  */
 stock bool IsValidClient(int client)
 {
-    return (client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client));
+    return (0 < client <= MaxClients && IsClientConnected(client) && IsClientInGame(client));
 }
 
 /**
@@ -82,7 +82,7 @@ stock bool IsValidClient(int client)
  */
 stock bool IsSurvivor(int client)
 {
-    return (IsValidClient(client) && GetClientTeam(client) == view_as<int>(Team_Survivor));
+    return (IsValidClient(client) && GetClientTeam(client) == Team_Survivor);
 }
 
 /**
@@ -93,7 +93,7 @@ stock bool IsSurvivor(int client)
  */
 stock bool IsInfected(int client)
 {
-    return (IsValidClient(client) && GetClientTeam(client) == view_as<int>(Team_Infected));
+    return (IsValidClient(client) && GetClientTeam(client) == Team_Infected);
 }
 
 /**
@@ -104,7 +104,7 @@ stock bool IsInfected(int client)
  */
 stock bool IsSpectator(int client)
 {
-    return (IsValidClient(client) && GetClientTeam(client) == view_as<int>(Team_Spectator));
+    return (IsValidClient(client) && GetClientTeam(client) == Team_Spectator);
 }
 
 /**
