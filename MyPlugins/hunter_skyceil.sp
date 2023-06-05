@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-06-01 23:04:35
+ * @Last Modified time: 2023-06-05 21:11:10
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -73,6 +73,8 @@ public void OnPluginStart()
     g_hHSCHuman = CreateConVar("hsc_human", "0", "允许玩家HT弹天花板", FCVAR_NONE, true, 0.0, true, 1.0);
     g_hHSCResetInv = CreateConVar("hsc_reset_interval", "4.0", "重置起飞次数的时钟间隔", FCVAR_NONE, true, 0.0);
     g_hHSCLimit = CreateConVar("hsc_limit", "0", "允许HT弹天花板的数量，0=不限制", FCVAR_NONE, true, 0.0, true, 32.0);
+
+    AutoExecConfig(true, "hunter_skyceil");
 }
 
 // 获取ConVar
