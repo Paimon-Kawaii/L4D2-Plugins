@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-05 18:00:29
- * @Last Modified time: 2023-06-05 21:22:55
+ * @Last Modified time: 2023-06-05 21:23:51
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -42,7 +42,7 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
     g_hABHEnable = CreateConVar("l4d_abh_enable", "1", "ABH 开关", FCVAR_NONE, true, 0.0, true, 1.0);
-    g_hABHLimit = CreateConVar("l4d_abh_maxspeed", "2000", "ABH 开关", FCVAR_NONE, true, 0.0, true, 9999.0);
+    g_hABHLimit = CreateConVar("l4d_abh_maxspeed", "2000", "ABH 最大空速", FCVAR_NONE, true, 0.0, true, 9999.0);
 
     AutoExecConfig(true, "l4d_abh");
 }
