@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-06-01 17:06:20
+ * @Last Modified time: 2023-06-06 20:26:10
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -19,7 +19,7 @@
 #include <fnemotes>
 
 #define VERSION "2023.04.29"
-#define MAXSIZE 33
+#define MAXSIZE MAXPLAYERS + 1
 
 #define CAMERA_MODEL "models/editor/camera.mdl"
 #define CAMERA_AUTO_COOKIE_NAME "CameraAutoCookies"
