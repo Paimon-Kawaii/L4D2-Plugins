@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-05 18:00:29
- * @Last Modified time: 2023-06-05 21:23:51
+ * @Last Modified time: 2023-06-06 20:25:38
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -14,7 +14,7 @@
 // #include <l4d2tools>
 
 #define VERSION "2023.06.05"
-#define MAXSIZE 33
+#define MAXSIZE MAXPLAYERS + 1
 #define DEBUG 0
 
 ConVar
