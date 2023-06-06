@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 14:59:54
- * @Last Modified time: 2023-04-13 14:08:11
+ * @Last Modified time: 2023-06-06 20:25:50
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -18,7 +18,7 @@
 #define DEBUG 0
 
 ConVar g_hOdinsRock, g_hOdinsTeleport;
-bool g_bIsRockTime[33] = {true, ...};
+bool g_bIsRockTime[MAXPLAYERS + 1] = {true, ...};
 
 public Plugin myinfo =
 {
