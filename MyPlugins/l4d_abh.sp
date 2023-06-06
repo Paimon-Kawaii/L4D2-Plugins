@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-05 18:00:29
- * @Last Modified time: 2023-06-06 20:25:38
+ * @Last Modified time: 2023-06-06 22:29:55
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -50,7 +50,7 @@ public void OnPluginStart()
 // ABH加速
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float ang[3])
 {
-    if(!IsSurvivor(client) || !IsPlayerAlive(client) || !g_hABHEnable.BoolValue)
+    if(IsFakeClient(client) || !IsPlayerAlive(client) || !g_hABHEnable.BoolValue)
         return Plugin_Continue;
 
     bool isgrounded = GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") != -1;
@@ -90,24 +90,24 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
     return Plugin_Changed;
 }
 
-/**
- * @brief Returns true if client is correct.
- *
- * @param client    Client index.
- * @return          True if client is correct. False otherwise.
- */
-bool IsValidClient(int client)
-{
-    return (0 < client <= MaxClients && IsClientConnected(client) && IsClientInGame(client));
-}
+// /**
+//  * @brief Returns true if client is correct.
+//  *
+//  * @param client    Client index.
+//  * @return          True if client is correct. False otherwise.
+//  */
+// bool IsValidClient(int client)
+// {
+//     return (0 < client <= MaxClients && IsClientConnected(client) && IsClientInGame(client));
+// }
 
-/**
- * @brief Returns true if client is a survivor.
- * 
- * @param client    Client index.
- * @return          True if client is a survivor. False otherwise.
- */
-bool IsSurvivor(int client)
-{
-    return (IsValidClient(client) && GetClientTeam(client) == 2);
-}
+// /**
+//  * @brief Returns true if client is a survivor.
+//  * 
+//  * @param client    Client index.
+//  * @return          True if client is a survivor. False otherwise.
+//  */
+// bool IsSurvivor(int client)
+// {
+//     return (IsValidClient(client) && GetClientTeam(client) == 2);
+// }
