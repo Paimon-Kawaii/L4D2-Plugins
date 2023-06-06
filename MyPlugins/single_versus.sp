@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-21 15:57:19
- * @Last Modified time: 2023-06-01 16:28:46
+ * @Last Modified time: 2023-06-06 20:25:55
  * @Github:             https://github.com/Paimon-Kawaii
  */
 #pragma semicolon 1
@@ -15,7 +15,7 @@
 #include <left4dhooks>
 
 #define VERSION "2023.05.20"
-#define MAXSIZE 33
+#define MAXSIZE MAXPLAYERS + 1
 #define DEBUG 0
 
 ConVar
