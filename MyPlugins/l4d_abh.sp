@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-05 18:00:29
- * @Last Modified time: 2023-06-06 22:29:55
+ * @Last Modified time: 2023-06-07 22:32:26
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -87,7 +87,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 
     TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, result);
     g_bABHReset[client] = false;
-    return Plugin_Changed;
+    return Plugin_Continue;
 }
 
 // /**
