@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-22 19:08:40
- * @Last Modified time: 2023-05-31 19:36:02
+ * @Last Modified time: 2023-06-26 22:10:19
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -18,6 +18,22 @@
  * @return          True / False
  */
 native bool HSC_IsFlyingCeil(int client);
+
+/**
+ * Is hunter try to pounce from ceil.
+ *
+ * @param client    Client index
+ * @return          True / False
+ */
+native bool HSC_IsAttemptPounce(int client);
+
+/**
+ * Is hunter controllable.
+ *
+ * @param client    Client index
+ * @return          True / False
+ */
+native bool HSC_IsControllable(int client);
 
 public SharedPlugin:__pl_freecamera =
 {
