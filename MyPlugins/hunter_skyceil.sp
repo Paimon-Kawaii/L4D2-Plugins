@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-06-06 20:26:38
+ * @Last Modified time: 2023-06-26 22:18:08
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -46,7 +46,7 @@ bool
     // 标记ht是否在飞天花板
     g_bIsFlyingCeil[MAXSIZE] = {false, ...},
     // 用于标记是否允许使用天花板高扑
-    g_bIsHighPounce[MAXSIZE] = {false, ...},
+    g_bIsControllable[MAXSIZE] = {false, ...},
     // 用于标记ht是否准备从天花板突袭
     g_bIsAttemptPounce[MAXSIZE] = {false, ...},
     // 用于标记头顶是否是天花板
@@ -93,6 +93,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
     RegPluginLibrary("htskyceil");
     CreateNative("HSC_IsFlyingCeil", Native_IsFlyingCeil);
+    CreateNative("HSC_IsControllable", Native_IsControllable);
+    CreateNative("HSC_IsAttemptPounce", Native_IsAttemptPounce);
 
     return APLRes_Success;
 }
@@ -107,7 +109,7 @@ public void OnMapStart()
             g_iLastRayTick[i] = g_iTargetWhoAimed[i] =
             g_iLastPounceTick[i] = 0;
 
-        g_bIsFlyingCeil[i] = g_bIsHighPounce[i] =
+        g_bIsFlyingCeil[i] = g_bIsControllable[i] =
             g_bIsCeilAvaliable[i] = g_bIsAttemptPounce[i] = false;
 
         g_fPounceSpeed[i][0] = g_fPounceSpeed[i][1] = 0.0;
@@ -121,7 +123,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     if (!IsInfected(hunter) || GetInfectedClass(hunter) != ZC_Hunter ||
         !g_hHSCEnable.BoolValue || GetEntityMoveType(hunter) == MOVETYPE_NOCLIP ||
         g_iLeapTimes[hunter] >= g_hHSCMaxLeap.IntValue ||
-        (!g_bIsHighPounce[hunter] && g_hHSCLimit.BoolValue &&
+        (!g_bIsControllable[hunter] && g_hHSCLimit.BoolValue &&
             g_iCeilHunterCount >= g_hHSCLimit.IntValue))
         return Plugin_Continue;
 
@@ -141,12 +143,12 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
             g_iPounceTarget[hunter] = 0;
         }
         // 修正天花板ht的数量
-        if (g_bIsHighPounce[hunter])
+        if (g_bIsControllable[hunter])
             g_iCeilHunterCount = g_iCeilHunterCount > 0 ? g_iCeilHunterCount - 1 : 0;
         // 重置起飞次数
         g_iLeapTimes[hunter] = 0;
         // 取消ht的天花板标记
-        g_bIsHighPounce[hunter] = false;
+        g_bIsControllable[hunter] = false;
         // 取消标记pounce
         g_bIsAttemptPounce[hunter] = false;
         // 标记天花板为可不用
@@ -162,7 +164,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 
     // 当ht落地时，标记pounce为false
     // P.S.这个东西的目的是为了后面高扑完成也就是落地后不再接管ht
-    //     也就是291行的判断，但是有木有用我就布吉岛了XD
+    //     也就是351行的判断，但是有木有用我就布吉岛了XD
     if (isgrounded)
     {
         g_bIsFlyingCeil[hunter] = g_bIsAttemptPounce[hunter] = false;
@@ -178,7 +180,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     float htpos[3];
     GetClientAbsOrigin(hunter, htpos);
 
-    // 在地面上 且 是ai ht 且 到达检测间隔时，检测头顶是否为天花板
+    // 在地面上 且是 ai-ht 且 到达检测间隔时，检测头顶是否为天花板
     if (isgrounded && IsFakeClient(hunter) &&
         GetGameTickCount() - g_iLastRayTick[hunter] >= TRACE_TICK)
     {
@@ -198,17 +200,17 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         delete trace;
     }
 
-    // 天花板不可用 且 是ai ht时，取消接管
+    // 天花板不可用 且是 ai-ht 时，取消接管
     if (!g_bIsCeilAvaliable[hunter] && IsFakeClient(hunter))
         return Plugin_Continue;
 
-    // 让ai ht瞄准生还
+    // 让 ai-ht 瞄准生还
     if (IsFakeClient(hunter))
     {
         bool result = TryAimSurvivor(hunter);
         if (!result) return Plugin_Continue;
 
-        // 修正ai ht的btn指令
+        // 修正 ai-ht 的btn指令
         buttons |= IN_ATTACK;
         buttons &= ~IN_ATTACK2;
     }
@@ -253,7 +255,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     // P.S.这个角度不影响真实角度，故玩家可以随便转动视角
     //     但ai角度必须是真实角度，故需要使用tp函数
     ang[0] = 11.8;
-    // 修正ai ht真实角度为11.8
+    // 修正 ai-ht 真实角度为11.8
     if (IsFakeClient(hunter))
         TeleportEntity(hunter, NULL_VECTOR, ang, NULL_VECTOR);
 
@@ -273,6 +275,18 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 int Native_IsFlyingCeil(Handle plugin, int numParams)
 {
     return g_bIsFlyingCeil[GetNativeCell(1)];
+}
+
+// 注册Native
+int Native_IsAttemptPounce(Handle plugin, int numParams)
+{
+    return g_bIsAttemptPounce[GetNativeCell(1)];
+}
+
+// 注册Native
+int Native_IsControllable(Handle plugin, int numParams)
+{
+    return g_bIsControllable[GetNativeCell(1)];
 }
 
 // 忽略自身碰撞
@@ -339,9 +353,9 @@ bool TryAimSurvivor(int hunter)
         return false;
 
     // 修正天花板ht数量
-    if (!g_bIsHighPounce[hunter])
+    if (!g_bIsControllable[hunter])
     {
-        g_bIsHighPounce[hunter] = true;
+        g_bIsControllable[hunter] = true;
         g_iCeilHunterCount++;
     }
 
