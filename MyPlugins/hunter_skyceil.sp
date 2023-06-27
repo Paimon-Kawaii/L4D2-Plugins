@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-06-27 22:13:53
+ * @Last Modified time: 2023-06-27 22:14:30
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -165,7 +165,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 
     // 当ht落地时，标记pounce为false
     // P.S.这个东西的目的是为了后面高扑完成也就是落地后不再接管ht
-    //     也就是351行的判断，但是有木有用我就布吉岛了XD
+    //     也就是352行的判断，但是有木有用我就布吉岛了XD
     if (isgrounded)
     {
         g_bIsFlyingCeil[hunter] = g_bIsAttemptPounce[hunter] = false;
