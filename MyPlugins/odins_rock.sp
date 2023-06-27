@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 14:59:54
- * @Last Modified time: 2023-06-06 20:25:50
+ * @Last Modified time: 2023-06-27 22:00:12
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -17,7 +17,7 @@
 #define VERSION "2023.04.13"
 #define DEBUG 0
 
-ConVar g_hOdinsRock, g_hOdinsTeleport;
+ConVar g_hOdinsRock, g_hOdinsHuman, g_hOdinsTeleport;
 bool g_bIsRockTime[MAXPLAYERS + 1] = {true, ...};
 
 public Plugin myinfo =
@@ -32,6 +32,7 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
     g_hOdinsRock = CreateConVar("odins_rock", "0", "开关因果律武器(笑");
+    g_hOdinsHuman = CreateConVar("odins_hunman", "0", "开关因果律武器(笑");
     g_hOdinsTeleport = CreateConVar("odins_tp", "0", "开关因果律武器(笑");
 }
 
@@ -66,7 +67,7 @@ public Action L4D_TankRock_OnRelease(int tank, int rock, float vecPos[3], float 
     PrintToChatAll("%N 释放了石头", tank);
 #endif
 
-    if(IsTank(tank) && !IsFakeClient(tank))
+    if(!IsFakeClient(tank) && !g_hOdinsHuman.BoolValue)
         return Plugin_Continue;
 
     int target;
