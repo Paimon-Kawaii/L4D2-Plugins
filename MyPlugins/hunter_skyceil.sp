@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-06-26 22:18:08
+ * @Last Modified time: 2023-06-27 22:13:53
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -30,6 +30,7 @@ ConVar
     g_hHSCResetInv;
 
 int
+    // 天花板ht数量
     g_iCeilHunterCount = 0,
     // 用于记录ht起飞次数，避免不停尝试
     g_iLeapTimes[MAXSIZE] = {0, ...},
