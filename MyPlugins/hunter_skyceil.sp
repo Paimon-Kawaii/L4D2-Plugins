@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-06-27 22:14:30
+ * @Last Modified time: 2023-07-24 20:26:14
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -10,14 +10,19 @@
 #pragma newdecls required
 
 #include <sdktools>
-#include <l4d2tools>
+#include <paiutils>
 #include <sourcemod>
 
-#define VERSION "2023.06.01"
+#define DEBUG_RAY 0
+#define VERSION "2023.07.24"
 
 #define MAXSIZE MAXPLAYERS + 1
 #define TRACE_TICK 100
 #define POUNCE_TICK 10
+
+#if DEBUG_RAY
+    int g_iRayCallTimes = 0;
+#endif
 
 ConVar
     g_hGravity,
@@ -77,6 +82,30 @@ public void OnPluginStart()
     g_hHSCLimit = CreateConVar("hsc_limit", "0", "允许HT弹天花板的数量，0=不限制", FCVAR_NONE, true, 0.0, true, 32.0);
 
     AutoExecConfig(true, "hunter_skyceil");
+    HookEvent("player_spawn", Event_PlayerSpawn);
+#if DEBUG_RAY
+    CreateTimer(1.0, Timer_ShowRayCallTimes, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+#endif
+}
+
+#if DEBUG_RAY
+Action Timer_ShowRayCallTimes(Handle timer)
+{
+    PrintToChatAll("times: %d", g_iRayCallTimes);
+    g_iRayCallTimes = 0;
+
+    return Plugin_Continue;
+}
+#endif
+
+// 设置是否接管ht
+void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
+{
+    int hunter = GetClientOfUserId(event.GetInt("userid"));
+    if(!IsInfected(hunter) || GetZombieClass(hunter) != ZC_Hunter
+        || g_iCeilHunterCount >= GetAliveSurvivorCount())
+        return;
+    g_bIsControllable[hunter] = true;
 }
 
 // 获取ConVar
@@ -120,18 +149,24 @@ public void OnMapStart()
 // 接管ht
 public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3], float ang[3])
 {
-    // 不是ht 或 插件关闭 或 数量超过设定上限 或 达到最大起飞次数，不接管ht
-    if (!IsInfected(hunter) || GetInfectedClass(hunter) != ZC_Hunter ||
-        !g_hHSCEnable.BoolValue || GetEntityMoveType(hunter) == MOVETYPE_NOCLIP ||
-        g_iLeapTimes[hunter] >= g_hHSCMaxLeap.IntValue ||
-        (!g_bIsControllable[hunter] && g_hHSCLimit.BoolValue &&
-            g_iCeilHunterCount >= g_hHSCLimit.IntValue))
+#if DEBUG_RAY
+    if(IsSurvivor(hunter))
+        SetPlayerHealth(hunter, 200);
+
+    if(GetEntityMoveType(hunter) == MOVETYPE_NOCLIP)
+        return Plugin_Continue;
+#endif
+
+    // 插件关闭 或 达到最大起飞次数 或 数量超过设定上限，不接管ht
+    if (!g_hHSCEnable.BoolValue || !g_bIsControllable[hunter]
+        || g_iLeapTimes[hunter] >= g_hHSCMaxLeap.IntValue
+        || (g_hHSCLimit.BoolValue && g_iCeilHunterCount >= g_hHSCLimit.IntValue))
         return Plugin_Continue;
 
     // ht死亡时 或 控制生还时
-    if (!IsPlayerAlive(hunter) || IsPinningASurvivor(hunter))
+    if (!IsPlayerAlive(hunter) || IsPinningSurvivor(hunter))
     {
-        if (IsPinningASurvivor(hunter))
+        if (IsPinningSurvivor(hunter))
         {
             // 修正控制的玩家(突袭可能被旁边的生还吸走XD)
             g_iTargetWhoAimed[GetPinningSurvivor(hunter)] = hunter;
@@ -160,12 +195,15 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         return Plugin_Continue;
     }
 
+#if DEBUG_RAY
+        g_iRayCallTimes++;
+#endif
+
     // 是否在地面上
     bool isgrounded = GetEntPropEnt(hunter, Prop_Send, "m_hGroundEntity") != -1;
 
     // 当ht落地时，标记pounce为false
     // P.S.这个东西的目的是为了后面高扑完成也就是落地后不再接管ht
-    //     也就是352行的判断，但是有木有用我就布吉岛了XD
     if (isgrounded)
     {
         g_bIsFlyingCeil[hunter] = g_bIsAttemptPounce[hunter] = false;
@@ -188,6 +226,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         g_iLastRayTick[hunter] = GetGameTickCount();
         Handle trace = TR_TraceRayFilterEx(htpos, {-90.0, 0.0, 0.0},
             MASK_SOLID, RayType_Infinite, SelfIgnore_TraceFilter);
+
         if (TR_DidHit(trace))
         {
             int flags = TR_GetSurfaceFlags(trace);
@@ -221,8 +260,10 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         GetEntProp(GetEntPropEnt(hunter, Prop_Send,
         "m_customAbility"), Prop_Send, "m_hasBeenUsed"));
 
+    int oldbtns = GetEntProp(hunter, Prop_Data, "m_nOldButtons");
     // 当ht在弹天花板 且 btn包含atk指令 且 pounce间隔达到pounce_tick，取消btn的atk指令
-    if (!isgrounded && (buttons & IN_ATTACK) && g_bIsFlyingCeil[hunter] &&
+    if (!isgrounded && (buttons & IN_ATTACK) &&
+        (oldbtns & IN_ATTACK) && g_bIsFlyingCeil[hunter] &&
         GetGameTickCount() - g_iLastPounceTick[hunter] >= POUNCE_TICK)
     {
         // 记录突袭时间
@@ -319,7 +360,7 @@ bool TryAimSurvivor(int hunter)
     }
 
     // 目标不可用时，选择最近的生还
-    if (!IsSurvivor(sur)) sur = GetClosestSurvivor(hunter);
+    if (!IsSurvivor(sur)) sur = GetClosestClient(hunter, NULL_VECTOR, TEAM_SURVIVOR);
     // 最近的生还也不可用时，取消接管，让ai自行发挥ww
     if (!IsSurvivor(sur)) return false;
     // 记录我们选择的目标
