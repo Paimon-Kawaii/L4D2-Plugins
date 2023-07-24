@@ -1,0 +1,121 @@
+// Is witch noticed entity
+Witch::IsHostileToMe(CBaseEntity *)
+
+// Do attack to entity
+Witch::DoAttack(CBaseEntity *)
+
+// Set witch annoyed by entity
+Witch::SetHarasser(CBaseEntity *)
+
+// Is witch can climb
+Witch::IsAllowedToClimb(void)
+
+// Is witch ignored entity
+WitchVision::IsIgnored(CBaseEntity *)
+
+// Can area across
+WitchLocomotion::IsAreaTraversable(CNavArea const*)
+
+// Set witch speed limit
+WitchLocomotion::SetSpeedLimit(float)
+
+// Get witch speed limit
+WitchLocomotion::GetSpeedLimit(void)
+
+// Get witch run speed
+WitchLocomotion::GetRunSpeed(void)
+
+// Set witch velocity
+WitchLocomotion::SetVelocity(Vector const&)
+
+// Attack entity
+WitchAttack::WitchAttack(CBaseEntity *)
+
+// Set attack target
+WitchAttack::SetVictim(CBaseEntity *)
+
+// Is entity an enemy
+WitchAttack::IsValidEnemy(CBaseEntity *)
+
+// Get witch attack target
+WitchAttack::GetVictim(void)
+
+// Angry a witch?
+WitchAngry::WitchAngry(float)
+
+// Make a witch annoyed sound
+WitchAngry::Growl(Witch *)
+
+// Dont know...
+CTerrorPlayer::HasWitchAttacker(void)
+
+// Allow witch in saferoom
+CDirector::AllowWitchesInCheckpoints(void)
+_ZNK9CDirector25AllowWitchesInCheckpointsEv
+CDirectorChallengeMode::AllowWitchesInCheckpoints(void)
+_ZNK22CDirectorChallengeMode25AllowWitchesInCheckpointsEv
+
+// Get witch limit
+CDirector::GetWitchLimit(void)
+CDirectorChallengeMode::GetWitchLimit(int *)
+
+// Kill incap entity
+WitchKillIncapVictim::WitchKillIncapVictim(CBaseEntity *)
+
+// Climb over ledge
+ZombieBotLocomotion::ClimbUpToLedge(Vector const&,Vector const&,CBaseEntity const*)
+_ZN19ZombieBotLocomotion14ClimbUpToLedgeERK6VectorS2_PK11CBaseEntity
+
+// Is able to climb
+Infected::IsAbleToClimbOnto(CBaseEntity const*)
+
+// Find CNavLadder & CNavArea
+CNavMesh::FindNavAreaOrLadderAlongRay(Vector const&,Vector const&,CNavArea **,CNavLadder **,CNavArea *)
+
+// ClimbLadder
+ZombieBotLocomotion::ClimbLadder(CNavLadder const*,CNavArea const*)
+
+
+// #define ANIM_WALKING_CRYING 1
+// #define ANIM_STANDING_ANNOYED 3
+// #define ANIM_LOST_TARGET 5
+// #define ANIM_BURNING 7
+// #define ANIM_HEAD_STOCKING 8
+// #define ANIM_WADERING_01 9
+// #define ANIM_WALK 10
+// #define ANIM_WADERING_02 11
+// #define ANIM_ATTACK_LEFT 16
+// #define ANIM_ATTACK_LEFT_02 17
+// #define ANIM_ATTACK_RIGHT 18
+// #define ANIM_ATTACK_RIGHT_02 19
+// #define ANIM_ATTACK_FORWARD 21
+// #define ANIM_ATTACK_FORWARD_RIGHT 24
+// #define ANIM_SETTING_ANNOYED 27
+// #define ANIM_SETTING_AWAKE 30
+// #define ANIM_STADING_ANGRY 31
+// #define ANIM_CATCHED_TARGET 32
+// #define ANIM_TURN_BACK 33
+// #define ANIM_TURN_RIGHT 34
+// #define ANIM_TURN_LEFT 35
+// #define ANIM_STADING_STOP 36
+// #define ANIM_SETTING_STOP 38
+// #define ANIM_STAGGERING 39
+// #define ANIM_STADING_BURNING 40
+// #define ANIM_TRIPPED 44
+// #define ANIM_TRIPPING 45
+// #define ANIM_TRIPPING_LEFT 46
+// #define ANIM_TRIPPING_RIGHT 47
+// #define ANIM_TRIPPING_BACK 49
+// #define ANIM_TRIPPING_WALL_LEFT 50
+// #define ANIM_TRIPPING_WALL_RIGHT 51
+// #define ANIM_TRIPPING_JUMP 52
+// #define ANIM_TRIPPING_JUMP_02 53
+// #define ANIM_RUSH 55
+// #define ANIM_CLIMB 56
+// #define ANIM_JUMP 58
+// #define ANIM_RUN_CLIMB 59
+// #define ANIM_DUCK_CLIMB 60
+// #define ANIM_DUCK_CLIMB_UP 61
+// #define ANIM_DUCK_CLIMB_UP_FINISH 62
+// #define ANIM_LADDER_ASCEND 70
+// #define ANIM_LADDER_DESCEND 71

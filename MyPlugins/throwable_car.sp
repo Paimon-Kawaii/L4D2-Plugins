@@ -2,21 +2,22 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-27 15:49:57
- * @Last Modified time: 2023-06-27 22:11:05
+ * @Last Modified time: 2023-07-14 23:12:16
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
 #include <sdktools>
-#include <l4d2tools>
+#include <paiutils>
 #include <sourcemod>
 #include <left4dhooks>
 
 #define VERSION "2023.06.27"
+#define MAXSIZE MAXPLAYERS + 1
 
 int
-    g_iTankCar[MAXPLAYERS] = { -1, ... },
-    g_iTankRock[MAXPLAYERS] = { -1, ... },
-    g_iThrowTime[MAXPLAYERS] = { 0, ... };
+    g_iTankCar[MAXSIZE] = { -1, ... },
+    g_iTankRock[MAXSIZE] = { -1, ... },
+    g_iThrowTime[MAXSIZE] = { 0, ... };
 
 ConVar
     g_hTCDistance;

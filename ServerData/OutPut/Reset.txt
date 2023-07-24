@@ -1,0 +1,97 @@
+// Auto reconstructed from vtable block @ 0x00C980E0
+// from "server_srv.so", by ida_vtables.idc
+0	ILocomotion::~ILocomotion()
+1	INextBotEventResponder::FirstContainedResponder(void)const
+2	INextBotEventResponder::NextContainedResponder(INextBotEventResponder*)const
+3	INextBotEventResponder::GetDebugString(void)const
+4	ILocomotion::OnLeaveGround(CBaseEntity *)
+5	ILocomotion::OnLandOnGround(CBaseEntity *)
+6	INextBotEventResponder::OnContact(CBaseEntity *,CGameTrace *)
+7	INextBotEventResponder::OnMoveToSuccess(Path const*)
+8	INextBotEventResponder::OnMoveToFailure(Path const*,MoveToFailureType)
+9	INextBotEventResponder::OnStuck(void)
+10	INextBotEventResponder::OnUnStuck(void)
+11	INextBotEventResponder::OnPostureChanged(void)
+12	INextBotEventResponder::OnAnimationActivityComplete(int)
+13	INextBotEventResponder::OnAnimationActivityInterrupted(int)
+14	INextBotEventResponder::OnAnimationEvent(animevent_t *)
+15	INextBotEventResponder::OnIgnite(void)
+16	INextBotEventResponder::OnInjured(CTakeDamageInfo const&)
+17	INextBotEventResponder::OnKilled(CTakeDamageInfo const&)
+18	INextBotEventResponder::OnOtherKilled(CBaseCombatCharacter *,CTakeDamageInfo const&)
+19	INextBotEventResponder::OnSight(CBaseEntity *)
+20	INextBotEventResponder::OnLostSight(CBaseEntity *)
+21	INextBotEventResponder::OnThreatChanged(CBaseEntity *)
+22	INextBotEventResponder::OnSound(CBaseEntity *,Vector const&,KeyValues *)
+23	INextBotEventResponder::OnSpokeConcept(CBaseCombatCharacter *,CAI_Concept,AI_Response *)
+24	INextBotEventResponder::OnNavAreaChanged(CNavArea *,CNavArea *)
+25	INextBotEventResponder::OnModelChanged(void)
+26	INextBotEventResponder::OnPickUp(CBaseEntity *,CBaseCombatCharacter *)
+27	INextBotEventResponder::OnDrop(CBaseEntity *)
+28	INextBotEventResponder::OnShoved(CBaseEntity *)
+29	INextBotEventResponder::OnBlinded(CBaseEntity *)
+30	INextBotEventResponder::OnEnteredSpit(void)
+31	INextBotEventResponder::OnHitByVomitJar(CBaseEntity *)
+32	INextBotEventResponder::OnCommandAttack(CBaseEntity *)
+33	INextBotEventResponder::OnCommandAssault(void)
+34	INextBotEventResponder::OnCommandApproach(Vector const&,float)
+35	INextBotEventResponder::OnCommandApproach(CBaseEntity *)
+36	INextBotEventResponder::OnCommandRetreat(CBaseEntity *,float)
+37	INextBotEventResponder::OnCommandPause(float)
+38	INextBotEventResponder::OnCommandResume(void)
+39	INextBotEventResponder::OnCommandString(char const*)
+40	ILocomotion::Reset(void)
+41	ILocomotion::Update(void)
+42	INextBotComponent::Upkeep(void)
+43	INextBotComponent::GetBot(void)const
+44	ILocomotion::Approach(Vector const&,float)
+45	ILocomotion::DriveTo(Vector const&)
+46	ILocomotion::ClimbUpToLedge(Vector const&,Vector const&,CBaseEntity const*)
+47	ILocomotion::JumpAcrossGap(Vector const&,Vector const&)
+48	ILocomotion::Jump(void)
+49	ILocomotion::IsClimbingOrJumping(void)const
+50	ILocomotion::IsClimbingUpToLedge(void)const
+51	ILocomotion::IsJumpingAcrossGap(void)const
+52	ILocomotion::IsScrambling(void)const
+53	ILocomotion::Run(void)
+54	ILocomotion::Walk(void)
+55	ILocomotion::Stop(void)
+56	ILocomotion::IsRunning(void)const
+57	ILocomotion::SetDesiredSpeed(float)
+58	ILocomotion::GetDesiredSpeed(void)const
+59	ILocomotion::SetSpeedLimit(float)
+60	ILocomotion::GetSpeedLimit(void)const
+61	ILocomotion::IsOnGround(void)const
+62	ILocomotion::GetGround(void)const
+63	ILocomotion::GetGroundNormal(void)const
+64	ILocomotion::GetGroundSpeed(void)const
+65	ILocomotion::GetGroundMotionVector(void)const
+66	ILocomotion::ClimbLadder(CNavLadder const*,CNavArea const*)
+67	ILocomotion::DescendLadder(CNavLadder const*,CNavArea const*)
+68	ILocomotion::IsUsingLadder(void)const
+69	ILocomotion::IsAscendingOrDescendingLadder(void)const
+70	ILocomotion::IsAbleToAutoCenterOnLadder(void)const
+71	ILocomotion::FaceTowards(Vector const&)
+72	ILocomotion::SetDesiredLean(QAngle const&)
+73	ILocomotion::GetDesiredLean(void)const
+74	ILocomotion::GetFeet(void)const
+75	ILocomotion::GetStepHeight(void)const
+76	ILocomotion::GetMaxJumpHeight(void)const
+77	ILocomotion::GetDeathDropHeight(void)const
+78	ILocomotion::GetRunSpeed(void)const
+79	ILocomotion::GetWalkSpeed(void)const
+80	ILocomotion::GetVelocity(void)const
+81	ILocomotion::GetSpeed(void)const
+82	ILocomotion::GetMotionVector(void)const
+83	ILocomotion::IsAreaTraversable(CNavArea const*)const
+84	ILocomotion::GetTraversableSlopeLimit(void)const
+85	ILocomotion::IsPotentiallyTraversable(Vector const&,Vector const&,ILocomotion::TraverseWhenType,float *)const
+86	ILocomotion::HasPotentialGap(Vector const&,Vector const&,float *)const
+87	ILocomotion::IsGap(Vector const&,Vector const&)const
+88	ILocomotion::IsEntityTraversable(CBaseEntity *,ILocomotion::TraverseWhenType)const
+89	ILocomotion::IsStuck(void)const
+90	ILocomotion::GetStuckDuration(void)const
+91	ILocomotion::ClearStuckStatus(char const*)
+92	ILocomotion::IsAttemptingToMove(void)const
+93	ILocomotion::GetLastApproachPosition(void)const
+94	ILocomotion::AdjustPosture(Vector const&)

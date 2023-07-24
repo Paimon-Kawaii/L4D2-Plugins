@@ -1,0 +1,205 @@
+"Games"
+{
+    "left4dead2"
+    {
+        "Functions"
+        {
+            // Find by @Silvers
+            // https://github.com/SilvDev/Left4DHooks
+            "L4DD::CTerrorPlayer::OnEnterGhostState"
+            {
+                "signature"     "CTerrorPlayer::OnEnterGhostState"
+                "callconv"      "thiscall"
+                "return"        "int"
+                "this"          "entity"
+            }
+        }
+
+        "Offsets"
+        {
+            "System"
+            {
+                "windows"   "0"
+                "linux"     "1"
+            }
+            "CBaseEntity::MyNextBotPointer"
+            {
+                "windows"   "81"
+                "linux"     "82"
+            }
+            "INextBot::GetLocomotionInterface"
+            {
+                "windows"   "47"
+                "linux"     "48"
+            }
+            "ILocomotion::Reset"
+            {
+                "windows"   "40"
+                "linux"     "41"
+            }
+            "ILocomotion::SetAcceleration"
+            {
+                "windows"   "97"
+                "linux"     "98"
+            }
+            "ILocomotion::ClimbUpToLedge"
+            {
+                "windows"   "46"
+                "linux"     "47"
+            }
+            // "ILocomotion::ClimbLadder"
+            // {
+            //     "windows"   "66"
+            //     "linux"     "67"
+            // }
+            // "ILocomotion::DescendLadder"
+            // {
+            //     "windows"   "67"
+            //     "linux"     "68"
+            // }
+            // "ILocomotion::IsUsingLadder"
+            // {
+            //     "windows"   "68"
+            //     "linux"     "69"
+            // }
+            "ILocomotion::IsClimbingUpToLedge"
+            {
+                "windows"   "50"
+                "linux"     "51"
+            }
+        }
+
+        "Addresses"
+        {
+            // Find by @Silvers
+            // https://github.com/SilvDev/Left4DHooks
+            "TerrorNavMesh"
+            {
+                "windows"
+                {
+                    "signature" "CommandNavSave"
+                    "read" "11"
+                }
+                "linux"
+                {
+                    "signature" "TheNavMesh"
+                }
+                "read" "0"
+            }
+        }
+
+        "Signatures"
+        {
+            // Find by @Silvers
+            // https://github.com/SilvDev/Left4DHooks
+            /*
+             * Used solely to get the offset for TheNavMesh
+             * Look for string "Navigation map '%s' saved.\n" in a short function
+             */
+            "CommandNavSave"
+            {
+                "library"   "server"
+                "windows"   "\xE8\x2A\x2A\x2A\x2A\x84\xC0\x74\x2A\x8B\x0D\x2A\x2A\x2A\x2A\x8B\x01\x8B\x50\x2A\xFF\xD2\x8B\x0D\x2A\x2A\x2A\x2A\x84\xC0"
+                /* E8 ? ? ? ? 84 C0 74 ? 8B 0D ? ? ? ? 8B 01 8B 50 ? FF D2 8B 0D ? ? ? ? 84 C0 */
+            }
+            "TheNavMesh"
+            {
+                "library"   "server"
+                "linux"     "@TheNavMesh"
+            }
+            // Find by @Silvers
+            // https://github.com/SilvDev/Left4DHooks
+            /*
+             * CTerrorPlayer::OnEnterGhostState()
+             * almost unique string spawnmode_bar has three refs, one ref has strings "zombieClass" and "data"
+             */
+            "CTerrorPlayer::OnEnterGhostState"
+            {
+                "library"   "server"
+                "linux"     "@_ZN13CTerrorPlayer17OnEnterGhostStateEv"
+                "windows"   "\x55\x8B\xEC\x83\xEC\x08\x53\x56\x8B\xF1\x8B\x86\x2A\x2A\x2A\x2A\x8B"
+                /* 55 8B EC 83 EC 08 53 56 8B F1 8B 86 ? ? ? ? 8B */
+            }
+            // // Find by @Paimon
+            // /*
+            //  * CNavMesh::FindNavAreaOrLadderAlongRay(Vector const&,Vector const&,CNavArea **,CNavLadder **,CNavArea *)
+            //  * How to find it on windows:
+            //  *   Find unique string: "Generate: Error - Data corrupt.\n" for CNavMesh::CreateNavAreasFromNodes(void)
+            //  * Then, find first call in this function, it should be CNavMesh::TestArea(CNavNode *,int,int)
+            //  * To check it, in this part it should have two calls. The first is CNavMesh::TestArea(CNavNode *,int,int)
+            //  * The second is CNavMesh::BuildArea(CNavNode *,int,int), compare it in server_srv.so
+            //  *   Then, find final call in TestArea(...), it should be TestOverlapping::OverlapsExistingArea(void)
+            //  * Then, find first call in this function, it should be the function we want.
+            //  */
+            // "CNavMesh::FindNavAreaOrLadderAlongRay"
+            // {
+            //     "library"   "server"
+            //     "windows"   "\x53\x8B\xDC\x83\xEC\x08\x83\xE4\xF0\x83\xC4\x04\x55\x8B\x6B\x04\x89\x6C\x24\x04\x8B\xEC\x81\xEC\xC8\x00\x00\x00\x56"
+            //     /* 53 8B DC 83 EC 08 83 E4 F0 83 C4 04 55 8B 6B 04 89 6C 24 04 8B EC 81 EC C8 00 00 00 56 */
+            //     "linux"     "@_ZN8CNavMesh27FindNavAreaOrLadderAlongRayERK6VectorS2_PP8CNavAreaPP10CNavLadderS4_"
+            // }
+            // // Find by @Paimon
+            // /*
+            //  * How to find it on windows:
+            //  * Find unique string: "ladder%i", the function is this.
+            //  */
+            // "CNavMesh::GetAllLadders"
+            // {
+            //     "library"   "server"
+            //     "windows"   "\x55\x8B\xEC\x81\xEC\x20\x01\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x57\x8B\x7D\x08"
+            //     /* 55 8B EC 81 EC 20 01 00 00 A1 ? ? ? ? 33 C5 89 45 FC 57 8B 7D 08 */
+            //     "linux"     "@_ZN8CNavMesh13GetAllLaddersEP9HSCRIPT__"
+            // }
+            // // Find by @Paimon
+            // /*
+            //  * How to find it on windows:
+            //  * Find unique string: "return total number of nav ladders".
+            //  * Then find offset under "GetLadderCount"
+            //  * The secound of sub_XXX is this.
+            //  */
+            // "CNavMesh::GetLadderCount"
+            // {
+            //     "library"   "server"
+            //     "windows"   "\xA1\x2A\x2A\x2A\x2A\x8B\x80\x20\x05\x00\x00"
+            //     /* A1 ? ? ? ? 8B 80 20 05 00 00 */
+            //     "linux"     "@_ZN8CNavMesh14GetLadderCountEv"
+            // }
+            // // Find by @Paimon
+            // /*
+            //  * How to find it on windows:
+            //  * Find unique string: "CNavMesh::FireGameEvent" for CNavMesh::FireGameEvent
+            //  * Then open graph view on IDA for both linux and windows files
+            //  * Analyze jump and you will find it.
+            //  */
+            // "CNavLadder::FindLadderEntity"
+            // {
+            //     "library"   "server"
+            //     "windows"   "\x55\x8B\xEC\x83\xEC\x0C\xD9\x05\x2A\x2A\x2A\x2A\xF3\x0F\x10\x1D\x2A\x2A\x2A\x2A"
+            //     /* 55 8B EC 83 EC 0C D9 05 ? ? ? ? F3 0F 10 1D ? ? ? ? */
+            //     "linux"     "@_ZN10CNavLadder16FindLadderEntityEv"
+            // }
+            // // Find by @Paimon
+            // /*
+            //  * How to find it on windows:
+            //  * Find unique string: "Marked Ladder is connected to %d Areas\n" for CNavMesh::CommandNavMark(CCommand const&)
+            //  * Then open graph view on IDA for both linux and windows files
+            //  * Analyze jump and you will find it.
+            //  */
+            // "CNavMesh::GetLadderByID"
+            // {
+            //     "library"   "server"
+            //     "windows"   "\x55\x8B\xEC\x57\x8B\x7D\x08\x85\xFF\x75\x2A\x33\xC0\x5F\x5D\xC2\x04\x00"
+            //     /* 55 8B EC 57 8B 7D 08 85 FF 75 ? 33 C0 5F 5D C2 04 00 */
+            //     "linux"     "@_ZNK8CNavMesh13GetLadderByIDEj"
+            // }
+            "CTerrorPlayer::SetClass"
+            {
+                "library"   "server"
+                "windows"   "\x55\x8B\x2A\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x83\x2A\x2A\x0F\x85\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x40"
+                /* 55 8B ? 56 8B ? E8 ? ? ? ? 83 ? ? 0F 85 ? ? ? ? A1 ? ? ? ? 40 */
+                "linux"     "@_ZN13CTerrorPlayer8SetClassE15ZombieClassType"
+                /* 55 89 E5 57 56 53 81 EC 0C 01 00 00 8B 45 18 */
+            }
+        }
+    }
+}
