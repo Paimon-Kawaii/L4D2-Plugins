@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2023-06-06 20:26:10
+ * @Last Modified time: 2023-07-14 23:12:16
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -11,9 +11,9 @@
 
 #include <sdktools>
 #include <sdkhooks>
-#include <l4d2tools>
+#include <paiutils>
 #include <sourcemod>
-#include <keyvalues>
+// #include <keyvalues>
 #include <clientprefs>
 #undef REQUIRE_PLUGIN
 #include <fnemotes>
@@ -67,7 +67,7 @@ public Plugin myinfo =
     author = "我是派蒙啊",
     description = "自由摄像机",
     version = VERSION,
-    url = "http://github.com/Paimon-Kawaii/L4D2-Plugins/MyPlugins"
+    url = "http://github.com/Paimon-Kawaii/L4D2-Plugins"
 };
 
 public void OnPluginStart()
