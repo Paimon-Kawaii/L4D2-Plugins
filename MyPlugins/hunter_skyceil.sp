@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-07-24 20:26:14
+ * @Last Modified time: 2023-07-25 15:16:17
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -13,8 +13,9 @@
 #include <paiutils>
 #include <sourcemod>
 
+#define DEBUG 0
 #define DEBUG_RAY 0
-#define VERSION "2023.07.24"
+#define VERSION "2023.07.25#12"
 
 #define MAXSIZE MAXPLAYERS + 1
 #define TRACE_TICK 100
@@ -25,14 +26,16 @@
 #endif
 
 ConVar
-    g_hGravity,
     g_hHSCHuman,
     g_hHSCLimit,
     g_hHTEnhance,
     g_hHSCEnable,
     g_hHSCStopDis,
     g_hHSCMaxLeap,
-    g_hHSCResetInv;
+    g_hHSCResetInv,
+
+    g_hGravity,
+    g_hLungePower;
 
 int
     // 天花板ht数量
@@ -81,6 +84,13 @@ public void OnPluginStart()
     g_hHSCResetInv = CreateConVar("hsc_reset_interval", "4.0", "重置起飞次数的时钟间隔", FCVAR_NONE, true, 0.0);
     g_hHSCLimit = CreateConVar("hsc_limit", "0", "允许HT弹天花板的数量，0=不限制", FCVAR_NONE, true, 0.0, true, 32.0);
 
+    g_hLungePower = FindConVar("z_lunge_power");
+    g_hLungePower.SetInt(600);
+
+    g_hLungePower.AddChangeHook(ConVarChanged_LungePower);
+    g_hHSCEnable.AddChangeHook(ConVarChanged_LungePower);
+    g_hHSCHuman.AddChangeHook(ConVarChanged_LungePower);
+
     AutoExecConfig(true, "hunter_skyceil");
     HookEvent("player_spawn", Event_PlayerSpawn);
 #if DEBUG_RAY
@@ -97,6 +107,15 @@ Action Timer_ShowRayCallTimes(Handle timer)
     return Plugin_Continue;
 }
 #endif
+
+// 判断速度是否可以飞天花板
+void ConVarChanged_LungePower(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+    if(g_hLungePower.FloatValue > 930 && g_hHSCEnable.BoolValue)
+        g_hHSCEnable.SetBool(false);
+    if(g_hLungePower.FloatValue > 680 && g_hHSCHuman.BoolValue)
+        g_hHSCHuman.SetBool(false);
+}
 
 // 设置是否接管ht
 void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -149,10 +168,7 @@ public void OnMapStart()
 // 接管ht
 public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3], float ang[3])
 {
-#if DEBUG_RAY
-    if(IsSurvivor(hunter))
-        SetPlayerHealth(hunter, 200);
-
+#if DEBUG
     if(GetEntityMoveType(hunter) == MOVETYPE_NOCLIP)
         return Plugin_Continue;
 #endif
@@ -212,8 +228,9 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
             g_hHTEnhance.SetInt(30);
     }
 
-    // 玩家ht是否允许接管操作
-    if (!IsFakeClient(hunter) && !g_hHSCHuman.BoolValue)
+    // 玩家ht是否允许接管操作(速度高于680时玩家ht无法飞天花板)
+    if (!IsFakeClient(hunter) && (!g_hHSCHuman.BoolValue
+        || g_hLungePower.FloatValue > 680))
         return Plugin_Continue;
 
     float htpos[3];
@@ -262,9 +279,9 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
 
     int oldbtns = GetEntProp(hunter, Prop_Data, "m_nOldButtons");
     // 当ht在弹天花板 且 btn包含atk指令 且 pounce间隔达到pounce_tick，取消btn的atk指令
-    if (!isgrounded && (buttons & IN_ATTACK) &&
-        (oldbtns & IN_ATTACK) && g_bIsFlyingCeil[hunter] &&
-        GetGameTickCount() - g_iLastPounceTick[hunter] >= POUNCE_TICK)
+    if (!isgrounded && (buttons & IN_ATTACK)
+        && (oldbtns & IN_ATTACK) && g_bIsFlyingCeil[hunter]
+        && GetGameTickCount() - g_iLastPounceTick[hunter] >= POUNCE_TICK)
     {
         // 记录突袭时间
         g_iLastPounceTick[hunter] = GetGameTickCount();
@@ -349,8 +366,8 @@ bool TryAimSurvivor(int hunter)
     for (int i = 1; i <= MaxClients; i++)
     {
         int inf = g_iTargetWhoAimed[i];
-        if ((IsInfected(inf) && IsPlayerAlive(inf) && inf != hunter) ||
-            !IsSurvivor(i) || !IsPlayerAlive(i) || IsPlayerIncap(i)) continue;
+        if ((IsInfected(inf) && IsPlayerAlive(inf) && inf != hunter) || !IsSurvivor(i)
+            || !IsPlayerAlive(i) || IsSurvivorPinned(i) || IsPlayerIncap(i)) continue;
         GetClientAbsOrigin(i, surpos);
         float d = GetVectorDistance(surpos, htpos);
         if (d >= dis && dis != -1)
@@ -372,22 +389,8 @@ bool TryAimSurvivor(int hunter)
     // 获取ht和生还位置
     GetClientAbsOrigin(sur, surpos);
     GetClientAbsOrigin(hunter, htpos);
-    // 记录两点间的方向向量
-    MakeVectorFromPoints(htpos, surpos, atkang);
-
-    float velocity[3], height = 0.0, gravity, time, speed, delta;
-    // 获取重力加速度g
-    gravity = g_hGravity.FloatValue;
-    // 计算高度差h
-    height = FloatAbs(htpos[2] - surpos[2]);
-    // ht扑天花板可以近似看成平抛运动，故有
-    // h = 1/2gt*t 易得 t = sqrt(2h/g)
-    time = SquareRoot(2 * height / gravity);
-
-    // 将高度差至0，方便计算xOy面距离
-    htpos[2] = surpos[2] = 0.0;
     // 用函数获得距离
-    dis = GetVectorDistance(htpos, surpos, false);
+    dis = GetVector2Distance(htpos, surpos, false);
 
     // 距离小于预定值 且 不是在天花板上 且 未标记为准备突袭时，取消接管ht
     if (dis <= g_hHSCStopDis.IntValue &&
@@ -401,25 +404,46 @@ bool TryAimSurvivor(int hunter)
         g_iCeilHunterCount++;
     }
 
-    // 获取ht速度
+    float velocity[3], height, delta = -1.0, multiple;
+    // 计算高度差h
+    height = FloatAbs(htpos[2] - surpos[2]);
     GetEntPropVector(hunter, Prop_Data, "m_vecVelocity", velocity);
-    // 在天花板上时记录速度 并 修正天花板z轴速度为0
-    if (g_bIsFlyingCeil[hunter])
+    if(g_bIsFlyingCeil[hunter])
     {
+        float gravity, time, speed;
+        // 获取重力加速度g
+        gravity = g_hGravity.FloatValue;
+        // ht扑天花板可以近似看成平抛运动，故有
+        // h = 1/2gt*t 易得 t = sqrt(2h/g)
+        time = SquareRoot(2 * height / gravity);
+
+        // 获取ht速度
+        // 在天花板上时记录速度 并 修正天花板z轴速度为0
         velocity[2] = 0.0;
         g_fPounceSpeed[hunter][0] = velocity[0];
         g_fPounceSpeed[hunter][1] = velocity[1];
         SetEntPropVector(hunter, Prop_Data, "m_vecVelocity", velocity);
+
+        // 解出xOy面移动速度
+        speed = SquareRoot(Pow(velocity[0], 2.0) + Pow(velocity[1], 2.0));
+        // 计算delta time
+        delta = dis / speed - time;
+        if(delta < 0) delta = 0.0;
+        multiple = dis / time / speed;
     }
 
-    // 解出xOy面移动速度
-    speed = SquareRoot(Pow(velocity[0], 2.0) + Pow(velocity[1], 2.0));
-    // 计算delta time
-    delta = dis / speed - time;
     // 当dt小于0.01，近似认为ht接近抛物线顶点，准备突袭
-    if (delta <= 0.01 || g_bIsAttemptPounce[hunter])
+    if (0 <= delta <= 0.01 || g_bIsAttemptPounce[hunter])
     {
+        if(multiple)
+        {
+            g_fPounceSpeed[hunter][0] *= multiple;
+            g_fPounceSpeed[hunter][1] *= multiple;
+        }
+
         float htvel[3], survel[3];
+        // 记录两点间的方向向量
+        MakeVectorFromPoints(htpos, surpos, atkang);
 
         // 将方向向量转换为角度
         GetVectorAngles(atkang, atkang);
