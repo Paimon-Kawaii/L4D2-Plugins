@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-07-25 15:16:17
+ * @Last Modified time: 2023-07-26 16:06:03
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -211,10 +211,6 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         return Plugin_Continue;
     }
 
-#if DEBUG_RAY
-        g_iRayCallTimes++;
-#endif
-
     // 是否在地面上
     bool isgrounded = GetEntPropEnt(hunter, Prop_Send, "m_hGroundEntity") != -1;
 
@@ -243,6 +239,10 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         g_iLastRayTick[hunter] = GetGameTickCount();
         Handle trace = TR_TraceRayFilterEx(htpos, {-90.0, 0.0, 0.0},
             MASK_SOLID, RayType_Infinite, SelfIgnore_TraceFilter);
+
+#if DEBUG_RAY
+        g_iRayCallTimes++;
+#endif
 
         if (TR_DidHit(trace))
         {
