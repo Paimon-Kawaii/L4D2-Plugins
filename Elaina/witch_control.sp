@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-28 11:33:15
- * @Last Modified time: 2023-07-14 23:12:16
+ * @Last Modified time: 2023-08-02 00:55:07
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -619,7 +619,8 @@ public Action OnPlayerRunCmd(int client, int &buttons,
     }
 
     // 攀爬
-    if ((buttons & IN_ATTACK2) && !(oldbtns & IN_ATTACK2) && !(flags & FL_DUCKING))
+    if ((buttons & IN_ATTACK2) && !(oldbtns & IN_ATTACK2)
+        && !(flags & FL_DUCKING) && !g_bWitchAngry[client] && !g_bAngryResume[client])
     {
         buttons &= ~IN_ATTACK;
         float start[3], temp[3], target[3], rotate[3], fwd[3];
