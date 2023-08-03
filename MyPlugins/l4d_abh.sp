@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-05 18:00:29
- * @Last Modified time: 2023-07-14 23:12:16
+ * @Last Modified time: 2023-08-03 11:04:10
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -22,8 +22,7 @@ ConVar
     g_hABHEnable;
 
 bool
-    g_bABHLock[MAXSIZE] = {false, ...},
-    g_bABHReset[MAXSIZE] = {false, ...};
+    g_bABHLock[MAXSIZE] = {false, ...};
 
 float
     g_fSurABHSpeed[MAXSIZE] = {0.0, ...},
@@ -64,14 +63,13 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
     g_bABHLock[client] = true;
     GetEntPropVector(client, Prop_Data, "m_vecVelocity", vel);
     float speed = SquareRoot(Pow(vel[0], 2.0) + Pow(vel[1], 2.0));
-    if(speed < FloatAbs(g_fSurLastSpeed[client]))
-        g_bABHReset[client] = true;
+    bool reset = speed < FloatAbs(g_fSurLastSpeed[client]);
 
     float fwd[3], right[3], up[3], result[3] = { 0.0, ... };
     GetAngleVectors(ang, fwd, right, up);
 
     g_fSurLastSpeed[client] = g_fSurABHSpeed[client];
-    if(FloatAbs(g_fSurABHSpeed[client]) < speed || g_bABHReset[client])
+    if(FloatAbs(g_fSurABHSpeed[client]) < speed || reset)
         g_fSurABHSpeed[client] = -speed;
     else if(g_hABHLimit.FloatValue > FloatAbs(g_fSurABHSpeed[client]))
         g_fSurABHSpeed[client] *= view_as<bool>(buttons & IN_DUCK) ? 1.6 : 1.2;
@@ -86,7 +84,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
     result[2] = vel[2];
 
     TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, result);
-    g_bABHReset[client] = false;
     return Plugin_Continue;
 }
 
