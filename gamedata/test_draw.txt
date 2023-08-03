@@ -1,0 +1,16 @@
+"Games"
+{
+    "left4dead2"
+    {
+        "Signatures"
+        {
+            "DebugDrawLine"
+            {
+                "library"   "server"
+                "windows"   ""
+
+                "linux"     "@_Z13DebugDrawLineRK6VectorS1_iiibf"
+            }
+        }
+    }
+}
