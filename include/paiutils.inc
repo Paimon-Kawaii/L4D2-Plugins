@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2023-07-20 00:26:22
+ * @Last Modified time: 2023-08-05 16:26:15
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -285,11 +285,12 @@ stock int GetClosestClientAimer(int aimee, int team, bool sawable = true)
  * @param origin        Position to begin searching, no use if target is valid.
  * @param targetTeam    Team type to included.
  * @param sawable       Is target seen threats.
+ * @param notAimed      Should client not aim target.
  * @param isIncap       Can target be incap.
  * @param isGhost       Is target a ghost.
  * @return              Client index for closest client. -1 otherwise.
  */
-stock int GetClosestClient(int target = -1, const float origin[3], int targetTeam = 0, bool sawable = true, bool isIncapable = false, bool isGhost = false)
+stock int GetClosestClient(int target = -1, const float origin[3], int targetTeam = 0, bool sawable = true, bool notAimed = false, bool isIncapable = false, bool isGhost = false)
 {
     int result = -1;
     float dis = -1.0, pos[3], tarPos[3];
@@ -299,6 +300,7 @@ stock int GetClosestClient(int target = -1, const float origin[3], int targetTea
     {
         if(!IsValidClient(i) || !IsPlayerAlive(i) ||
             (targetTeam && GetClientTeam(i) != targetTeam) ||
+            (notAimed && GetClientAimTarget(i) == target) ||
             (sawable && !IsEntitySawThreats(i)) ||
             (!isIncapable && IsPlayerIncap(i)) ||
             (!isGhost && IsGhost(i))) continue;
