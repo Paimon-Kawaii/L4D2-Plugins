@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-01 14:25:29
- * @Last Modified time: 2023-07-14 23:12:16
+ * @Last Modified time: 2023-08-13 18:53:58
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -24,6 +24,11 @@ public Plugin myinfo =
     version = "",
     url = ""
 };
+
+void Test()
+{
+    GetVectorAngles()
+}
 
 // public void OnPluginStart()
 // {
