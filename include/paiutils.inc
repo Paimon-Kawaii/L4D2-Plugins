@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2023-08-05 16:26:15
+ * @Last Modified time: 2023-08-13 17:43:59
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -662,10 +662,10 @@ stock void DeleteInventoryItem(int client)
 /**
  * @brief Uses the VScript "CommandABot" function to command a bot to attack, move, retreat or reset previous command
  *
- * @param entity      The bot or infected to command
- * @param target      The Special Infected to target (used for types "CMDBOT_ATTACK" and "CMDBOT_RETREAT")
- * @param type        Type of command
- * @param vecPos      Move to this location (Used for type "CMDBOT_MOVE")
+ * @param entity    The bot or infected to command
+ * @param target    The Special Infected to target (used for types "CMDBOT_ATTACK" and "CMDBOT_RETREAT")
+ * @param type      Type of command
+ * @param pos       Move to this location (Used for type "CMDBOT_MOVE")
  *
  * @return  Returns false when unable to perform, true otherwise.
  */
@@ -685,9 +685,8 @@ stock bool CommandABot(int entity, int target = 0, int type, float pos[3] = NULL
         default:
             return false;
     }
-    ExecuteCommand(entity, "script", param);
 
-    return true;
+    return ExecuteCommand(entity, "script", param);
 }
 
 /**
@@ -809,3 +808,38 @@ stock float GetEntityDistance(int ent1, int ent2)
 
     return GetVectorDistance(pos1, pos2);
 }
+
+
+//== From https://forums.alliedmods.net/showthread.php?t=342637
+//== Author: LinLinLin
+bool IsInClientView(int entity, int client)
+{
+    float entPos[3], playerPos[3], playerAng[3];
+    float eye2entVector[3];
+    float eye2fwdVector[3];
+    char temp[16];
+    GetClientInfo(client, "fov_desired", temp, sizeof(temp));
+    int fov = StringToInt(temp);
+
+    GetClientEyePosition(client, playerPos);
+    GetEntPropVector(entity, Prop_Data, "m_vecOrigin", entPos);
+    MakeVectorFromPoints(playerPos, entPos, eye2entVector);
+
+    GetClientEyeAngles(client, playerAng);
+    GetAngleVectors(playerAng, eye2fwdVector, NULL_VECTOR, NULL_VECTOR);
+
+    NormalizeVector(eye2entVector, eye2entVector);
+    NormalizeVector(eye2fwdVector, eye2fwdVector);
+
+    float radian = ArcCosine(GetVectorDotProduct(eye2entVector, eye2fwdVector));
+    /**
+     * let me explain how this degree radian.
+     * 
+     * DotProduct = |a||b|cosθ, this is the vector theorem.
+     * we have normalize the vector so |a| = |b| = 1.
+     * in this case DotProduct = cosθ.
+     * ArcCosine() let us get the radian of θ.
+     * FOV is a degree, we need make it become radian.
+     */
+    return radian <= DegToRad(fov + 0.0) / 2;
+} 
