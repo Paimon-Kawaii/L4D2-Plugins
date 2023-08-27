@@ -166,7 +166,7 @@ Action TraceAttack(int victim, int &attacker, int &inflictor, float &damage, int
 
 #if DEBUG
     PrintToChatAll("%N atk %N: %.2f dmg", attacker, victim, damage);
-#endif 
+#endif
 
     return Plugin_Changed;
 }
@@ -191,7 +191,6 @@ public Action OnPlayerRunCmd(int survivor, int &buttons)
         || !IsFakeClient(survivor) || !IsPlayerAlive(survivor))
         return Plugin_Continue;
 
-    buttons &= ~IN_ATTACK2;
     SetEntPropFloat(survivor, Prop_Send, "m_flLaggedMovementValue", 3.0);
 
     bool siAlive = HasInfectedAlive(true);
@@ -235,7 +234,7 @@ public Action OnPlayerRunCmd(int survivor, int &buttons)
             float infDis = GetVectorDistance(infPos, surPos);
             float siDis = GetVectorDistance(siPos, surPos);
             if (IsRock(aimInf)) infDis -= 200;
-            else if (IsEntitySawThreats(targetSI)) siDis -= 200;
+            else if (IsEntitySawThreats(targetSI)) siDis -= 100;
             g_iBotTarget[survivor] = infDis > siDis ? targetSI : aimInf;
         } else if (IsInfected(targetSI))
             g_iBotTarget[survivor] = targetSI;
@@ -369,26 +368,23 @@ public Action OnPlayerRunCmd(int survivor, int &buttons)
 
                 return Plugin_Changed;
             }
-            else if (shotgun)
-            {
+
 #if DEBUG
-                if (IsInfected(target))
-                    PrintToChatAll("%N atk %N", survivor, target);
+            if (IsInfected(target))
+                PrintToChatAll("%N atk %N", survivor, target);
 #endif 
-                if (!(oldbtns & IN_ATTACK))
-                {
-                    buttons |= IN_ATTACK;
-                    g_bShovable[survivor] = false;
-                }
-                if (g_bShovable[survivor])
-                {
-                    buttons |= IN_ATTACK2;
-                    g_bShovable[survivor] = false;
-                }
-                SetEntProp(survivor, Prop_Send, "m_iShovePenalty", -1);
-            }
-            else if (!(oldbtns & IN_ATTACK))
+            if (!(oldbtns & IN_ATTACK))
+            {
                 buttons |= IN_ATTACK;
+                buttons &= ~IN_ATTACK2;
+                if(shotgun) g_bShovable[survivor] = false;
+            }
+            if (g_bShovable[survivor])
+            {
+                buttons |= IN_ATTACK2;
+                g_bShovable[survivor] = false;
+            }
+            SetEntProp(survivor, Prop_Send, "m_iShovePenalty", -1);
         }
     }
 
