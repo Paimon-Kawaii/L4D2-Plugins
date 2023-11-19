@@ -1,0 +1,51 @@
+"Phrases"
+{
+	"MENU_PREPARE"
+	{
+		"chi"			"[FC] 数据载入中，请稍后再试"
+	}
+	"ERROR_TITLE"
+	{
+		"chi"			"加载菜单失败"
+	}
+	"AUTO_TITLE"
+	{
+		"chi"			"跳舞解锁视角"
+	}
+	"HINT_TITLE"
+	{
+		"chi"			"菜单指令提示"
+	}
+	"SPEED_TITLE"
+	{
+		"chi"			"自由视角移速"
+	}
+	"ITEM_ON"
+	{
+		"chi"			"开"
+	}
+	"ITEM_OFF"
+	{
+		"chi"			"关"
+	}
+	"AUTO_HINT"
+	{
+		"chi"			"[FC] 跳舞解锁视角设置为"
+	}
+	"HINT_HINT"
+	{
+		"chi"			"[FC] 菜单指令提示设置为"
+	}
+	"SPEED_HINT"
+	{
+		"chi"			"[FC] 请在聊天框输入整数"
+	}
+	"SPEED_INVALID"
+	{
+		"chi"			"[FC] 速度应大于零，请重新输入"
+	}
+	"SPEED_SET_FINISH"
+	{
+		"chi"			"[FC] 速度被设置为"
+	}
+}
