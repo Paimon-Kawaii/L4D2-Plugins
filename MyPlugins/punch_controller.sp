@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-11-09 12:31:00
- * @Last Modified time: 2023-11-19 22:59:50
+ * @Last Modified time: 2023-11-19 23:04:03
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -92,6 +92,7 @@ Action Cmd_PunchMenu(int client, any args)
 }
 
 // From Left4DHooks
+// https://forums.alliedmods.net/showthread.php?t=321696
 void InitValues()
 {
     // Weapon IDs
@@ -274,6 +275,7 @@ MRESReturn DTR_CBasePlayer_SetPunchAngle(int pThis, DHookParam params)
 // }
 
 // From Left4DHooks
+// https://forums.alliedmods.net/showthread.php?t=321696
 float GetFloatWeaponPunch(const char[] weaponName, int index)
 {
     int ptr = GetWeaponPointer(weaponName);
@@ -287,6 +289,7 @@ float GetFloatWeaponPunch(const char[] weaponName, int index)
 }
 
 // From Left4DHooks
+// https://forums.alliedmods.net/showthread.php?t=321696
 int GetWeaponPointer(const char[] weaponName)
 {
     int ptr;
