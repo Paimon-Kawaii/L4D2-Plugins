@@ -1,0 +1,51 @@
+"Phrases"
+{
+	"MENU_PREPARE"
+	{
+		"en"			"[FC] Data preparing, please try again later"
+	}
+	"ERROR_TITLE"
+	{
+		"en"			"Failed to load title"
+	}
+	"AUTO_TITLE"
+	{
+		"en"			"Unlock camera when dancing"
+	}
+	"HINT_TITLE"
+	{
+		"en"			"Print hint when actived"
+	}
+	"SPEED_TITLE"
+	{
+		"en"			"Camera move speed"
+	}
+	"ITEM_ON"
+	{
+		"en"			"On"
+	}
+	"ITEM_OFF"
+	{
+		"en"			"Off"
+	}
+	"AUTO_HINT"
+	{
+		"en"			"[FC] Unlock camera when dancing has been set to"
+	}
+	"HINT_HINT"
+	{
+		"en"			"[FC] Print hint when actived has been set to"
+	}
+	"SPEED_HINT"
+	{
+		"en"			"[FC] Input an int to chat"
+	}
+	"SPEED_INVALID"
+	{
+		"en"			"[FC] Speed must greater than 0, please re-input"
+	}
+	"SPEED_SET_FINISH"
+	{
+		"en"			"[FC] Speed has been set to"
+	}
+}
