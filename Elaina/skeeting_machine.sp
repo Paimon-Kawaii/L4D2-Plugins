@@ -191,7 +191,7 @@ public Action OnPlayerRunCmd(int survivor, int &buttons)
         || !IsFakeClient(survivor) || !IsPlayerAlive(survivor))
         return Plugin_Continue;
 
-    SetEntPropFloat(survivor, Prop_Send, "m_flLaggedMovementValue", 3.0);
+    //SetEntPropFloat(survivor, Prop_Send, "m_flLaggedMovementValue", 3.0);
 
     bool siAlive = HasInfectedAlive(true);
     int aimInf = GetClosestZombie(survivor, NULL_VECTOR);
