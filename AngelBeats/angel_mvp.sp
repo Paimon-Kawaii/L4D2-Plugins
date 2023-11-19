@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2023-03-03 21:06:50
+ * @Last Modified time: 2023-09-22 23:22:04
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -11,7 +11,7 @@
 
 #include <sdktools>
 #include <sourcemod>
-#include <left4dhooks>
+// #include <left4dhooks>
 
 #define MAXSIZE 33
 #define VERSION "2022.05.04"
@@ -63,21 +63,21 @@ public void OnMapStart()
     g_iRetryTimes = 0;
 }
 
-public Action L4D_OnFirstSurvivorLeftSafeArea()
-{
-    for(int i = 1; i <= MaxClients; i++)
-    {
-        g_iCoolBullets[i] = 0;
-        g_iValidBullets[i] = 0;
-        g_iShotBullets[i] = 0;
-        g_iKillSpecial[i] = 0;
-        g_iKillZombies[i] = 0;
-        g_iTotalDamage[i] = 0;
-        g_iFriendDamage[i] = 0;
-        g_iDamageFriend[i] = 0;
-    }
-    return Plugin_Continue;
-}
+// public Action L4D_OnFirstSurvivorLeftSafeArea()
+// {
+//     for(int i = 1; i <= MaxClients; i++)
+//     {
+//         g_iCoolBullets[i] = 0;
+//         g_iValidBullets[i] = 0;
+//         g_iShotBullets[i] = 0;
+//         g_iKillSpecial[i] = 0;
+//         g_iKillZombies[i] = 0;
+//         g_iTotalDamage[i] = 0;
+//         g_iFriendDamage[i] = 0;
+//         g_iDamageFriend[i] = 0;
+//     }
+//     return Plugin_Continue;
+// }
 
 public Action MVPinfo(int client, any args)
 {
@@ -206,7 +206,7 @@ void ShowMVPMsg()
     int players = 0;
     int players_clients[MAXSIZE];
     PrintToChatAll("\x03[MVP统计]");
-    PrintToChatAll("\x03章节时长 \x04%dh:%dm:%ds \x03重启次数 \x04%d", g_iHours, g_iMinutes, g_iSeconds, g_iRetryTimes);
+    PrintToChatAll("\x03章节时长 \x04%d小时:%d分钟:%d秒 \x03重启次数 \x04%d", g_iHours, g_iMinutes, g_iSeconds, g_iRetryTimes);
     for (int client = 1; client <= MaxClients; client++)
         if (IsClientInGame(client) && GetClientTeam(client) == 2)
         {
@@ -218,7 +218,7 @@ void ShowMVPMsg()
     {
         int client = players_clients[i];
         if (IsValidClient(client) && GetClientTeam(client) == 2)
-            PrintToChatAll("\x03特感\x04%d \x03黑/被黑\x04%d/%d \x03命中/爆头\x04%2d%%/%2d%% \x03伤害\x04%d \x05%N", g_iKillSpecial[client], g_iFriendDamage[client], g_iDamageFriend[client], GetShotAccuracy(client), GetCoolShotAcc(client), g_iTotalDamage[client], client);
+            PrintToChatAll("\x03特感\x04%d \x03黑/被黑\x04%d/%d \x03命中+爆头\x04%d%%+%d%% \x03伤害\x04%d \x05%N", g_iKillSpecial[client], g_iFriendDamage[client], g_iDamageFriend[client], GetShotAccuracy(client), GetCoolShotAcc(client), g_iTotalDamage[client], client);
     }
 }
 
@@ -238,13 +238,15 @@ void GetMapTime()
 int GetShotAccuracy(int client)
 {
     if(!IsValidClient(client) || GetClientTeam(client) != 2) return 0;
-    if(g_iShotBullets[client] <= 0) return 100;
+    if(g_iValidBullets[client] >= g_iShotBullets[client]
+        || g_iShotBullets[client] <= 0) return 100;
     return RoundToFloor((g_iValidBullets[client] * 100.0) / g_iShotBullets[client]);
 }
 
 int GetCoolShotAcc(int client)
 {
     if(!IsValidClient(client) || GetClientTeam(client) != 2) return 0;
-    if(g_iValidBullets[client] <= 0) return 100;
+    if(g_iCoolBullets[client] >= g_iValidBullets[client]
+        || g_iValidBullets[client] <= 0) return 100;
     return RoundToFloor((g_iCoolBullets[client] * 100.0) / g_iValidBullets[client]);
 }
