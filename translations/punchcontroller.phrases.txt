@@ -1,0 +1,11 @@
+"Phrases"
+{
+	"PUNCH_V"
+	{
+		"en"			"Turn on/off view vertical punch"
+	}
+	"PUNCH_H"
+	{
+		"en"			"Turn on/off view horizontal punch"
+	}
+}
