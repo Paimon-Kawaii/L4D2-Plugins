@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-11-09 12:31:00
- * @Last Modified time: 2023-11-19 22:22:03
+ * @Last Modified time: 2023-11-19 22:59:50
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -75,6 +75,11 @@ public void OnPluginStart()
     InitCookie();
     InitConVars();
     InitGameData();
+
+    // Translations
+    LoadTranslations("punchcontroller.phrases");
+    // Execute cfg
+    AutoExecConfig(true, "punch_controller");
 }
 
 Action Cmd_PunchMenu(int client, any args)
@@ -144,9 +149,14 @@ void InitValues()
 void InitCookie()
 {
     g_ckPunchV = new Cookie("PunchVCookie", "PunchV Settings", CookieAccess_Public);
-    g_ckPunchV.SetPrefabMenu(CookieMenu_OnOff_Int, "开关水平抖动");
+    g_ckPunchV.SetPrefabMenu(CookieMenu_OnOff_Int, "PUNCH_V", Punch_CookieMenuHandler);
     g_ckPunchH = new Cookie("PunchHCookie", "PunchH Settings", CookieAccess_Public);
-    g_ckPunchH.SetPrefabMenu(CookieMenu_OnOff_Int, "开关垂直抖动");
+    g_ckPunchH.SetPrefabMenu(CookieMenu_OnOff_Int, "PUNCH_H", Punch_CookieMenuHandler);
+}
+
+void Punch_CookieMenuHandler(int client, CookieMenuAction action, any info, char[] title, int maxlen)
+{
+    Format(title, maxlen, "%T", title, client);
 }
 
 void InitConVars()
