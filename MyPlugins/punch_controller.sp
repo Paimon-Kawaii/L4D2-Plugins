@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-11-09 12:31:00
- * @Last Modified time: 2023-11-19 23:04:03
+ * @Last Modified time: 2023-11-21 20:26:43
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -225,8 +225,7 @@ void CreateDetour(GameData gamedata, DHookCallback callback, const char[] name, 
     g_ddSetPunchAngle = DynamicDetour.FromConf(gamedata, name);
     if(!g_ddSetPunchAngle) LogError("Failed to load detour \"%s\" signature.", name);
     
-    if(callback != INVALID_FUNCTION &&
-        !g_ddSetPunchAngle.Enable(post ? Hook_Post : Hook_Pre, DTR_CBasePlayer_SetPunchAngle))
+    if(callback != INVALID_FUNCTION && !g_ddSetPunchAngle.Enable(post ? Hook_Post : Hook_Pre, callback))
         LogError("Failed to detour \"%s\".", name);
 }
 
