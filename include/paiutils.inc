@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2023-08-13 17:43:59
+ * @Last Modified time: 2023-11-28 10:52:27
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -812,7 +812,7 @@ stock float GetEntityDistance(int ent1, int ent2)
 
 //== From https://forums.alliedmods.net/showthread.php?t=342637
 //== Author: LinLinLin
-bool IsInClientView(int entity, int client)
+stock bool IsInClientView(int entity, int client)
 {
     float entPos[3], playerPos[3], playerAng[3];
     float eye2entVector[3];
@@ -843,3 +843,25 @@ bool IsInClientView(int entity, int client)
      */
     return radian <= DegToRad(fov + 0.0) / 2;
 } 
+
+stock bool IsFirstMap()
+{
+    int count, entity;
+    while((entity = FindEntityByClassname(entity, "info_landmark")) > 0) count++;
+    return count < 2 && FindEntityByClassname(0, "trigger_finale") == -1;
+}
+
+stock bool IsIntro()
+{
+    int entity = FindEntityByClassname(0, "terror_gamerules");
+    if(!IsValidEntity(entity)) return false;
+
+    return view_as<bool>(GetEntProp(entity, Prop_Send, "m_bInIntro"));
+}
+
+stock bool IsMissionFinal()
+{
+    int count, entity;
+    while((entity = FindEntityByClassname(entity, "info_landmark")) > 0) count++
+    return count < 2 && FindEntityByClassname(0, "trigger_finale") > 0;
+}
