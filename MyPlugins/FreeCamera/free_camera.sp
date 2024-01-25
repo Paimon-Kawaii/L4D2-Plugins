@@ -1,4 +1,18 @@
 /*
+ * @Author: 我是派蒙啊
+ * @Last Modified by: 我是派蒙啊
+ * @Create Date: 2023-03-18 22:22:37
+ * @Last Modified time: 2024-01-25 15:49:25
+ * @Github: https://github.com/Paimon-Kawaii
+ */
+/*
+ * @Author: 我是派蒙啊
+ * @Last Modified by: 我是派蒙啊
+ * @Create Date: 2023-03-18 22:22:37
+ * @Last Modified time: 2024-01-25 15:49:14
+ * @Github: https://github.com/Paimon-Kawaii
+ */
+/*
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
@@ -18,27 +32,27 @@
 #undef REQUIRE_PLUGIN
 #include <fnemotes>
 
-#define VERSION "2023.04.29"
-#define MAXSIZE MAXPLAYERS + 1
+#define VERSION                  "2023.04.29"
+#define MAXSIZE                  MAXPLAYERS + 1
 
-#define CAMERA_MODEL "models/editor/camera.mdl"
-#define CAMERA_AUTO_COOKIE_NAME "CameraAutoCookies"
-#define CAMERA_HINT_COOKIE_NAME "CameraHintCookies"
+#define CAMERA_MODEL             "models/editor/camera.mdl"
+#define CAMERA_AUTO_COOKIE_NAME  "CameraAutoCookies"
+#define CAMERA_HINT_COOKIE_NAME  "CameraHintCookies"
 #define CAMERA_SPEED_COOKIE_NAME "CameraSpeedCookies"
 
 int
-    g_iFreeCamera[MAXSIZE] = {-1, ...};
+    g_iFreeCamera[MAXSIZE] = { -1, ... };
 
 float
-    g_fCameraSpeed[MAXSIZE] = {0.0, ...};
+    g_fCameraSpeed[MAXSIZE] = { 0.0, ... };
 
 bool
     g_bDanceAvailable = false,
-    g_bMenuHint[MAXSIZE] = {true, ...},
-    g_bIsDancing[MAXSIZE] = {false, ...},
-    g_bWaitSpeed[MAXSIZE] = {false, ...},
-    g_bAutoCamera[MAXSIZE] = {true, ...},
-    g_bIsCameraActive[MAXSIZE] = {false, ...};
+    g_bMenuHint[MAXSIZE] = { true, ... },
+    g_bIsDancing[MAXSIZE] = { false, ... },
+    g_bWaitSpeed[MAXSIZE] = { false, ... },
+    g_bAutoCamera[MAXSIZE] = { true, ... },
+    g_bIsCameraActive[MAXSIZE] = { false, ... };
 
 Cookie
     g_hCameraCookies[3];
@@ -46,7 +60,7 @@ Cookie
 ConVar
     g_hFreeCamera,
     g_hFreeCamSpeed;
-    // g_hFreeCamSwitch;
+// g_hFreeCamSwitch;
 
 GlobalForward
     g_hOnPlayerCameraActived,
@@ -160,9 +174,9 @@ void CreateForwards()
 void Event_PlayerDead(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
-    if(!IsSurvivor(client)) return;
+    if (!IsSurvivor(client)) return;
     int camera = GetClientCamera(client);
-    if(!IsValidEntity(camera)) return;
+    if (!IsValidEntity(camera)) return;
 
     // Fix survivor view
     g_iFreeCamera[client] = -1;
@@ -255,8 +269,8 @@ public void OnMapEnd()
 }
 
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
-    float vel[3], float angles[3], int& weapon, int& subtype,
-    int& cmdnum, int& tickcount, int& seed, int mouse[2])
+                      float vel[3], float angles[3], int& weapon, int& subtype,
+                      int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
     int camera = GetClientCamera(client);
     if (IsValidEntity(camera) && IsClientCameraActive(client))
@@ -290,14 +304,14 @@ public void fnemotes_OnEmote_Pre(int client)
             g_bIsDancing[client] = true;
             if (g_bMenuHint[client])
                 PrintToChat(client, "%T", "MENU_HINT", client);
-                // PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
+            // PrintToChat(client, "[FC] 聊天框输入 /fcm 设置相机属性");
         }
 }
 
 Action TraceAttack(int victim)
 {
     // Prevent god mode
-    if(IsSurvivor(victim))
+    if (IsSurvivor(victim))
         DisableFreeCamera(victim);
 
     return Plugin_Continue;
@@ -342,14 +356,14 @@ void MoveCamera(int client, int camera, int buttons)
 
 Action Cmd_FreeCamera(int client, any args)
 {
-    if (g_hFreeCamera.BoolValue/* && g_hFreeCamSwitch.BoolValue*/)
+    if (g_hFreeCamera.BoolValue /* && g_hFreeCamSwitch.BoolValue*/)
         EnableFreeCamera(client);
     return Plugin_Handled;
 }
 
 Action Cmd_KillFreeCamera(int client, any args)
 {
-    if (g_hFreeCamera.BoolValue/* && g_hFreeCamSwitch.BoolValue*/)
+    if (g_hFreeCamera.BoolValue /* && g_hFreeCamSwitch.BoolValue*/)
     {
         g_bIsDancing[client] = false;
         DisableFreeCamera(client);
@@ -360,7 +374,7 @@ Action Cmd_KillFreeCamera(int client, any args)
 Action Cmd_FreeCameraMenu(int client, any args)
 {
     if (IsValidClient(client))
-        if(!AreClientCookiesCached(client))
+        if (!AreClientCookiesCached(client))
             PrintToChat(client, "%T", "MENU_PREPARE", client);
         else ShowCookieMenu(client);
     return Plugin_Handled;
@@ -368,30 +382,30 @@ Action Cmd_FreeCameraMenu(int client, any args)
 
 void Camera_CookieMenuHandler(int client, CookieMenuAction action, any info, char[] title, int maxlen)
 {
-    switch(view_as<int>(info))
+    switch (view_as<int>(info))
     {
         case CAMERA_AUTO_ITEM:
         {
             Format(title, maxlen, "%T: %T", "AUTO_TITLE", client,
-                g_bAutoCamera[client] ? "ITEM_ON" : "ITEM_OFF", client);
+                   g_bAutoCamera[client] ? "ITEM_ON" : "ITEM_OFF", client);
             if (action == CookieMenuAction_SelectOption)
             {
                 g_bAutoCamera[client] = !g_bAutoCamera[client];
                 g_hCameraCookies[info].SetInt(client, g_bAutoCamera[client]);
                 PrintToChat(client, "%T: %T", "AUTO_HINT", client,
-                    g_bAutoCamera[client] ? "ITEM_ON" : "ITEM_OFF", client);
+                            g_bAutoCamera[client] ? "ITEM_ON" : "ITEM_OFF", client);
             }
         }
         case CAMERA_HINT_ITEM:
         {
             Format(title, maxlen, "%T: %T", "HINT_TITLE", client,
-                g_bMenuHint[client] ? "ITEM_ON" : "ITEM_OFF", client);
+                   g_bMenuHint[client] ? "ITEM_ON" : "ITEM_OFF", client);
             if (action == CookieMenuAction_SelectOption)
             {
                 g_bMenuHint[client] = !g_bMenuHint[client];
                 g_hCameraCookies[info].SetInt(client, g_bMenuHint[client]);
                 PrintToChat(client, "%T: %T", "HINT_HINT", client,
-                    g_bMenuHint[client] ? "ITEM_ON" : "ITEM_OFF", client);
+                            g_bMenuHint[client] ? "ITEM_ON" : "ITEM_OFF", client);
             }
         }
         case CAMERA_SPEED_ITEM:
@@ -471,7 +485,7 @@ void DisableFreeCamera(int client, bool force = false)
     if (!IsSurvivor(client))
         return;
 
-    if(!force)
+    if (!force)
     {
         // Call forward
         Action result = Plugin_Continue;
@@ -522,7 +536,7 @@ int CreateFreeCamera(int target)
     // vomitjar_projectile: : Seems the best choice, no particle, no flash, no effect,
     //              no auto destroy, wont be hooked...Perfect!!!
     camera = GetClientCamera(target);
-    if(!IsValidEntity(camera))
+    if (!IsValidEntity(camera))
         camera = CreateEntityByName("point_viewcontrol");
     if (!IsValidEntity(camera)) return -1;
 
