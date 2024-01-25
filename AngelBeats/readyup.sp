@@ -64,12 +64,12 @@ enum
 // ========================
 // Game Cvars
 ConVar
-    director_no_specials,
     sb_stop,
-    survivor_limit,
+    // survivor_limit,
     //god,
     //sv_infinite_primary_ammo,
-    z_max_player_zombies;
+    // z_max_player_zombies,
+    director_no_specials;
 
 // Plugin Cvars
 ConVar
@@ -79,9 +79,8 @@ ConVar
     l4d_ready_max_players,
     l4d_ready_delay, l4d_ready_force_extra, l4d_ready_autostart_delay, l4d_ready_autostart_wait,
     l4d_ready_enable_sound, l4d_ready_chuckle, l4d_ready_countdown_sound, l4d_ready_live_sound, l4d_ready_autostart_sound,
-    l4d_ready_secret,
-    l4d_ready_unbalanced_start,
-    l4d_ready_unbalanced_min;
+    // l4d_ready_unbalanced_start, l4d_ready_unbalanced_min,
+    l4d_ready_secret;
 
 // Server Name
 ConVar ServerNamer;
@@ -93,7 +92,7 @@ char
     sCmd[32],
     readyFooter[MAX_FOOTERS][MAX_FOOTER_LEN];
 int
-    iCmd,
+    iCmd = 1,
     footerCounter;
 float
     fStartTimestamp;
@@ -214,14 +213,14 @@ public void OnPluginStart()
     l4d_ready_autostart_sound   = CreateConVar("l4d_ready_autostart_sound", DEFAULT_AUTOSTART_SOUND, "The sound that plays when auto-start goes on countdown");
     l4d_ready_chuckle           = CreateConVar("l4d_ready_chuckle", "0", "Enable random moustachio chuckle during countdown");
     l4d_ready_secret            = CreateConVar("l4d_ready_secret", "1", "Play something good", _, true, 0.0, true, 1.0);
-    l4d_ready_unbalanced_start  = CreateConVar("l4d_ready_unbalanced_start", "0", "Allow game to go live when teams are not full.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    l4d_ready_unbalanced_min    = CreateConVar("l4d_ready_unbalanced_min", "2", "Minimum of players in each team to allow a unbalanced start.", FCVAR_NOTIFY, true, 0.0);
+    // l4d_ready_unbalanced_start  = CreateConVar("l4d_ready_unbalanced_start", "0", "Allow game to go live when teams are not full.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    // l4d_ready_unbalanced_min    = CreateConVar("l4d_ready_unbalanced_min", "2", "Minimum of players in each team to allow a unbalanced start.", FCVAR_NOTIFY, true, 0.0);
 
     director_no_specials = FindConVar("director_no_specials");
     //god = FindConVar("god");
     sb_stop = FindConVar("sb_stop");
-    survivor_limit = FindConVar("survivor_limit");
-    z_max_player_zombies = FindConVar("z_max_player_zombies");
+    // survivor_limit = FindConVar("survivor_limit");
+    // z_max_player_zombies = FindConVar("z_max_player_zombies");
     //sv_infinite_primary_ammo = FindConVar("sv_infinite_primary_ammo");
 
     // Ready Commands
@@ -255,6 +254,7 @@ public void OnPluginStart()
     l4d_ready_survivor_freeze.AddChangeHook(SurvFreezeChanged);
 
     l4d_ready_server_cvar.AddChangeHook(ServerCvarChanged);
+    AutoExecConfig(true, "readyup");
 }
 
 public void OnPluginEnd()
@@ -806,7 +806,7 @@ public Action MenuCmd_Timer(Handle timer)
 {
     if (inReadyUp)
     {
-        iCmd > 9 ? (iCmd = 1) : (iCmd += 1);
+        iCmd > 4 ? (iCmd = 1) : (iCmd += 1);
         return Plugin_Continue;
     }
     return Plugin_Stop;
@@ -816,15 +816,10 @@ void PrintCmd()
 {
     switch (iCmd)
     {
-        case 1: FormatEx(sCmd, sizeof(sCmd), "->1. !ready|!r / !unready|!nr");
-        case 2: FormatEx(sCmd, sizeof(sCmd), "->2. !slots #");
-        case 3: FormatEx(sCmd, sizeof(sCmd), "->3. !voteboss <tank> <witch>");
-        case 4: FormatEx(sCmd, sizeof(sCmd), "->4. !match / !rmatch");
-        case 5: FormatEx(sCmd, sizeof(sCmd), "->5. !show / !hide");
-        case 6: FormatEx(sCmd, sizeof(sCmd), "->6. !setscores <survs> <inf>");
-        case 7: FormatEx(sCmd, sizeof(sCmd), "->7. !lerps");
-        case 8: FormatEx(sCmd, sizeof(sCmd), "->8. !secondary");
-        case 9: FormatEx(sCmd, sizeof(sCmd), "->9. !forcestart / !fs");
+        case 1: FormatEx(sCmd, sizeof(sCmd), "->1.准备游戏: !ready|!r");
+        case 2: FormatEx(sCmd, sizeof(sCmd), "->2.取消准备: !unready|!nr");
+        case 3: FormatEx(sCmd, sizeof(sCmd), "->3.展示面板: !show");
+        case 4: FormatEx(sCmd, sizeof(sCmd), "->4.隐藏面板: !hide");
     }
 }
 
@@ -841,7 +836,7 @@ void UpdatePanel()
     Panel menuPanel = new Panel();
 
     char ServerBuffer[128];
-    char ServerName[32];
+    char ServerName[64];
     char cfgName[32];
     PrintCmd();
 
@@ -850,7 +845,7 @@ void UpdatePanel()
     ServerNamer.GetString(ServerName, sizeof(ServerName));
 
     l4d_ready_cfg_name.GetString(cfgName, sizeof(cfgName));
-    Format(ServerBuffer, sizeof(ServerBuffer), "▸ Server: %s \n▸ Slots: %d/%d\n▸ Config: %s", ServerName, GetSeriousClientCount(), FindConVar("sv_maxplayers").IntValue, cfgName);
+    Format(ServerBuffer, sizeof(ServerBuffer), "▸ 名称: %s \n▸ 位置: %d/%d", ServerName, GetSeriousClientCount(), FindConVar("sv_maxplayers").IntValue, cfgName);
     menuPanel.DrawText(ServerBuffer);
 
     FormatTime(ServerBuffer, sizeof(ServerBuffer), "▸ %m/%d/%Y - %I:%M%p");
@@ -858,9 +853,10 @@ void UpdatePanel()
     menuPanel.DrawText(ServerBuffer);
 
     menuPanel.DrawText(" ");
-    menuPanel.DrawText("▸ Commands:");
+    menuPanel.DrawText("▸ 指令:");
     menuPanel.DrawText(sCmd);
     menuPanel.DrawText(" ");
+    menuPanel.DrawText("▸ 玩家列表:");
 
     char nameBuf[64];
 
@@ -876,13 +872,13 @@ void UpdatePanel()
                 if (isPlayerReady[client])
                 {
                     if (!inLiveCountdown && !isAutoStartMode) PrintHintText(client, "%t", "HintReady");
-                    Format(nameBuf, sizeof(nameBuf), isAutoStartMode ? "%s\n" : "☑ %s\n", nameBuf);
+                    Format(nameBuf, sizeof(nameBuf), isAutoStartMode ? "%s\n" : "★ %s\n", nameBuf);
                     GetClientTeam(client) == L4D2Team_Survivor ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
                 }
                 else
                 {
                     if (!inLiveCountdown && !isAutoStartMode) PrintHintText(client, "%t", "HintUnready");
-                    Format(nameBuf, sizeof(nameBuf), isAutoStartMode ? "%s\n" : "☐ %s%s\n", nameBuf, ( IsPlayerAfk(client) ? " [AFK]" : "" ));
+                    Format(nameBuf, sizeof(nameBuf), isAutoStartMode ? "%s\n" : "☆ %s%s\n", nameBuf, ( IsPlayerAfk(client) ? " [AFK]" : "" ));
                     GetClientTeam(client) == L4D2Team_Survivor ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
                 }
             }
@@ -913,7 +909,7 @@ void UpdatePanel()
     {
         survivorBuffer[bufLen] = '\0';
         ReplaceString(survivorBuffer, sizeof(survivorBuffer), "#", "_");
-        Format(nameBuf, sizeof(nameBuf), "->%d. Survivors", ++textCount);
+        Format(nameBuf, sizeof(nameBuf), "->%d. 生还", ++textCount);
         menuPanel.DrawText(nameBuf);
         menuPanel.DrawText(survivorBuffer);
     }
@@ -923,7 +919,7 @@ void UpdatePanel()
     {
         infectedBuffer[bufLen] = '\0';
         ReplaceString(infectedBuffer, sizeof(infectedBuffer), "#", "_");
-        Format(nameBuf, sizeof(nameBuf), "->%d. Infected", ++textCount);
+        Format(nameBuf, sizeof(nameBuf), "->%d. 特感", ++textCount);
         menuPanel.DrawText(nameBuf);
         menuPanel.DrawText(infectedBuffer);
     }
@@ -936,7 +932,7 @@ void UpdatePanel()
         if (bufLen != 0)
         {
             casterBuffer[bufLen] = '\0';
-            Format(nameBuf, sizeof(nameBuf), "->%d. Caster%s", ++textCount, casterCount > 1 ? "s" : "");
+            Format(nameBuf, sizeof(nameBuf), "->%d. 裁判", ++textCount);
             menuPanel.DrawText(nameBuf);
             ReplaceString(casterBuffer, sizeof(casterBuffer), "#", "_", true);
             menuPanel.DrawText(casterBuffer);
@@ -947,11 +943,11 @@ void UpdatePanel()
     if (bufLen != 0)
     {
         specBuffer[bufLen] = '\0';
-        Format(nameBuf, sizeof(nameBuf), "->%d. Spectator%s", ++textCount, specCount > 1 ? "s" : "");
+        Format(nameBuf, sizeof(nameBuf), "->%d. 旁观", ++textCount);
         menuPanel.DrawText(nameBuf);
         ReplaceString(specBuffer, sizeof(specBuffer), "#", "_");
         if (playerCount > l4d_ready_max_players.IntValue && specCount - casterCount > 1)
-            FormatEx(specBuffer, sizeof(specBuffer), "**Many** (%d)", specCount - casterCount);
+            FormatEx(specBuffer, sizeof(specBuffer), "**以下不列出** (%d)", specCount - casterCount);
         menuPanel.DrawText(specBuffer);
     }
 
@@ -1222,25 +1218,25 @@ bool CheckFullReady()
         }
     }
     //if(FindConVar("angel_hunt") == null && !FindConVar("angel_hunt").BoolValue)
-        return survReadyCount >= GetTeamHumanCount(L4D2Team_Survivor) / 2 + 1;
+    return survReadyCount >= GetTeamHumanCount(L4D2Team_Survivor) / 2 + 1;
 
-    int survLimit = survivor_limit.IntValue;
-    int zombLimit = z_max_player_zombies.IntValue;
+    // int survLimit = survivor_limit.IntValue;
+    // int zombLimit = z_max_player_zombies.IntValue;
 
-    if (l4d_ready_unbalanced_start.BoolValue)
-    {
-        int iBaseline = l4d_ready_unbalanced_min.IntValue;
+    // if (l4d_ready_unbalanced_start.BoolValue)
+    // {
+    //     int iBaseline = l4d_ready_unbalanced_min.IntValue;
 
-        if (iBaseline > survLimit) iBaseline = survLimit;
-        if (iBaseline > zombLimit) iBaseline = zombLimit;
+    //     if (iBaseline > survLimit) iBaseline = survLimit;
+    //     if (iBaseline > zombLimit) iBaseline = zombLimit;
 
-        return (iBaseline <= GetTeamHumanCount(L4D2Team_Survivor) <= survReadyCount)
-            && (iBaseline <= GetTeamHumanCount(L4D2Team_Infected) <= infReadyCount);
-    }
-    else
-    {
-        return (survReadyCount + infReadyCount) >= survLimit + zombLimit;
-    }
+    //     return (iBaseline <= GetTeamHumanCount(L4D2Team_Survivor) <= survReadyCount)
+    //         && (iBaseline <= GetTeamHumanCount(L4D2Team_Infected) <= infReadyCount);
+    // }
+    // else
+    // {
+    //     return (survReadyCount + infReadyCount) >= survLimit + zombLimit;
+    // }
 }
 
 void CancelFullReady(int client, disruptType type)

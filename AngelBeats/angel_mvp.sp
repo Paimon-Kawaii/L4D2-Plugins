@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-03-23 12:42:32
- * @Last Modified time: 2023-09-22 23:22:04
+ * @Last Modified time: 2023-12-26 20:41:23
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -218,7 +218,7 @@ void ShowMVPMsg()
     {
         int client = players_clients[i];
         if (IsValidClient(client) && GetClientTeam(client) == 2)
-            PrintToChatAll("\x03特感\x04%d \x03黑/被黑\x04%d/%d \x03命中+爆头\x04%d%%+%d%% \x03伤害\x04%d \x05%N", g_iKillSpecial[client], g_iFriendDamage[client], g_iDamageFriend[client], GetShotAccuracy(client), GetCoolShotAcc(client), g_iTotalDamage[client], client);
+            PrintToChatAll("\x03特感\x04%d \x03丧尸\x04%d \x03黑/被黑\x04%d/%d \x03伤害\x04%d \x05%N", g_iKillSpecial[client], g_iKillZombies[client], g_iFriendDamage[client], g_iDamageFriend[client], g_iTotalDamage[client], client);
     }
 }
 

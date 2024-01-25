@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-01 14:25:29
- * @Last Modified time: 2023-08-13 18:53:58
+ * @Last Modified time: 2023-12-22 20:45:55
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -25,15 +25,15 @@ public Plugin myinfo =
     url = ""
 };
 
-void Test()
-{
-    GetVectorAngles()
-}
-
-// public void OnPluginStart()
+// void Test()
 // {
-//     RegConsoleCmd("sm_esc", Cmd_ESC);
+//     GetVectorAngles()
 // }
+
+public void OnPluginStart()
+{
+    RegConsoleCmd("sm_esc", Cmd_ESC);
+}
 
 // public void OnClientConnected(int client)
 // {
@@ -47,23 +47,33 @@ void Test()
 //     ClientCommand(client, "bind \"ESCAPE\" \"cancelselect\"");
 // }
 
-// Action Cmd_ESC(int client, int args)
-// {
-//     PrintToChatAll("escape");
+Action Cmd_ESC(int client, int args)
+{
+    char prop[32], type[4], data[16];
+    GetCmdArg(1, prop, sizeof(prop));
+    GetCmdArg(2, data, sizeof(data));
+    int iData = StringToInt(data);
 
-//     return Plugin_Continue;
-// }
+    SetEntProp(client, Prop_Send, prop, iData);
+
+    return Plugin_Continue;
+}
 
 //特感连跳
-public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
-{
-    if (!IsValidClient(client) || IsFakeClient(client)) return Plugin_Continue;
+// public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
+// {
+//     if (!IsValidClient(client) || IsFakeClient(client)) return Plugin_Continue;
 
-    if ((buttons & IN_JUMP) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
-        buttons &= ~IN_JUMP;
+//     if ((buttons & IN_JUMP) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
+//         buttons &= ~IN_JUMP;
 
-    return Plugin_Changed;
-}
+//     return Plugin_Changed;
+// }
+
+// void test()
+// {
+//     CreateEntityByName("")
+// }
 
 
 //L4D2_Charger_StartCarryingVictim
