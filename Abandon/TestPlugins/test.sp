@@ -1,8 +1,8 @@
 /*
  * @Author:             我是派蒙啊
- * @Last Modified by:   我是派蒙啊
+ * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-06-01 14:25:29
- * @Last Modified time: 2023-12-22 20:45:55
+ * @Last Modified time: 2024-01-25 21:07:34
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -15,7 +15,6 @@
 #include <left4dhooks>
 
 // int carried[MAXPLAYERS + 1];
-
 public Plugin myinfo =
 {
     name = "Test",
@@ -29,7 +28,6 @@ public Plugin myinfo =
 // {
 //     GetVectorAngles()
 // }
-
 public void OnPluginStart()
 {
     RegConsoleCmd("sm_esc", Cmd_ESC);
@@ -49,7 +47,8 @@ public void OnPluginStart()
 
 Action Cmd_ESC(int client, int args)
 {
-    char prop[32], type[4], data[16];
+    char buffer[32], prop[32], type[4], data[16];
+    GetCmdArg(1, prop, sizeof(prop));
     GetCmdArg(1, prop, sizeof(prop));
     GetCmdArg(2, data, sizeof(data));
     int iData = StringToInt(data);
@@ -75,9 +74,8 @@ Action Cmd_ESC(int client, int args)
 //     CreateEntityByName("")
 // }
 
-
-//L4D2_Charger_StartCarryingVictim
-//L4D2_Charger_EndPummel
+// L4D2_Charger_StartCarryingVictim
+// L4D2_Charger_EndPummel
 
 // public Action L4D2_OnStartCarryingVictim(int victim, int attacker)
 // {
@@ -89,7 +87,6 @@ Action Cmd_ESC(int client, int args)
 
 //     return Plugin_Continue;
 // }
-
 
 // Action Timer_Release(Handle timer, int client)
 // {
