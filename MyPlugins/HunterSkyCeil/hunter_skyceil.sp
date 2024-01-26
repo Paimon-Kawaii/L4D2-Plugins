@@ -1,8 +1,8 @@
 /*
  * @Author:             我是派蒙啊
- * @Last Modified by:   我是派蒙啊
+ * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-05-22 13:43:16
- * @Last Modified time: 2023-07-26 16:06:03
+ * @Last Modified time: 2024-01-26 10:35:27
  * @Github:             https:// github.com/Paimon-Kawaii
  */
 
@@ -13,16 +13,16 @@
 #include <paiutils>
 #include <sourcemod>
 
-#define DEBUG 0
-#define DEBUG_RAY 0
-#define VERSION "2023.07.25#12"
+#define DEBUG       0
+#define DEBUG_RAY   0
+#define VERSION     "2023.07.25#12"
 
-#define MAXSIZE MAXPLAYERS + 1
-#define TRACE_TICK 100
+#define MAXSIZE     MAXPLAYERS + 1
+#define TRACE_TICK  100
 #define POUNCE_TICK 10
 
 #if DEBUG_RAY
-    int g_iRayCallTimes = 0;
+int g_iRayCallTimes = 0;
 #endif
 
 ConVar
@@ -41,25 +41,25 @@ int
     // 天花板ht数量
     g_iCeilHunterCount = 0,
     // 用于记录ht起飞次数，避免不停尝试
-    g_iLeapTimes[MAXSIZE] = {0, ...},
+    g_iLeapTimes[MAXSIZE] = { 0, ... },
     // 用于记录上次射线的tick，用于设置间隔
-    g_iLastRayTick[MAXSIZE] = {0, ...},
+    g_iLastRayTick[MAXSIZE] = { 0, ... },
     // 仅用于记录ht目标，便于查找
-    g_iPounceTarget[MAXSIZE] = {0, ...},
+    g_iPounceTarget[MAXSIZE] = { 0, ... },
     // 用于记录生还被谁瞄准并设定目标
-    g_iTargetWhoAimed[MAXSIZE] = {0, ...},
+    g_iTargetWhoAimed[MAXSIZE] = { 0, ... },
     // 记录上次使用技能的tick，用于设置间隔
-    g_iLastPounceTick[MAXSIZE] = {0, ...};
+    g_iLastPounceTick[MAXSIZE] = { 0, ... };
 
 bool
     // 标记ht是否在飞天花板
-    g_bIsFlyingCeil[MAXSIZE] = {false, ...},
+    g_bIsFlyingCeil[MAXSIZE] = { false, ... },
     // 用于标记是否允许使用天花板高扑
-    g_bIsControllable[MAXSIZE] = {false, ...},
+    g_bIsControllable[MAXSIZE] = { false, ... },
     // 用于标记ht是否准备从天花板突袭
-    g_bIsAttemptPounce[MAXSIZE] = {false, ...},
+    g_bIsAttemptPounce[MAXSIZE] = { false, ... },
     // 用于标记头顶是否是天花板
-    g_bIsCeilAvaliable[MAXSIZE] = {false, ...};
+    g_bIsCeilAvaliable[MAXSIZE] = { false, ... };
 
 float
     // 用于修正抛物线速度
@@ -72,10 +72,13 @@ public Plugin myinfo =
     description = "让 AI Hunter 飞天花板",
     version = VERSION,
     url = "http://github.com/Paimon-Kawaii/L4D2-Plugins"
+
+
 }
 
 // 注册ConVar
-public void OnPluginStart()
+public void
+    OnPluginStart()
 {
     g_hHSCStopDis = CreateConVar("hsc_stop_dis", "600", "停止飞天花板距离", FCVAR_NONE, true, 0.0);
     g_hHSCMaxLeap = CreateConVar("hsc_max_leap", "3", "HT起飞的最大尝试次数", FCVAR_NONE, true, 0.0);
@@ -111,9 +114,9 @@ Action Timer_ShowRayCallTimes(Handle timer)
 // 判断速度是否可以飞天花板
 void ConVarChanged_LungePower(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-    if(g_hLungePower.FloatValue > 930 && g_hHSCEnable.BoolValue)
+    if (g_hLungePower.FloatValue > 930 && g_hHSCEnable.BoolValue)
         g_hHSCEnable.SetBool(false);
-    if(g_hLungePower.FloatValue > 680 && g_hHSCHuman.BoolValue)
+    if (g_hLungePower.FloatValue > 680 && g_hHSCHuman.BoolValue)
         g_hHSCHuman.SetBool(false);
 }
 
@@ -121,7 +124,7 @@ void ConVarChanged_LungePower(ConVar convar, const char[] oldValue, const char[]
 void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
     int hunter = GetClientOfUserId(event.GetInt("userid"));
-    if(!IsInfected(hunter) || GetZombieClass(hunter) != ZC_Hunter
+    if (!IsInfected(hunter) || GetZombieClass(hunter) != ZC_Hunter
         || g_iCeilHunterCount >= GetAliveSurvivorCount())
         return;
     g_bIsControllable[hunter] = true;
@@ -156,7 +159,7 @@ public void OnMapStart()
     {
         g_iLeapTimes[i] = g_iPounceTarget[i] =
             g_iLastRayTick[i] = g_iTargetWhoAimed[i] =
-            g_iLastPounceTick[i] = 0;
+                g_iLastPounceTick[i] = 0;
 
         g_bIsFlyingCeil[i] = g_bIsControllable[i] =
             g_bIsCeilAvaliable[i] = g_bIsAttemptPounce[i] = false;
@@ -169,7 +172,7 @@ public void OnMapStart()
 public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3], float ang[3])
 {
 #if DEBUG
-    if(GetEntityMoveType(hunter) == MOVETYPE_NOCLIP)
+    if (GetEntityMoveType(hunter) == MOVETYPE_NOCLIP)
         return Plugin_Continue;
 #endif
 
@@ -225,20 +228,18 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     }
 
     // 玩家ht是否允许接管操作(速度高于680时玩家ht无法飞天花板)
-    if (!IsFakeClient(hunter) && (!g_hHSCHuman.BoolValue
-        || g_hLungePower.FloatValue > 680))
+    if (!IsFakeClient(hunter) && (!g_hHSCHuman.BoolValue || g_hLungePower.FloatValue > 680))
         return Plugin_Continue;
 
     float htpos[3];
     GetClientAbsOrigin(hunter, htpos);
 
     // 在地面上 且是 ai-ht 且 到达检测间隔时，检测头顶是否为天花板
-    if (isgrounded && IsFakeClient(hunter) &&
-        GetGameTickCount() - g_iLastRayTick[hunter] >= TRACE_TICK)
+    if (isgrounded && IsFakeClient(hunter) && GetGameTickCount() - g_iLastRayTick[hunter] >= TRACE_TICK)
     {
         g_iLastRayTick[hunter] = GetGameTickCount();
-        Handle trace = TR_TraceRayFilterEx(htpos, {-90.0, 0.0, 0.0},
-            MASK_SOLID, RayType_Infinite, SelfIgnore_TraceFilter);
+        Handle trace = TR_TraceRayFilterEx(htpos, { -90.0, 0.0, 0.0 },
+                                           MASK_SOLID, RayType_Infinite, SelfIgnore_TraceFilter);
 
 #if DEBUG_RAY
         g_iRayCallTimes++;
@@ -273,9 +274,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
     }
 
     // 玩家ht需要先使用一次技能
-    bool canfly = IsFakeClient(hunter) || view_as<bool>(
-        GetEntProp(GetEntPropEnt(hunter, Prop_Send,
-        "m_customAbility"), Prop_Send, "m_hasBeenUsed"));
+    bool canfly = IsFakeClient(hunter) || view_as<bool>(GetEntProp(GetEntPropEnt(hunter, Prop_Send, "m_customAbility"), Prop_Send, "m_hasBeenUsed"));
 
     int oldbtns = GetEntProp(hunter, Prop_Data, "m_nOldButtons");
     // 当ht在弹天花板 且 btn包含atk指令 且 pounce间隔达到pounce_tick，取消btn的atk指令
@@ -297,7 +296,7 @@ public Action OnPlayerRunCmd(int hunter, int& buttons, int& impulse, float vel[3
         // 达到最大尝试次数，启动重置时钟
         if (g_iLeapTimes[hunter] >= g_hHSCMaxLeap.IntValue)
             CreateTimer(g_hHSCResetInv.FloatValue,
-                Timer_ResetLeapTimes, hunter, TIMER_FLAG_NO_MAPCHANGE);
+                        Timer_ResetLeapTimes, hunter, TIMER_FLAG_NO_MAPCHANGE);
 
         // 给予ht 6666的垂直速度使ht可以飞到天花板上XD
         velocity[0] = 0.0;
@@ -360,31 +359,34 @@ bool SelfIgnore_TraceFilter(int entity, int mask, int self)
 // 瞄准生还并突袭
 bool TryAimSurvivor(int hunter)
 {
-    int sur = -1;
+    int sur = g_iPounceTarget[hunter];
     float surpos[3], htpos[3], atkang[3], dis = -1.0;
-    // 选择最近的可用的生还目标
-    for (int i = 1; i <= MaxClients; i++)
+    if (!IsSurvivor(sur) || !IsPlayerAlive(sur) || IsPlayerIncap(sur) || IsSurvivorPinned(sur))
     {
-        int inf = g_iTargetWhoAimed[i];
-        if ((IsInfected(inf) && IsPlayerAlive(inf) && inf != hunter) || !IsSurvivor(i)
-            || !IsPlayerAlive(i) || IsSurvivorPinned(i) || IsPlayerIncap(i)) continue;
-        GetClientAbsOrigin(i, surpos);
-        float d = GetVectorDistance(surpos, htpos);
-        if (d >= dis && dis != -1)
-            continue;
-        dis = d;
-        sur = i;
-    }
+        // 选择最近的可用的生还目标
+        for (int i = 1; i <= MaxClients; i++)
+        {
+            int inf = g_iTargetWhoAimed[i];
+            if ((IsInfected(inf) && IsPlayerAlive(inf) && inf != hunter) || !IsSurvivor(i)
+                || !IsPlayerAlive(i) || IsSurvivorPinned(i) || IsPlayerIncap(i)) continue;
+            GetClientAbsOrigin(i, surpos);
+            float d = GetVectorDistance(surpos, htpos);
+            if (d >= dis && dis != -1)
+                continue;
+            dis = d;
+            sur = i;
+        }
 
-    // 目标不可用时，选择最近的生还
-    if (!IsSurvivor(sur)) sur = GetClosestClient(hunter, NULL_VECTOR, TEAM_SURVIVOR);
-    // 最近的生还也不可用时，取消接管，让ai自行发挥ww
-    if (!IsSurvivor(sur)) return false;
-    // 记录我们选择的目标
-    g_iPounceTarget[hunter] = sur;
-    g_iTargetWhoAimed[sur] = hunter;
-    // 命令ai瞄准选择的目标
-    CommandABot(hunter, sur, CMDBOT_ATTACK);
+        // 目标不可用时，选择最近的生还
+        if (!IsSurvivor(sur)) sur = GetClosestClient(hunter, NULL_VECTOR, TEAM_SURVIVOR);
+        // 最近的生还也不可用时，取消接管，让ai自行发挥ww
+        if (!IsSurvivor(sur)) return false;
+        // 记录我们选择的目标
+        g_iPounceTarget[hunter] = sur;
+        g_iTargetWhoAimed[sur] = hunter;
+        // 命令ai瞄准选择的目标
+        CommandABot(hunter, sur, CMDBOT_ATTACK);
+    }
 
     // 获取ht和生还位置
     GetClientAbsOrigin(sur, surpos);
@@ -393,8 +395,7 @@ bool TryAimSurvivor(int hunter)
     dis = GetVector2Distance(htpos, surpos, false);
 
     // 距离小于预定值 且 不是在天花板上 且 未标记为准备突袭时，取消接管ht
-    if (dis <= g_hHSCStopDis.IntValue &&
-        !g_bIsFlyingCeil[hunter] && !g_bIsAttemptPounce[hunter])
+    if (dis <= g_hHSCStopDis.IntValue && !g_bIsFlyingCeil[hunter] && !g_bIsAttemptPounce[hunter])
         return false;
 
     // 修正天花板ht数量
@@ -408,7 +409,7 @@ bool TryAimSurvivor(int hunter)
     // 计算高度差h
     height = FloatAbs(htpos[2] - surpos[2]);
     GetEntPropVector(hunter, Prop_Data, "m_vecVelocity", velocity);
-    if(g_bIsFlyingCeil[hunter])
+    if (g_bIsFlyingCeil[hunter])
     {
         float gravity, time, speed;
         // 获取重力加速度g
@@ -428,14 +429,14 @@ bool TryAimSurvivor(int hunter)
         speed = SquareRoot(Pow(velocity[0], 2.0) + Pow(velocity[1], 2.0));
         // 计算delta time
         delta = dis / speed - time;
-        if(delta < 0) delta = 0.0;
+        if (delta < 0) delta = 0.0;
         multiple = dis / time / speed;
     }
 
     // 当dt小于0.01，近似认为ht接近抛物线顶点，准备突袭
     if (0 <= delta <= 0.01 || g_bIsAttemptPounce[hunter])
     {
-        if(multiple)
+        if (multiple)
         {
             g_fPounceSpeed[hunter][0] *= multiple;
             g_fPounceSpeed[hunter][1] *= multiple;
@@ -466,12 +467,12 @@ bool TryAimSurvivor(int hunter)
         // 向后移动，做加法
         if (dirx * survel[0] < 0)
             htvel[0] = (htvel[0] < 0 ? -1 : 1) * (FloatAbs(htvel[0]) + FloatAbs(survel[0]));
-        else // 向前移动，做减法
+        else    // 向前移动，做减法
             htvel[0] = (htvel[0] < 0 ? -1 : 1) * (FloatAbs(htvel[0]) - FloatAbs(survel[0]));
         // 向左移动，做加法
         if (diry * survel[1] < 0)
             htvel[1] = (htvel[1] < 0 ? -1 : 1) * (FloatAbs(htvel[1]) + FloatAbs(survel[1]));
-        else // 向右移动，做减法
+        else    // 向右移动，做减法
             htvel[1] = (htvel[1] < 0 ? -1 : 1) * (FloatAbs(htvel[1]) - FloatAbs(survel[1]));
 
         // 修正ht速度
