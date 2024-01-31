@@ -44,7 +44,7 @@ public void OnPluginStart()
     g_hOdinsRock = CreateConVar("odins_rock", "1", "开关因果律武器ww", _, true, 0.0, true, 1.0);
     g_hOdinsTeleport = CreateConVar("odins_tp", "0", "克在丢石后是否会传送到玩家", _, true, 0.0, true, 1.0);
     g_hOdinsHuman = CreateConVar("odins_rock_human", "0", "玩家Tank是否可以使用", _, true, 0.0, true, 1.0);
-    g_hOdinsTime = CreateConVar("odins_time", "5", "AI克自动丢石时间");
+    g_hOdinsTime = CreateConVar("odins_time", "5", "AI克自动丢石时间", _, true, 0.0);
     g_hOdinsTrick = CreateConVar("odins_trick", "5", "奥丁之饼伤害", _, true, 0.0);
     g_hOdinsPunch = CreateConVar("odins_rock_punch", "600", "石头的冲击力");
     g_hOdinsPunchH = CreateConVar("odins_rock_punch_h", "260", "石头的垂直击飞力度");
@@ -62,7 +62,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
 {
     if (!IsTank(client) || !g_hOdinsRock.BoolValue || !IsFakeClient(client)) return Plugin_Continue;
 
-    if (g_bIsRockTime[client] /*&& !IsEntitySawThreats(client)*/)
+    if (g_bIsRockTime[client] && g_hOdinsTime.IntValue /*&& !IsEntitySawThreats(client)*/)
     {
         g_bIsRockTime[client] = false;
         buttons |= IN_ATTACK2;
