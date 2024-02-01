@@ -1,7 +1,7 @@
 /**
  * =============================================================================
  * Left 4 Dead Stocks Library (C)2011-2012 Buster "Mr. Zero" Nielsen
- * Syntax Update and merge into "Left 4 DHooks Direct" (C) 2023 "SilverShot"
+ * Syntax Update and merge into "Left 4 DHooks Direct" (C) 2024 "SilverShot"
  * =============================================================================
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -31,6 +31,8 @@
  #endinput
 #endif
 #define _l4d_stocks_included
+
+#pragma newdecls required
 
 #tryinclude <left4dhooks_anim>
 #tryinclude <left4dhooks_silver>
@@ -433,7 +435,7 @@ stock int L4D_GetBotOfIdlePlayer(int client)
 {
 	int idleClient;
 	int offset;
-	char netclass[128];
+	char netclass[64];
 
 	for (int bot = 1; bot <= MaxClients; bot++)
 	{
@@ -474,7 +476,7 @@ stock int L4D_GetBotOfIdlePlayer(int client)
  */
 stock int L4D_GetIdlePlayerOfBot(int bot)
 {
-	char netclass[128];
+	char netclass[64];
 	GetEntityNetClass(bot, netclass, sizeof(netclass));
 	int offset = FindSendPropInfo(netclass, "m_humanSpectatorUserID");
 
@@ -665,14 +667,14 @@ stock int L4D_GetPendingTankPlayer()
  * @return				True if glow was set, false if entity does not support glow.
  */
 // L4D2 only.
-stock bool L4D2_SetEntityGlow(int entity, L4D2GlowType type, int range, int minRange, colorOverride[3], bool flashing)
+stock bool L4D2_SetEntityGlow(int entity, L4D2GlowType type, int range, int minRange, int colorOverride[3], bool flashing)
 {
 	if (!IsValidEntity(entity))
 	{
 		return false;
 	}
 
-	char netclass[128];
+	char netclass[64];
 	GetEntityNetClass(entity, netclass, sizeof(netclass));
 
 	int offset = FindSendPropInfo(netclass, "m_iGlowType");
@@ -1065,9 +1067,10 @@ stock void L4D_SetPlayerIsGoingToDie(int client, bool isGoingToDie)
  */
 stock bool L4D2_IsWeaponUpgradeCompatible(int weapon)
 {
-	char netclass[128];
-	GetEntityNetClass(weapon, netclass, sizeof(netclass));
-	return FindSendPropInfo(netclass, "m_upgradeBitVec") > 0;
+	if( HasEntProp(weapon, Prop_Send, "m_upgradeBitVec") )
+		return true;
+
+	return false;
 }
 
 /**
@@ -1080,7 +1083,10 @@ stock bool L4D2_IsWeaponUpgradeCompatible(int weapon)
 // L4D2 only.
 stock int L4D2_GetWeaponUpgradeAmmoCount(int weapon)
 {
-	return HasEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded") && GetEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded");
+	if( HasEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded") )
+		return GetEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded");
+
+	return 0;
 }
 
 /**
@@ -1095,9 +1101,7 @@ stock int L4D2_GetWeaponUpgradeAmmoCount(int weapon)
 stock void L4D2_SetWeaponUpgradeAmmoCount(int weapon, int count)
 {
 	if( HasEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded") )
-	{
 		SetEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded", count);
-	}
 }
 
 /**
@@ -1110,7 +1114,10 @@ stock void L4D2_SetWeaponUpgradeAmmoCount(int weapon, int count)
 // L4D2 only.
 stock int L4D2_GetWeaponUpgrades(int weapon)
 {
-	return HasEntProp(weapon, Prop_Send, "m_upgradeBitVec") && GetEntProp(weapon, Prop_Send, "m_upgradeBitVec");
+	if( HasEntProp(weapon, Prop_Send, "m_upgradeBitVec") )
+		return GetEntProp(weapon, Prop_Send, "m_upgradeBitVec");
+
+	return 0;
 }
 
 /**
@@ -1314,6 +1321,30 @@ stock void L4D_SetPlayerTempHealth(int client, int tempHealth)
 {
 	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", float(tempHealth));
 	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime());
+}
+
+/**
+ * Set players temporarily health. Allows for setting above 200 HP.
+ *
+ * @param client		Client index.
+ * @param tempHealth	Temporarily health.
+ * @noreturn
+ * @error				Invalid client index.
+ */
+stock void L4D_SetPlayerTempHealthFloat(int client, float tempHealth)
+{
+	static ConVar painPillsDecayCvar;
+	if (painPillsDecayCvar == null)
+	{
+		painPillsDecayCvar = FindConVar("pain_pills_decay_rate");
+		if (painPillsDecayCvar == null)
+		{
+			return;
+		}
+	}
+
+	SetEntPropFloat(client, Prop_Send, "m_healthBuffer", tempHealth);
+	SetEntPropFloat(client, Prop_Send, "m_healthBufferTime", GetGameTime() + ((tempHealth - 200) / painPillsDecayCvar.FloatValue + 1 / painPillsDecayCvar.FloatValue));
 }
 
 /**
