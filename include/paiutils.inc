@@ -17,10 +17,10 @@
 #endif
 #define _paiutils_included
 
-#define int(% 1) view_as<int>(% 1)
-#define float(% 1) view_as<float>(% 1)
-#define bool(% 1) view_as<bool>(% 1)
-#define char(% 1) view_as<char>(% 1)
+#define int(%1) view_as<int>(%1)
+#define float(%1) view_as<float>(%1)
+#define bool(%1) view_as<bool>(%1)
+#define char(%1) view_as<char>(%1)
 
 #define TEAM_SPECTATOR 1
 #define TEAM_SURVIVOR  2
