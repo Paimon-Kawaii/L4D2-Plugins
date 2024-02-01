@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2024-01-26 11:13:16
+ * @Last Modified time: 2024-02-01 17:35:27
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -17,13 +17,10 @@
 #endif
 #define _paiutils_included
 
-#define int(%1) view_as<int>(%1)
-
-#define float(%1) view_as<float>(%1)
-
-#define bool(%1) view_as<bool>(%1)
-
-#define char(%1) view_as<char>(%1)
+#define int(% 1) view_as<int>(% 1)
+#define float(% 1) view_as<float>(% 1)
+#define bool(% 1) view_as<bool>(% 1)
+#define char(% 1) view_as<char>(% 1)
 
 #define TEAM_SPECTATOR 1
 #define TEAM_SURVIVOR  2
@@ -337,7 +334,8 @@ stock int GetClosestZombie(int target = -1, const float origin[3], bool includeW
         if (strcmp(clsName, "infected") && (includeWitch && strcmp(clsName, "witch")) && (includeRock && strcmp(clsName, "tank_rock"))) continue;
         if (GetEntProp(i, Prop_Data, "m_lifeState") || !GetEntProp(i, Prop_Data, "m_iHealth")) continue;
 
-        GetEntPropVector(i, Prop_Send, "m_vecOrigin", pos) float tmp = GetVectorDistance(tarPos, pos, true);
+        GetEntPropVector(i, Prop_Send, "m_vecOrigin", pos);
+        float tmp = GetVectorDistance(tarPos, pos, true);
         if (dis <= tmp && dis != -1) continue;
 
         result = i;
@@ -878,5 +876,7 @@ stock bool IsMissionFinal()
 {
     int count, entity;
     while ((entity = FindEntityByClassname(entity, "info_landmark")) > 0)
-        count++ return count < 2 && FindEntityByClassname(0, "trigger_finale") > 0;
+        count++;
+
+    return count < 2 && FindEntityByClassname(0, "trigger_finale") > 0;
 }
