@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-03-18 14:59:54
- * @Last Modified time: 2024-01-25 14:21:34
+ * @Last Modified time: 2024-02-01 11:29:49
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -14,8 +14,10 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define VERSION "2024.01.25"
-#define DEBUG   0
+#define VERSION              "2024.02.01"
+#define DEBUG                0
+
+#define MAX_CLASSNAME_LENGTH 10
 
 ConVar
     g_hOdinsRock,
@@ -86,15 +88,13 @@ public Action L4D_TankRock_OnRelease(int tank, int rock, float vecPos[3], float 
     PrintToChatAll("%N 释放了石头", tank);
 #endif
 
-    if (!IsFakeClient(tank) && !g_hOdinsHuman.BoolValue)
+    if (!(IsFakeClient(tank) || g_hOdinsHuman.BoolValue))
         return Plugin_Continue;
 
-    int target;
-    if (IsTank(tank))
-        target = GetClientAimTarget(tank);
+    int target = GetClientAimTarget(tank);
 
     float pos[3];
-    if (!IsSurvivor(target) && IsTank(tank))
+    if (!IsSurvivor(target))
     {
         GetClientEyePosition(tank, pos);
         target = GetNearestSurvivor(pos);
@@ -123,7 +123,7 @@ public Action L4D_TankRock_OnRelease(int tank, int rock, float vecPos[3], float 
 
     pos[0] += 20;
     pos[2] += 100;
-    if (IsTank(tank) && g_hOdinsTeleport.BoolValue)
+    if (g_hOdinsTeleport.BoolValue)
         TeleportEntity(tank, pos, NULL_VECTOR, NULL_VECTOR);
 
     return Plugin_Changed;
@@ -131,11 +131,11 @@ public Action L4D_TankRock_OnRelease(int tank, int rock, float vecPos[3], float 
 
 Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
 {
-    if (!IsTankRock(inflictor)) return Plugin_Continue;
+    SDKUnhook(victim, SDKHook_OnTakeDamage, OnTakeDamage);
+    if (!IsTankRock(inflictor) || !IsTank(attacker)) return Plugin_Continue;
 
     damage = g_hOdinsTrick.FloatValue;
 
-    if (!IsTank(attacker)) return Plugin_Continue;
     float velocity[3], pos1[3], pos2[3];
     GetClientAbsOrigin(attacker, pos1);
     GetClientAbsOrigin(victim, pos2);
@@ -181,7 +181,7 @@ int GetNearestSurvivor(const float pos[3])
 {
     int target;
     float dis = -1.0, surPos[3];
-    for (int i = 1; i < MaxClients; i++)
+    for (int i = 1; i <= MaxClients; i++)
         if (IsSurvivor(i) && IsPlayerAlive(i) && !IsPlayerIncap(i))
         {
             GetClientAbsOrigin(i, surPos);
@@ -201,7 +201,7 @@ bool IsTankRock(int entity)
     if (entity <= MaxClients || !IsValidEdict(entity))
         return false;
 
-    char classname[MAX_NAME_LENGTH];
+    static char classname[MAX_CLASSNAME_LENGTH];
     GetEdictClassname(entity, classname, sizeof(classname));
     return (strcmp(classname, "tank_rock") == 0);
 }
