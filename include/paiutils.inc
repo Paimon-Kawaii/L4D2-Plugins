@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2024-02-01 17:35:27
+ * @Last Modified time: 2024-02-02 16:44:35
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -788,6 +788,14 @@ stock void GetEntityAbsOrigin(int entity, float origin[3])
 //     return zDis > xOyDis ? xOyDis : zDis;
 // }
 
+/**
+ * Calculates the distance between two vectors(ignored z axis).
+ *
+ * @param vec1          First vector.
+ * @param vec2          Second vector.
+ * @param squared       If true, the result will be squared (for optimization).
+ * @return              Vector2D distance.
+ */
 stock float GetVector2Distance(const float vec1[3], const float vec2[3], bool squared = false)
 {
     float vecA[3], vecB[3];
