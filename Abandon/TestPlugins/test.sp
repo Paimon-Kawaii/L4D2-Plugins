@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-06-01 14:25:29
- * @Last Modified time: 2024-01-25 21:07:34
+ * @Last Modified time: 2024-02-03 15:50:43
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -54,6 +54,7 @@ Action Cmd_ESC(int client, int args)
     int iData = StringToInt(data);
 
     SetEntProp(client, Prop_Send, prop, iData);
+    // SetEntProp(client, Prop_Send, "m_CollisionGroup", 17);
 
     return Plugin_Continue;
 }
