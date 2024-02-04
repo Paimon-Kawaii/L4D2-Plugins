@@ -116,11 +116,13 @@ Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, in
     if (FindConVar("god").BoolValue)
     {
         PrintToChatAll("检测到无敌模式开启，跳过溢出处理");
+        SDKUnhook(victim, SDKHook_OnTakeDamage, OnTakeDamage);
         return Plugin_Handled;
     }
     if (!IsValidClient(victim) || !IsPlayerAlive(victim))
     {
         if (IsValidEntity(attacker)) KillEntity(attacker);
+        SDKUnhook(victim, SDKHook_OnTakeDamage, OnTakeDamage);
         return Plugin_Handled;
     }
 
@@ -138,6 +140,7 @@ Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, in
     {
         PrintToChatAll("检测到溢出条件：Witch(%d) 杀死 %N，已成功拦截", attacker, victim);
         SetEntProp(victim, Prop_Send, "m_bIsOnThirdStrike", 1);
+        SDKUnhook(victim, SDKHook_OnTakeDamage, OnTakeDamage);
         KillEntity(attacker);
 
         return Plugin_Handled;
