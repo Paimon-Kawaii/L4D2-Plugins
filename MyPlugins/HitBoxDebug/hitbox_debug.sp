@@ -1,8 +1,8 @@
 /*
  * @Author:             我是派蒙啊
- * @Last Modified by:   我是派蒙啊
+ * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-02-15 19:32:26
- * @Last Modified time: 2023-07-14 23:12:16
+ * @Last Modified time: 2024-02-03 16:54:59
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -16,12 +16,12 @@
 
 #define VERSION "2023.02.16"
 
-const int 
-    g_iFrameMax = 20;//帧间隔
+const int
+    g_iFrameMax = 20;    //帧间隔
 
 int
-    g_iInfected = 0;//HitBox对象
-    // g_iFrameCounter = 0;//间隔帧CD
+    g_iInfected = 0;    // HitBox对象
+// g_iFrameCounter = 0;//间隔帧CD
 
 ConVar
     g_hDebug;
@@ -64,7 +64,7 @@ Action Cmd_Test(int client, any args)
 
     SetClientInfo(client, "cl_updaterate", "30");
     SetClientInfo(client, "cl_cmdrate", "30");
-    
+
     PrintToChatAll("%d", GetClientDataRate(client));
 
     return Plugin_Handled;
@@ -77,14 +77,14 @@ void QueryClientConVarCallBack(QueryCookie cookie, int client, ConVarQueryResult
 
 public void CVarEvent_OnAddonsEclipse(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-    if(StringToInt(newValue) != 1)
+    if (StringToInt(newValue) != 1)
         convar.SetInt(1, true);
 }
 
 public void CVarEvent_DebugModeChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
     FindConVar("sv_showonlyhitbox").SetInt(-1);
-    FindConVar("impact_vis").SetInt(convar.IntValue);
+    // FindConVar("impact_vis").SetInt(convar.IntValue);
     FindConVar("sv_showhitboxes").SetInt(convar.IntValue);
     FindConVar("melee_show_swing").SetInt(convar.IntValue);
     FindConVar("sv_showlagcompensation").SetInt(convar.IntValue);
@@ -93,15 +93,15 @@ public void CVarEvent_DebugModeChanged(ConVar convar, const char[] oldValue, con
 //替换特感类型
 public Action L4D_OnSpawnSpecial(int &zombieClass, const float vecPos[3], const float vecAng[3])
 {
-    if(!g_hDebug.IntValue) return Plugin_Continue;
+    if (!g_hDebug.IntValue) return Plugin_Continue;
 
-    if(zombieClass == ZC_Charger)
+    if (zombieClass == ZC_Charger)
         FindConVar("sv_showonlyhitbox").SetInt(9);
-    else if(zombieClass == ZC_Jockey || zombieClass == ZC_Spitter)
+    else if (zombieClass == ZC_Jockey || zombieClass == ZC_Spitter)
         FindConVar("sv_showonlyhitbox").SetInt(4);
     else FindConVar("sv_showonlyhitbox").SetInt(10);
 
-    if(HasInfectedAlive())
+    if (HasInfectedAlive())
         return Plugin_Handled;
 
     return Plugin_Continue;
@@ -110,11 +110,11 @@ public Action L4D_OnSpawnSpecial(int &zombieClass, const float vecPos[3], const 
 public void OnGameFrame()
 {
     // if(g_iFrameCounter == 0)
-    if(g_hDebug.IntValue)
+    if (g_hDebug.IntValue)
         ShowHitBox();
 
-    for(int client = 1; client <= MaxClients && g_hDebug.BoolValue; client++)
-        if(IsSurvivor(client) && IsPlayerAlive(client))
+    for (int client = 1; client <= MaxClients && g_hDebug.BoolValue; client++)
+        if (IsSurvivor(client) && IsPlayerAlive(client))
             SetEntPropFloat(client, Prop_Send, "m_flCycle", 1.0);
 
     //更新刷新帧
@@ -124,20 +124,19 @@ public void OnGameFrame()
 void ShowHitBox()
 {
     //显示HitBox
-    for(int client = 1; client <= MaxClients; client++)
-        if(IsInfected(client) && IsPlayerAlive(client) && g_iInfected < client &&
-            CanPlayerSeeThreats(client) && IsPlayerVisible(client))
+    for (int client = 1; client <= MaxClients; client++)
+        if (IsInfected(client) && IsPlayerAlive(client) && g_iInfected < client && IsEntitySawThreats(client) && IsPlayerVisible(client))
         {
             g_iInfected = client;
-            if(GetInfectedClass(client) == ZC_Tank)
+            if (GetZombieClass(client) == ZC_Tank)
                 FindConVar("sv_showonlyhitbox").SetInt(0);
             FindConVar("sv_showhitboxes").SetInt(client);
             break;
         }
 
     //如果选定目标后续还有特感
-    for(int client = g_iInfected + 1; client <= MaxClients; client++)
-        if(IsInfected(client)) return;
+    for (int client = g_iInfected + 1; client <= MaxClients; client++)
+        if (IsInfected(client)) return;
 
     g_iInfected = 0;
 }
@@ -146,10 +145,9 @@ bool IsPlayerVisible(int target, int team = 2, int target_team = 3)
 {
     float pos[3];
     GetClientAbsOrigin(target, pos);
-    for(int i = 1; i <= MaxClients; i++)
-        if(IsSurvivor(i) && IsPlayerAlive(i) &&
-            L4D2_IsVisibleToPlayer(i, team, target_team, 0, pos))
-                return true;
+    for (int i = 1; i <= MaxClients; i++)
+        if (IsSurvivor(i) && IsPlayerAlive(i) && L4D2_IsVisibleToPlayer(i, team, target_team, 0, pos))
+            return true;
 
     return false;
 }
