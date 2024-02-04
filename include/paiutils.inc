@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2024-02-02 16:44:35
+ * @Last Modified time: 2024-02-04 12:19:46
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -17,10 +17,10 @@
 #endif
 #define _paiutils_included
 
-#define int(%1) view_as<int>(%1)
-#define float(%1) view_as<float>(%1)
-#define bool(%1) view_as<bool>(%1)
-#define char(%1) view_as<char>(%1)
+// #define int(%1) view_as<int>(%1)
+// #define float(%1) view_as<float>(%1)
+// #define bool(%1) view_as<bool>(%1)
+// #define char(%1) view_as<char>(%1)
 
 #define TEAM_SPECTATOR 1
 #define TEAM_SURVIVOR  2
@@ -251,8 +251,6 @@ stock int GetClientAimedBy(int aimee, int team = 0, bool sawable = true)
  * @param aimee     Client who is aimed.
  * @param team      Team type to included.
  * @param sawable   Is target seen threats.
- * @param isIncap   Can target be incap.
- * @param isGhost   Is target a ghost.
  * @return          Client index for closest client. -1 otherwise.
  */
 stock int GetClosestClientAimer(int aimee, int team, bool sawable = true)
@@ -478,6 +476,7 @@ stock bool SetTankFrustration(int tankClient, int frustration)
 stock int GetPlayerHealth(int client, bool temp_heal = false, bool total_heal = false)
 {
     if (!IsValidClient(client)) return -1;
+    if (!IsPlayerAlive(client)) return 0;
 
     if (total_heal) temp_heal = false;
     if (!IsSurvivor(client)) temp_heal = total_heal = false;
