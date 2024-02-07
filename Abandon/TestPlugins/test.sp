@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-06-01 14:25:29
- * @Last Modified time: 2024-02-03 15:50:43
+ * @Last Modified time: 2024-02-04 18:01:31
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -47,14 +47,16 @@ public void OnPluginStart()
 
 Action Cmd_ESC(int client, int args)
 {
-    char buffer[32], prop[32], type[4], data[16];
-    GetCmdArg(1, prop, sizeof(prop));
-    GetCmdArg(1, prop, sizeof(prop));
-    GetCmdArg(2, data, sizeof(data));
-    int iData = StringToInt(data);
+    // char buffer[32], prop[32], type[4], data[16];
+    // GetCmdArg(1, prop, sizeof(prop));
+    // GetCmdArg(1, prop, sizeof(prop));
+    // GetCmdArg(2, data, sizeof(data));
+    // int iData = StringToInt(data);
 
-    SetEntProp(client, Prop_Send, prop, iData);
-    // SetEntProp(client, Prop_Send, "m_CollisionGroup", 17);
+    // SetEntProp(client, Prop_Send, prop, iData);
+    for (int i = 1; i <= MaxClients; i++)
+        if (IsSurvivor(i))
+            SetEntProp(i, Prop_Send, "m_CollisionGroup", 17);
 
     return Plugin_Continue;
 }
