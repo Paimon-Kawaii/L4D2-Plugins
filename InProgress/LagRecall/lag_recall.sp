@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-02 19:02:53
- * @Last Modified time: 2024-02-04 12:19:28
+ * @Last Modified time: 2024-02-07 19:51:57
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -12,10 +12,11 @@
 #include <dhooks>
 #include <paiutils>
 #include <sdktools>
+#include <anim_bone>
 #include <sourcemod>
 #include <left4dhooks>
 
-#define VERSION "2024.02.02"
+#define VERSION "2024.02.07"
 
 public Plugin myinfo =
 {
@@ -26,8 +27,13 @@ public Plugin myinfo =
     url = "http://github.com/Paimon-Kawaii/L4D2-Plugins/MyPlugins"
 };
 
-#define DEBUG       1
-#define DEBUG_LOCAL 1
+#define DEBUG          0
+#define DEBUG_LOCAL    0
+#define DEBUG_HEAD_POS 0
+
+#if DEBUG_LOCAL
+    #include <debug_draw>
+#endif
 
 #if DEBUG
     #include <vector_show.sp>
@@ -37,14 +43,11 @@ public Plugin myinfo =
 #define INVALID_DISTANCE      -1.0
 
 #define MAXSIZE               MAXPLAYERS + 1
-#define MAX_CLASSNAME_LENGTH  10
+#define MAX_CLASSNAME_LENGTH  23
 #define MAX_DISTANCE_LAG_SHOT 15
 
 static int
     g_iShootTarget[MAXSIZE] = { -1, ... };
-
-static bool
-    g_bByPassDamage[MAXSIZE];
 
 static char
     g_sWeaponNames[][] = {
@@ -84,15 +87,39 @@ bool CheckWeapon(int weapon, char[] clsname, int len)
     return flag;
 }
 
+// #if DEBUG_HEAD_POS && DEBUG_LOCAL
+// public Action OnPlayerRunCmd(int client, int &buttons)
+// {
+//     if (!IsInfected(client)) return Plugin_Continue;
+
+//     float origin[3];
+//     float netlag = GetClientAvgLatency(1, NetFlow_Both) / 1000 + GetLerpTime(1);
+//     GetBoneLagPosition(client, Bone_Head, origin, netlag);
+//     DebugDrawCross(origin);
+
+//     if (GetZombieClass(client) == ZC_HUNTER)
+//     {
+//         buttons = IN_DUCK;
+//         if (!(GetEntProp(client, Prop_Data, "m_nOldButtons") & IN_ATTACK))
+//             buttons |= IN_ATTACK;
+//     }
+
+//     return Plugin_Changed;
+// }
+// #endif
+
 Action TEHook_Bullets(const char[] te_name, const int[] Players, int numClients, float delay)
 {
+#if DEBUG_HEAD_POS
+    return Plugin_Continue;
+#endif
+
     int client = TE_ReadNum("m_iPlayer");
 #if DEBUG_LOCAL
     if (!client) client = 1;
 #endif
     if (!IsSurvivor(client)) return Plugin_Continue;
     g_iShootTarget[client] = -1;
-    g_bByPassDamage[client] = false;
 
     // Check weapon.
     static char clsname[MAX_CLASSNAME_LENGTH];
@@ -105,7 +132,9 @@ Action TEHook_Bullets(const char[] te_name, const int[] Players, int numClients,
     TE_ReadVector("m_vecOrigin", origin);
     angle[0] = TE_ReadFloat("m_vecAngles[0]");
     angle[1] = TE_ReadFloat("m_vecAngles[1]");
+#if DEBUG
     ShowAngle(2, origin, angle, 1.0, 1000.0, 0.1, 0.1);
+#endif
 
     // Get direction vector.
     static float s[3], sLen;
@@ -121,21 +150,16 @@ Action TEHook_Bullets(const char[] te_name, const int[] Players, int numClients,
 #endif
     float netlag = ping / 1000 + lerp;
 
+    static float temp[3], oe[3];
     int target = INVALID_CLIENT;
     float distance = INVALID_DISTANCE;
-    static float temp[3], oe[3], velocity[3];
     // Find closest SI recalled by lag time.
     for (int i = 1; i <= MaxClients; i++)
     {
         if (!(IsInfected(i) && IsPlayerAlive(i))) continue;
 
-        GetClientEyePosition(i, temp);
-        GetEntPropVector(i, Prop_Data, "m_vecAbsVelocity", velocity);
-        ScaleVector(velocity, netlag * -1);
-        // 回溯延迟时间后特感位置
-        AddVectors(temp, velocity, temp);    // Get SI's position in lag time past.
-
-        MakeVectorFromPoints(temp, origin, oe);    //向量oe = origin - eye
+        GetBoneLagPosition(i, Bone_Head, temp, netlag);    //回溯位置
+        MakeVectorFromPoints(temp, origin, oe);            //向量oe = origin - eye
         // 点到直线距离: d = |s × oe|/|s|
         // The distance from point to ray.
         GetVectorCrossProduct(s, oe, temp);
@@ -159,13 +183,28 @@ Action TEHook_Bullets(const char[] te_name, const int[] Players, int numClients,
 
     if (distance > MAX_DISTANCE_LAG_SHOT) return Plugin_Continue;
     g_iShootTarget[client] = target;
-    // 绕过原始伤害处理，因为延迟的爆头射击大致是成功的
-    g_bByPassDamage[client] = true;    // Bypass damage because head-shot happened.
 
-    float damage = GetWeaponDamage(clsname, distance);
+    float damage = GetWeaponDamage(clsname, distance) * 4;
 
+#if DEBUG
+    int heal = GetPlayerHealth(target);
+#endif
     SDKHooks_TakeDamage(target, client, client, damage, DMG_BULLET, weapon);
+#if DEBUG
+    PrintToChatAll("%N 对 %N 造成 %d 伤害(%.5f)", client, target, heal - GetPlayerHealth(target), damage);
+#endif
     return Plugin_Continue;
+}
+
+void GetBoneLagPosition(int client, Bone_Type bone_type, float origin[3], float lag)
+{
+    static float velocity[3];
+    int bone = L4D_GetZombieBone(client, bone_type);
+    L4D_GetBonePosition(client, bone, origin);
+    GetEntPropVector(client, Prop_Data, "m_vecAbsVelocity", velocity);
+    ScaleVector(velocity, (lag + 0.04) * -1);    // 0.04s is the engine lag time
+    // 回溯延迟时间后特感位置
+    AddVectors(origin, velocity, origin);    // Get SI's position in lag time past.
 }
 
 float GetWeaponDamage(const char[] clsname, float distance)
@@ -177,9 +216,10 @@ float GetWeaponDamage(const char[] clsname, float distance)
     rangeModifier = L4D2_GetFloatWeaponAttribute(clsname, L4D2FWA_RangeModifier);
     gainRange = L4D2_GetFloatWeaponAttribute(clsname, L4D2FWA_GainRange);
 
-    if (distance <= 1500)
+    if (distance <= gainRange)
         final_damage = CalculateDamage(damage, rangeModifier, distance);
-    else final_damage = CalculateGainDamage(damage, range, rangeModifier, gainRange, distance);
+    else if (distance <= range) final_damage = CalculateGainDamage(damage, range, rangeModifier, gainRange, distance);
+    else final_damage = 0.0;
 
     return final_damage;
 }
@@ -198,44 +238,20 @@ float CalculateGainDamage(int damage, float range, float rangeModifier, float ga
     return CalculateDamage(damage, rangeModifier, distance) * ((range - distance) / (range - gainRange));
 }
 
-// public void OnPlayerRunCmdPost(int client)
-// {
-//     if (!IsSurvivor(client)) return;
-
-//     int target;
-//     while (++target <= MaxClients)
-//         if (IsInfected(target) && IsPlayerAlive(target))
-//             break;
-
-//     if (!IsInfected(target)) return;
-
-//     float surPos[3], tarPos[3], tarDir[3], angles[3];
-//     GetClientEyePosition(client, surPos);
-//     GetClientEyePosition(target, tarPos);
-
-//     MakeVectorFromPoints(surPos, tarPos, tarDir);
-//     GetVectorAngles(tarDir, angles);
-//     TeleportEntity(client, NULL_VECTOR, angles, NULL_VECTOR);
-// }
-
+#if DEBUG
 Action TraceAttack(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &ammotype, int hitbox, int hitgroup)
 {
-    if (victim != g_iShootTarget[attacker] || g_bByPassDamage[attacker] || hitgroup == 1)
-        return Plugin_Continue;
-
     int heal = GetPlayerHealth(victim);
-    PrintToChatAll("dmg: %.2f", damage);
-    damage = RoundToFloor(damage * ((damagetype & DMG_BUCKSHOT) ? 1.25 : ((damagetype & DMG_BULLET) ? 4.0 : 1.0))) * 1.0;
     SDKHooks_TakeDamage(victim, inflictor, attacker, damage, damagetype, GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon"));
-    PrintToChatAll("%N take %.2f dmg, heal before: %d after: %d", victim, damage, heal, GetPlayerHealth(victim));
+    PrintToChatAll("%N take %.2f dmg(%d) (%d)(%d)", victim, damage, heal - GetPlayerHealth(victim), inflictor, attacker);
 
-    return Plugin_Handled;
+    return Plugin_Continue;
 }
 
 public void OnAllPluginsLoaded()
 {
     for (int i = 1; i <= MaxClients; i++)
-        if (IsValidClient(i))
+        if (IsValidClient(i) && IsClientConnected(i))
             SDKHook(i, SDKHook_TraceAttack, TraceAttack);
 }
 
@@ -243,6 +259,7 @@ public void OnClientConnected(int client)
 {
     SDKHook(client, SDKHook_TraceAttack, TraceAttack);
 }
+#endif
 
 ConVar
     g_cvMinUpdateRate,
