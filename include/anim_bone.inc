@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-03-22 19:08:40
- * @Last Modified time: 2024-02-07 16:29:04
+ * @Last Modified time: 2024-02-07 19:59:59
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -50,18 +50,18 @@ public void __pl_animbone_SetNTVOptional()
  * Get zombie's bone of target type.
  *
  * @param client    Client index
- * @return          Zombie's bone
+ * @return          Zombie's bone, -1 for invalid bone
  */
 native int L4D_GetZombieBone(int client, Bone_Type bone_type);
 
 /**
  * Get zombie's bone of target type.
  *
- * @param client    Client index
+ * @param entity    Entity index
  * @param bone_name    Bone name
- * @return          Zombie's bone
+ * @return          Entity's bone, -1 for invalid bone
  */
-native int L4D_GetBoneByName(int client, const char[] bone_name);
+native int L4D_GetBoneByName(int entity, const char[] bone_name);
 
 /**
  * Get bone's world position.
@@ -72,4 +72,4 @@ native int L4D_GetBoneByName(int client, const char[] bone_name);
  * @param angle    Bone angle to get
  * @noreturn
  */
-native int L4D_GetBonePosition(int client, int bone, float origin[3] = NULL_VECTOR, float angle[3] = NULL_VECTOR);
+native void L4D_GetBonePosition(int client, int bone, float origin[3] = NULL_VECTOR, float angle[3] = NULL_VECTOR);
