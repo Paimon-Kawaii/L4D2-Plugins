@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-02 19:02:53
- * @Last Modified time: 2024-02-08 20:06:16
+ * @Last Modified time: 2024-02-08 20:23:47
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -16,7 +16,7 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define VERSION "2024.02.07"
+#define VERSION "2024.02.08"
 
 public Plugin myinfo =
 {
