@@ -1,0 +1,61 @@
+/*
+ * @Author: 我是派蒙啊
+ * @Last Modified by: 我是派蒙啊
+ * @Create Date: 2024-02-06 15:18:46
+ * @Last Modified time: 2024-02-07 16:20:58
+ * @Github: https://github.com/Paimon-Kawaii
+ */
+"Games"
+{
+    "left4dead2"
+    {
+        "Functions"
+        {
+            // Only used for debug
+            "L4D2::CBaseAnimating::LookupBone"
+            {
+                "signature"     "CBaseAnimating::LookupBone"
+                "callconv"      "thiscall"
+                "return"        "int"
+                "this"          "entity"
+                "arguments"
+                {
+                    "a1"
+                    {
+                        "type"	"charptr"
+                    }
+                }
+            }
+        }
+
+        "Signatures"
+        {
+            //CBaseAnimating::GetBonePosition(int, Vector &, QAngle &)
+            /* Find by @Paimon
+             * How to find on windows:
+             * Search unique string: "entryboxes"
+             * This function is called at a block with 4 calls, the first call is this.
+            */
+            "CBaseAnimating::GetBonePosition"
+            {
+                "library"   "server"
+                "windows"   "\x55\x8B\xEC\x83\xEC\x34\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x53\x8B\x5D\x10"
+                /* 55 8B EC 83 EC 34 A1 ? ? ? ? 33 C5 89 45 FC 53 8B 5D 10 */
+                "linux" "@_ZN14CBaseAnimating15GetBonePositionEiR6VectorR6QAngle"
+            }
+            //CBaseAnimating::LookupBone(char const*)
+            /* Find by @Paimon
+             * How to find on windows:
+             * Search unique string: "ValveBiped.Weapon_bone"
+             * This function is called under this string in the same block.
+            */
+            "CBaseAnimating::LookupBone"
+            {
+                "library"   "server"
+                "windows"   "\x55\x8B\xEC\x56\x8B\xF1\x83\xBE\xD0\x13\x00\x00\x00\x75\x2A\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\x8B\xCE\xE8\x2A\x2A\x2A\x2A\x8B\x86\xD0\x13\x00\x00\x5E\x85\xC0\x74\x2A\x83\x38\x00\x75\x2A\x33\xC0\x8B\x4D\x08\x51\x50\xE8\x2A\x2A\x2A\x2A\x83\xC4\x08\x5D\xC2\x04\x00"
+                /*  55 8B EC 56 8B F1 83 BE D0 13 00 00 00 75 ? E8 ? ? ? ? 85 C0 74 ? 8B CE E8 ? ? ? ? 8B 86 D0 13 00 00 5E 85 C0 74 ? 83 38 00 75 ? 33 C0 8B 4D 08 51 50 E8 ? ? ? ? 83 C4 08 5D C2 04 00 */
+                "linux" "@_ZN14CBaseAnimating10LookupBoneEPKc"
+            }
+        }
+    }
+}
