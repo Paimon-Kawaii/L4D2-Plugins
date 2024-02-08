@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-03-18 14:59:54
- * @Last Modified time: 2024-02-01 11:29:49
+ * @Last Modified time: 2024-02-08 15:18:29
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -132,7 +132,9 @@ public Action L4D_TankRock_OnRelease(int tank, int rock, float vecPos[3], float 
 Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
 {
     SDKUnhook(victim, SDKHook_OnTakeDamage, OnTakeDamage);
-    if (!IsTankRock(inflictor) || !IsTank(attacker)) return Plugin_Continue;
+
+    if (!(IsTankRock(inflictor) && IsSurvivor(victim)))
+        return Plugin_Continue;
 
     damage = g_hOdinsTrick.FloatValue;
 
@@ -155,8 +157,14 @@ Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, in
 Action Timer_RockImpact(Handle timer, DataPack data)
 {
     data.Reset();
-    float velocity[3], curvel[3];
     int victim = data.ReadCell();
+    if (!(IsSurvivor(victim) && IsPlayerAlive(victim)))
+    {
+        delete data;
+        return Plugin_Stop;
+    }
+
+    float velocity[3], curvel[3];
     data.ReadFloatArray(velocity, 3);
 
     GetEntPropVector(victim, Prop_Data, "m_vecAbsVelocity", curvel);
