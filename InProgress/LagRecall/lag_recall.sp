@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-02 19:02:53
- * @Last Modified time: 2024-02-07 19:51:57
+ * @Last Modified time: 2024-02-08 20:06:16
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -12,7 +12,7 @@
 #include <dhooks>
 #include <paiutils>
 #include <sdktools>
-#include <anim_bone>
+#include <l4d_anim>
 #include <sourcemod>
 #include <left4dhooks>
 
@@ -39,12 +39,14 @@ public Plugin myinfo =
     #include <vector_show.sp>
 #endif
 
-#define INVALID_CLIENT        -1
-#define INVALID_DISTANCE      -1.0
+#define INVALID_CLIENT          -1
+#define INVALID_DISTANCE        -1.0
 
-#define MAXSIZE               MAXPLAYERS + 1
-#define MAX_CLASSNAME_LENGTH  23
-#define MAX_DISTANCE_LAG_SHOT 15
+#define MAXSIZE                 MAXPLAYERS + 1
+#define MAX_CLASSNAME_LENGTH    23
+
+#define LAG_SHOT_DISTANCE_SCALE 2.4
+// #define MAX_DISTANCE_LAG_SHOT 15
 
 static int
     g_iShootTarget[MAXSIZE] = { -1, ... };
@@ -55,27 +57,32 @@ static char
         "weapon_pistol_magnum",
 
         "weapon_smg",
+        "weapon_smg_mp5",
         "weapon_smg_silenced",
 
+        "weapon_rifle",
         "weapon_rifle_desert",
         "weapon_rifle_ak47",
         "weapon_rifle_sg552",
-        "weapon_sniper_military",
 
-        "weapon_rifle",
+        "weapon_sniper_military",
         "weapon_hunting_rifle",
+
         "weapon_sniper_awp",
         "weapon_sniper_scout",
 
         "weapon_rifle_m60",
     };
-#define WEAPON_COUNT 13
+#define WEAPON_COUNT 14
 
 bool CheckWeapon(int weapon, char[] clsname, int len)
 {
     if (!IsValidEntity(weapon)) return false;
 
     GetEntityClassname(weapon, clsname, len);
+#if DEBUG
+    PrintToChatAll("%s", clsname);
+#endif
     bool flag = false;
     for (int i = 0; i < WEAPON_COUNT; i++)
     {
@@ -86,27 +93,6 @@ bool CheckWeapon(int weapon, char[] clsname, int len)
 
     return flag;
 }
-
-// #if DEBUG_HEAD_POS && DEBUG_LOCAL
-// public Action OnPlayerRunCmd(int client, int &buttons)
-// {
-//     if (!IsInfected(client)) return Plugin_Continue;
-
-//     float origin[3];
-//     float netlag = GetClientAvgLatency(1, NetFlow_Both) / 1000 + GetLerpTime(1);
-//     GetBoneLagPosition(client, Bone_Head, origin, netlag);
-//     DebugDrawCross(origin);
-
-//     if (GetZombieClass(client) == ZC_HUNTER)
-//     {
-//         buttons = IN_DUCK;
-//         if (!(GetEntProp(client, Prop_Data, "m_nOldButtons") & IN_ATTACK))
-//             buttons |= IN_ATTACK;
-//     }
-
-//     return Plugin_Changed;
-// }
-// #endif
 
 Action TEHook_Bullets(const char[] te_name, const int[] Players, int numClients, float delay)
 {
@@ -181,7 +167,17 @@ Action TEHook_Bullets(const char[] te_name, const int[] Players, int numClients,
     PrintToChatAll("%N aim %N dis: %.2f real_dis: %.2f", client, target, distance, realDis);
 #endif
 
-    if (distance > MAX_DISTANCE_LAG_SHOT) return Plugin_Continue;
+    static int head, eyes;
+    static float max_distance;
+    eyes = L4D_GetZombieAttachment(target, Attach_Eyes);
+    head = L4D_GetZombieBone(target, Bone_Head);
+
+    GetEntityAttachment(target, eyes, temp, angle);
+    L4D_GetBonePosition(target, head, origin);
+
+    max_distance = GetVectorDistance(origin, temp) * LAG_SHOT_DISTANCE_SCALE;
+
+    if (distance > max_distance) return Plugin_Continue;
     g_iShootTarget[client] = target;
 
     float damage = GetWeaponDamage(clsname, distance) * 4;
