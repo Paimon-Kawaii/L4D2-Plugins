@@ -40,7 +40,7 @@ enum Bone_Type
     Bone_RightFoot,
 };
 
-public SharedPlugin __pl_animbone = {
+public SharedPlugin __pl_l4danim = {
     name = "l4d_anim",
     file = "l4d_anim.smx",
 #if defined REQUIRE_PLUGIN
