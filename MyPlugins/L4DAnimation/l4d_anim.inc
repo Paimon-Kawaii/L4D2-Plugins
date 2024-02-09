@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-03-22 19:08:40
- * @Last Modified time: 2024-02-08 16:12:34
+ * @Last Modified time: 2024-02-09 13:48:48
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -40,7 +40,7 @@ enum Bone_Type
     Bone_RightFoot,
 };
 
-public SharedPlugin __pl_animbone = {
+public SharedPlugin __pl_l4danim = {
     name = "l4d_anim",
     file = "l4d_anim.smx",
 #if defined REQUIRE_PLUGIN
