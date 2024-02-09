@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-07 16:56:36
- * @Last Modified time: 2024-02-08 16:58:37
+ * @Last Modified time: 2024-02-08 20:41:50
  * @Github: https://github.com/Paimon-Kawaii
  */
 #include <paiutils>
@@ -58,7 +58,7 @@ public void OnPlayerRunCmdPost(int client, int buttons)
     L4D_GetBonePosition(client, L4D_GetZombieBone(client, Bone_Head), pos2);
     DebugDrawLine(pos1, pos2);
 
-    PrintToChatAll("%.2f", GetVectorDistance(pos1, pos2));
+    // PrintToChatAll("%.2f", GetVectorDistance(pos1, pos2));
     // DebugDrawCross(pos1);
 }
 // public void OnPlayerRunCmdPost(int client, int buttons)
@@ -98,7 +98,7 @@ public void OnPlayerRunCmdPost(int client, int buttons)
 //     L4D_GetBonePosition(client, bone, pos1);
 //     DebugDrawLine(pos1, pos2);
 
-//     bone = L4D_GetZombieBone(client, Bone_LeftLeg);
+//     bone = L4D_GetZombieBone(client, Bone_LeftKnee);
 //     L4D_GetBonePosition(client, bone, pos1);
 
 //     bone = L4D_GetZombieBone(client, Bone_LeftFoot);
