@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-06 15:18:34
- * @Last Modified time: 2024-02-08 13:33:23
+ * @Last Modified time: 2024-02-09 13:53:32
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -166,7 +166,7 @@ int Native_GetBonePosition(Handle plugin, int numParams)
     static float origin[3], angle[3];
     SDKCall_CBaseAnimating_GetBonePosition(client, bone, origin, angle);
     if (!IsNativeParamNullVector(3)) SetNativeArray(3, origin, 3);
-    if (!IsNativeParamNullVector(4)) SetNativeArray(3, angle, 3);
+    if (!IsNativeParamNullVector(4)) SetNativeArray(4, angle, 3);
 
     return 0;
 }
