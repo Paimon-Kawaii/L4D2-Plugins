@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-02-15 19:32:26
- * @Last Modified time: 2024-02-03 16:54:59
+ * @Last Modified time: 2024-02-10 16:26:35
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -37,6 +37,7 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
+    HookEvent("player_death", Event_PlayerDeath);
     FindConVar("l4d2_addons_eclipse").AddChangeHook(CVarEvent_OnAddonsEclipse);
     FindConVar("l4d2_addons_eclipse").SetInt(1);
 
@@ -44,6 +45,12 @@ public void OnPluginStart()
     g_hDebug.AddChangeHook(CVarEvent_DebugModeChanged);
 
     RegConsoleCmd("sm_ts", Cmd_Test, "");
+}
+
+void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (IsValidClient(client)) KickClient(client);
 }
 
 Action Cmd_Test(int client, any args)
