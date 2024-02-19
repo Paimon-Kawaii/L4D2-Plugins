@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-03-18 14:59:54
- * @Last Modified time: 2024-02-08 15:18:29
+ * @Last Modified time: 2024-02-17 11:11:47
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -30,7 +30,8 @@ ConVar
 
     g_hOdinsTeleport;
 
-bool g_bIsRockTime[MAXPLAYERS + 1] = { true, ... };
+bool g_bFinalMapStop,
+    g_bIsRockTime[MAXPLAYERS + 1] = { true, ... };
 
 public Plugin myinfo =
 {
@@ -56,13 +57,15 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
+    g_bFinalMapStop = IsMissionFinal();
+
     for (int i = 0; i <= MaxClients; i++)
         g_bIsRockTime[i] = true;
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
 {
-    if (!IsTank(client) || !g_hOdinsRock.BoolValue || !IsFakeClient(client)) return Plugin_Continue;
+    if (!IsTank(client) || !g_hOdinsRock.BoolValue || !IsFakeClient(client) || g_bFinalMapStop) return Plugin_Continue;
 
     if (g_bIsRockTime[client] && g_hOdinsTime.IntValue /*&& !IsEntitySawThreats(client)*/)
     {
@@ -81,7 +84,7 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
  * -------------------------------------- */
 public Action L4D_TankRock_OnRelease(int tank, int rock, float vecPos[3], float vecAng[3], float vecVel[3], float vecRot[3])
 {
-    if (!g_hOdinsRock.BoolValue || !IsTank(tank))
+    if (!g_hOdinsRock.BoolValue || !IsTank(tank) || g_bFinalMapStop)
         return Plugin_Continue;
 
 #if DEBUG
