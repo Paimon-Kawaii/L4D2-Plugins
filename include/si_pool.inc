@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 18:11:22
- * @Last Modified time: 2024-02-19 10:23:28
+ * @Last Modified time: 2024-02-20 21:33:55
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -25,7 +25,7 @@ public SharedPlugin __pl_sipool = {
 
 public void __pl_sipool_SetNTVOptional()
 {
-    MarkNativeAsOptional("SIPool.Instance.get");
+    MarkNativeAsOptional("SIPool.Instance");
     MarkNativeAsOptional("SIPool.Size.get");
 
 #if SIZABLE
