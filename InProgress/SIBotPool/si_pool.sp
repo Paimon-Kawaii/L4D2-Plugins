@@ -2,16 +2,16 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-02-19 10:14:57
+ * @Last Modified time: 2024-02-20 13:46:26
  * @Github: https://github.com/Paimon-Kawaii
  */
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define DEBUG         0
+#define DEBUG         1
 
-#define VERSION       "2024.02.19#5"
+#define VERSION       "2024.02.20#12"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -45,23 +45,30 @@ static char g_sZombieClass[][] = {
     "Tank",
 };
 
-void ResetDeadZombie(int client, bool respawn = true)
+void ResetDeadZombie(int client)
 {
     SetStateTransition(client, STATE_ACTIVE);
-    if (respawn) CreateTimer(0.2, Timer_RestDeadZombie, client, TIMER_FLAG_NO_MAPCHANGE);
+    CreateTimer(0.1, Timer_RestDeadZombie, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 Action Timer_RestDeadZombie(Handle timer, int client)
 {
     if (!IsValidClient(client)) return Plugin_Stop;
-    SetEntProp(client, Prop_Send, "m_isGhost", true);
+
     RespawnPlayer(client);
+    SetEntProp(client, Prop_Send, "m_isGhost", true);
+    SetEntProp(client, Prop_Send, "m_lifeState", true);
+    SetEntProp(client, Prop_Send, "movetype", MOVETYPE_NOCLIP);
+
+#if DEBUG
+    LogMessage("[SIPool] Dead SI(%d) reset, is alive: %d", client, IsPlayerAlive(client));
+#endif
 
     return Plugin_Stop;
 }
 
 #define FSOLID_NOT_STANDABLE 0x10
-void InitializeSpecial(int ent, const float vPos[3] = NULL_VECTOR, const float vAng[3] = NULL_VECTOR, bool bSpawn = true)
+void InitializeSpecial(int ent, const float vPos[3] = NULL_VECTOR, const float vAng[3] = NULL_VECTOR, bool bSpawn = false)
 {
     ChangeClientTeam(ent, TEAM_INFECTED);
     SetEntProp(ent, Prop_Send, "m_usSolidFlags", FSOLID_NOT_STANDABLE);
@@ -253,10 +260,10 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
     if (bPos) GetNativeArray(3, origin, 3);
     if (bAngle) GetNativeArray(4, angle, 3);
 
-    if (bPos && bAngle) InitializeSpecial(bot, origin, angle, false);
-    else if (bPos) InitializeSpecial(bot, origin, _, false);
-    else if (bAngle) InitializeSpecial(bot, _, angle, false);
-    else InitializeSpecial(bot, _, _, false);
+    if (bPos && bAngle) InitializeSpecial(bot, origin, angle);
+    else if (bPos) InitializeSpecial(bot, origin);
+    else if (bAngle) InitializeSpecial(bot, _, angle);
+    else InitializeSpecial(bot);
     SetClass(bot, zclass);
     SetClientName(bot, g_sZombieClass[zclass - 1]);
 
@@ -266,6 +273,10 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
         event.SetInt("userid", GetClientUserId(bot));
         FireEvent(event);
     }
+
+#if DEBUG
+    LogMessage("[SIPool] SI request: %d", bot);
+#endif
 
     OnPoolSizeChanged(g_iPoolSize, g_iPoolSize - index);
     g_iPoolSize -= index;
@@ -314,10 +325,11 @@ void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize)
             LogMessage("[SIPool] SI create failed, maybe too many...");
             break;
         }
-        ResetDeadZombie(bot, false);
-        InitializeSpecial(bot);
         g_iPoolArray[i] = bot;
+        InitializeSpecial(bot, _, _, true);
+#if DEBUG
         LogMessage("[SIPool] SI create: %d", bot);
+#endif
     }
 }
 
@@ -331,6 +343,10 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
     if (!(IsInfected(client) && IsFakeClient(client))) return;
+
+#if DEBUG
+    LogMessage("[SIPool] SI dead: %d", client);
+#endif
 
     // Return bot;
     ResetDeadZombie(client);
