@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:26:28
- * @Last Modified time: 2024-02-19 10:26:04
+ * @Last Modified time: 2024-02-20 13:03:17
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -63,7 +63,15 @@ Action CMD_SP(int client, int args)
     // PrintToChatAll("%.2f %.2f %.2f", pos[0], pos[1], pos[2]);
 
     for (int i = 1; i <= MaxClients; i++)
-        g_hSIPool.RequestSIBot(ZC_HUNTER, pos);
+    {
+        if (IsInfected(i))
+        {
+            PrintToChatAll("%N alive: %d", i, IsPlayerAlive(i));
+            SetEntProp(i, Prop_Send, "m_lifeState", 1);
+            PrintToChatAll("%N alive: %d", i, IsPlayerAlive(i));
+        }
+        // g_hSIPool.RequestSIBot(ZC_HUNTER, pos);
+    }
 
     return Plugin_Handled;
 }
