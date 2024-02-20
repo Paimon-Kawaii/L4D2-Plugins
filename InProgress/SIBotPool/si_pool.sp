@@ -2,14 +2,14 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-02-20 13:46:26
+ * @Last Modified time: 2024-02-20 14:42:17
  * @Github: https://github.com/Paimon-Kawaii
  */
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define DEBUG         1
+#define DEBUG         0
 
 #define VERSION       "2024.02.20#12"
 
