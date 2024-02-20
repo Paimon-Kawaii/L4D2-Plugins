@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 18:11:22
- * @Last Modified time: 2024-02-19 10:23:28
+ * @Last Modified time: 2024-02-20 21:34:02
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -21,11 +21,11 @@ public SharedPlugin __pl_sipool = {
 #endif
 };
 
-#define SIZABLE       0
+#define SIZABLE 0
 
 public void __pl_sipool_SetNTVOptional()
 {
-    MarkNativeAsOptional("SIPool.Instance.get");
+    MarkNativeAsOptional("SIPool.Instance");
     MarkNativeAsOptional("SIPool.Size.get");
 
 #if SIZABLE
@@ -54,16 +54,22 @@ public void __pl_sipool_SetNTVOptional()
 
 methodmap SIPool
 {
-    public static native SIPool Instance();
 
-    property int Size {
-        public native get();
+public     static native SIPool Instance();
+
+    property int Size
+    {
+
+public         native get();
     }
 
 #if SIZABLE
-    public native void Narrow(int size);
-    public native void Expand(int size);
-    public native void Resize(int size);
+
+public     native void Narrow(int size);
+
+public     native void Expand(int size);
+
+public     native void Resize(int size);
 #endif
 
     /**
@@ -74,8 +80,8 @@ methodmap SIPool
      * @param angle    Angle that zombie look at
      * @return          Client index
      */
-    public native int RequestSIBot(int zclass, const float origin[3] = NULL_VECTOR, const float angle[3] = NULL_VECTOR);
-    
+public     native int RequestSIBot(int zclass, const float origin[3] = NULL_VECTOR, const float angle[3] = NULL_VECTOR);
+
     /**
      * Return a Special infected Bot to SIPool
      * Bot will automatically return after dead
@@ -83,5 +89,5 @@ methodmap SIPool
      * @param client    Zombie Bot to return
      * @return          True is success, false otherwise
      */
-    public native bool ReturnSIBot(int client);
+public     native bool ReturnSIBot(int client);
 }
