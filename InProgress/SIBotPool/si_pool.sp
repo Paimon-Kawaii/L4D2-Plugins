@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-02-20 14:42:17
+ * @Last Modified time: 2024-02-24 23:03:11
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -11,7 +11,9 @@
 
 #define DEBUG         0
 
-#define VERSION       "2024.02.20#12"
+#define RECOVER       0
+
+#define VERSION       "2024.02.24#20"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -131,10 +133,12 @@ public void OnClientDisconnect(int client)
     g_iPoolSize++;
 }
 
+#if RECOVER
 void RecoverSIPool()
 {
     OnPoolSizeChanged(0, g_iPoolSize);
 }
+#endif
 
 void CreateNatives()
 {
@@ -336,7 +340,9 @@ void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize)
 void HookEvents()
 {
     HookEvent("player_death", Event_PlayerDeath);
+#if RECOVER
     HookEvent("round_start", Event_RoundStart);
+#endif
 }
 
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
@@ -353,10 +359,12 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
     g_iPoolArray[g_iPoolSize++] = client;
 }
 
+#if RECOVER
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
     RecoverSIPool();
 }
+#endif
 
 void PrepareSDKCalls()
 {
