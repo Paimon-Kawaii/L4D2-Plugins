@@ -13,7 +13,7 @@
 
 #define RECOVER       0
 
-#define VERSION       "2024.02.24#20"
+#define VERSION       "2024.02.27#21"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -143,6 +143,7 @@ void RecoverSIPool()
 void CreateNatives()
 {
     // CreateNative("SIPool.Instance.get", Native_SIPool_Instance_get);
+    CreateNative("SIPool.SPool", Native_SIPool_Instance_get);
     CreateNative("SIPool.Instance", Native_SIPool_Instance_get);
     CreateNative("SIPool.Size.get", Native_SIPool_Size_get);
 
