@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:26:28
- * @Last Modified time: 2024-02-20 13:03:17
+ * @Last Modified time: 2024-02-27 15:04:19
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -47,7 +47,7 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-    if (!g_hSIPool) g_hSIPool = SIPool.Instance();
+    if (!g_hSIPool) g_hSIPool = new SIPool();
 
     // g_hSIPool.Resize(MaxClients);
     // PrintToChatAll("%d", g_hSIPool.Size);
