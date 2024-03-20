@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 18:11:22
- * @Last Modified time: 2024-02-20 21:33:55
+ * @Last Modified time: 2024-02-27 14:57:00
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -25,6 +25,7 @@ public SharedPlugin __pl_sipool = {
 
 public void __pl_sipool_SetNTVOptional()
 {
+    MarkNativeAsOptional("SIPool.SIPool");
     MarkNativeAsOptional("SIPool.Instance");
     MarkNativeAsOptional("SIPool.Size.get");
 
@@ -52,8 +53,10 @@ public void __pl_sipool_SetNTVOptional()
 #define STATE_GHOST              8
 #define STATE_INTRO_CAMERA       9
 
-methodmap SIPool
+methodmap SIPool __nullable__
 {
+    public native SIPool();
+
     public static native SIPool Instance();
 
     property int Size {
