@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 18:11:22
- * @Last Modified time: 2024-02-27 14:57:00
+ * @Last Modified time: 2024-03-25 18:59:48
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -21,19 +21,19 @@ public SharedPlugin __pl_sipool = {
 #endif
 };
 
-#define SIZABLE       0
+// #define SIZABLE       0
 
 public void __pl_sipool_SetNTVOptional()
 {
-    MarkNativeAsOptional("SIPool.SIPool");
+    // MarkNativeAsOptional("SIPool.SIPool");
     MarkNativeAsOptional("SIPool.Instance");
-    MarkNativeAsOptional("SIPool.Size.get");
+    // MarkNativeAsOptional("SIPool.Size.get");
 
-#if SIZABLE
-    MarkNativeAsOptional("SIPool.Narrow");
-    MarkNativeAsOptional("SIPool.Expand");
-    MarkNativeAsOptional("SIPool.Resize");
-#endif
+// #if SIZABLE
+//     MarkNativeAsOptional("SIPool.Narrow");
+//     MarkNativeAsOptional("SIPool.Expand");
+//     MarkNativeAsOptional("SIPool.Resize");
+// #endif
 
     MarkNativeAsOptional("SIPool.RequestSIBot");
     MarkNativeAsOptional("SIPool.ReturnSIBot");
@@ -55,19 +55,19 @@ public void __pl_sipool_SetNTVOptional()
 
 methodmap SIPool __nullable__
 {
-    public native SIPool();
+    // public native SIPool();
 
     public static native SIPool Instance();
 
-    property int Size {
-        public native get();
-    }
+    // property int Size {
+    //     public native get();
+    // }
 
-#if SIZABLE
-    public native void Narrow(int size);
-    public native void Expand(int size);
-    public native void Resize(int size);
-#endif
+// #if SIZABLE
+//     public native void Narrow(int size);
+//     public native void Expand(int size);
+//     public native void Resize(int size);
+// #endif
 
     /**
      * Request a Special infected Bot from SIPool
