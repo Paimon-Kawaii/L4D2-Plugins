@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-03-25 19:14:34
+ * @Last Modified time: 2024-03-25 20:21:17
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -11,9 +11,7 @@
 
 #define DEBUG         0
 
-#define RECOVER       0
-
-#define VERSION       "2024.03.25#77"
+#define VERSION       "2024.03.25#80"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -58,24 +56,7 @@ void ResetDeadZombie(int client)
     SetEntProp(client, Prop_Send, "m_zombieState", DEAD);
     SetEntProp(client, Prop_Send, "m_iObserverMode", DEAD);
     SetEntProp(client, Prop_Send, "movetype", MOVETYPE_NOCLIP);
-    // CreateTimer(0.1, Timer_RestDeadZombie, client, TIMER_FLAG_NO_MAPCHANGE);
 }
-
-// Action Timer_RestDeadZombie(Handle timer, int client)
-// {
-//     if (!IsValidClient(client)) return Plugin_Stop;
-
-//     RespawnPlayer(client);
-//     SetEntProp(client, Prop_Send, "m_isGhost", true);
-//     SetEntProp(client, Prop_Send, "m_lifeState", true);
-//     SetEntProp(client, Prop_Send, "movetype", MOVETYPE_NOCLIP);
-
-// #if DEBUG
-//     LogMessage("[SIPool] Dead SI(%d) reset, is alive: %d", client, IsPlayerAlive(client));
-// #endif
-
-//     return Plugin_Stop;
-// }
 
 #define ALIVE                0
 #define FSOLID_NOT_STANDABLE 0x10
@@ -105,7 +86,7 @@ Handle
     g_hSDK_NextBotCreatePlayerBot[ZC_COUNT];
 
 static SIPool g_hSIPool;
-static int g_iLastDeadTypeIdx;
+static int g_iLastDeadTypeIdx = -1;
 static int g_iPoolSize[ZC_COUNT] = { 0, ... };
 static int g_iPoolArray[ZC_COUNT][MAXSIZE] = {
     {-1,  ...},
@@ -135,6 +116,8 @@ public void OnPluginStart()
 public bool OnClientConnect(int client)
 {
     if (IsFakeClient(client)) return true;
+    if (g_iLastDeadTypeIdx == -1) return true;
+
     int size = g_iPoolSize[g_iLastDeadTypeIdx];
     if (size)
     {
@@ -146,33 +129,9 @@ public bool OnClientConnect(int client)
     return true;
 }
 
-// #if RECOVER
-// public void OnClientDisconnect(int client)
-// {
-//     if (IsFakeClient(client)) return;
-
-//     OnPoolSizeChanged(g_iPoolSize, g_iPoolSize + 1);
-//     g_iPoolSize++;
-// }
-
-// void RecoverSIPool()
-// {
-//     OnPoolSizeChanged(0, g_iPoolSize);
-// }
-// #endif
-
 void CreateNatives()
 {
-    // CreateNative("SIPool.Instance.get", Native_SIPool_Instance_get);
-    // CreateNative("SIPool.SPool", Native_SIPool_Instance_get);
     CreateNative("SIPool.Instance", Native_SIPool_Instance_get);
-    // CreateNative("SIPool.Size.get", Native_SIPool_Size_get);
-
-    // #if SIZABLE
-    //     CreateNative("SIPool.Narrow", Native_SIPool_Narrow);
-    //     CreateNative("SIPool.Expand", Native_SIPool_Expand);
-    //     CreateNative("SIPool.Resize", Native_SIPool_Resize);
-    // #endif
 
     CreateNative("SIPool.RequestSIBot", Native_SIPool_RequestSIBot);
     CreateNative("SIPool.ReturnSIBot", Native_SIPool_ReturnSIBot);
@@ -182,74 +141,6 @@ any Native_SIPool_Instance_get(Handle plugin, int numParams)
 {
     return g_hSIPool;
 }
-
-// any Native_SIPool_Size_get(Handle plugin, int numParams)
-// {
-//     return g_iPoolSize;
-// }
-
-// #if SIZABLE
-// any Native_SIPool_Narrow(Handle plugin, int numParams)
-// {
-//     int narrow = GetNativeCell(2);
-//     if (narrow < 1)
-//     {
-//         LogMessage("[SIPool] Narrow size must greater than 1 !");
-//         return 0;
-//     }
-//     int size = g_iPoolSize - narrow;
-
-//     size = size > 0 ? size : 0;
-//     OnPoolSizeChanged(g_iPoolSize, size);
-//     g_iPoolSize = size;
-
-//     return 0;
-// }
-
-// any Native_SIPool_Expand(Handle plugin, int numParams)
-// {
-//     int expand = GetNativeCell(2);
-//     if (expand < 1)
-//     {
-//         LogMessage("[SIPool] Expand size must greater than 1 !");
-//         return 0;
-//     }
-
-//     int size = g_iPoolSize + expand;
-
-//     if (size > MaxClients)
-//     {
-//         LogMessage("[SIPool] Size too much !");
-//         return 0;
-//     }
-
-//     OnPoolSizeChanged(g_iPoolSize, size);
-//     g_iPoolSize = size;
-
-//     return 0;
-// }
-
-// any Native_SIPool_Resize(Handle plugin, int numParams)
-// {
-//     int size = GetNativeCell(2);
-//     if (size < 0)
-//     {
-//         LogMessage("[SIPool] Resize must greater than 0 !");
-//         return 0;
-//     }
-
-//     if (size > MAXSIZE)
-//     {
-//         LogMessage("[SIPool] Size too much ! %d", size);
-//         return 0;
-//     }
-
-//     OnPoolSizeChanged(g_iPoolSize, size);
-//     g_iPoolSize = size;
-
-//     return 0;
-// }
-// #endif
 
 any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
 {
@@ -367,9 +258,7 @@ void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize, int zclass_idx)
 void HookEvents()
 {
     HookEvent("player_death", Event_PlayerDeath);
-#if RECOVER
     HookEvent("round_start", Event_RoundStart);
-#endif
 }
 
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
@@ -388,12 +277,16 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
     ResetDeadZombie(client);
 }
 
-#if RECOVER
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-    RecoverSIPool();
+    for (int i = 0; i < ZC_COUNT; i++)
+    {
+        g_iPoolSize[i] = 0;
+        for (int v = 0; v <= MAXSIZE; v++)
+            g_iPoolArray[i][v] = -1;
+    }
+    g_iLastDeadTypeIdx = -1;
 }
-#endif
 
 void PrepareSDKCalls()
 {
