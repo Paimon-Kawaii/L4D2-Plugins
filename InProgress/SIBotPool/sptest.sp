@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:26:28
- * @Last Modified time: 2024-02-27 15:04:19
+ * @Last Modified time: 2024-03-25 15:49:42
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -47,7 +47,7 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
-    if (!g_hSIPool) g_hSIPool = new SIPool();
+    if (!g_hSIPool) g_hSIPool = SIPool.Instance();
 
     // g_hSIPool.Resize(MaxClients);
     // PrintToChatAll("%d", g_hSIPool.Size);
@@ -57,20 +57,26 @@ Action CMD_SP(int client, int args)
 {
     float pos[3];
     GetClientAbsOrigin(client, pos);
-    // pos[0] += 100;
+    pos[0] += 100;
     pos[2] += 100;
 
     // PrintToChatAll("%.2f %.2f %.2f", pos[0], pos[1], pos[2]);
 
-    for (int i = 1; i <= MaxClients; i++)
+    for (int i = 1; i <= 4; i++)
     {
-        if (IsInfected(i))
+        // if (IsInfected(i))
+        // {
+        //     PrintToChatAll("%N alive: %d", i, IsPlayerAlive(i));
+        //     SetEntProp(i, Prop_Send, "m_lifeState", 1);
+        //     PrintToChatAll("%N alive: %d", i, IsPlayerAlive(i));
+        // }
+        int idx = g_hSIPool.RequestSIBot(GetRandomInt(1, 6), pos);
+        PrintToChatAll("索引:%d", idx);
+        if (idx != -1)
         {
-            PrintToChatAll("%N alive: %d", i, IsPlayerAlive(i));
-            SetEntProp(i, Prop_Send, "m_lifeState", 1);
-            PrintToChatAll("%N alive: %d", i, IsPlayerAlive(i));
+            PrintToChatAll("名称:%N", idx);
+            PrintToChatAll("类型:%d", GetZombieClass(idx));
         }
-        // g_hSIPool.RequestSIBot(ZC_HUNTER, pos);
     }
 
     return Plugin_Handled;
