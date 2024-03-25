@@ -2,16 +2,19 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-03-25 20:21:17
+ * @Last Modified time: 2024-03-25 21:03:39
  * @Github: https://github.com/Paimon-Kawaii
  */
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define DEBUG         0
+#define DEBUG 1
+#if DEBUG
+    #define LOGFILE "addons/sourcemod/logs/si_pool_log.txt"
+#endif
 
-#define VERSION       "2024.03.25#80"
+#define VERSION       "2024.03.25#93"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -79,7 +82,7 @@ void InitializeSpecial(int ent, const float vPos[3] = NULL_VECTOR, const float v
 
 #define ZC_COUNT 6
 Handle
-    g_hSDK_CTerrorPlayer_SetClass,
+    // g_hSDK_CTerrorPlayer_SetClass,
     g_hSDK_CBaseAbility_CreateForPlayer,
     g_hSDK_CCSPlayer_State_Transition,
     g_hSDK_CTerrorPlayer_RoundRespawn,
@@ -119,7 +122,7 @@ public bool OnClientConnect(int client)
     if (g_iLastDeadTypeIdx == -1) return true;
 
     int size = g_iPoolSize[g_iLastDeadTypeIdx];
-    if (size)
+    if (size > 0)
     {
         KickClient(g_iPoolArray[g_iLastDeadTypeIdx][size - 1]);
         OnPoolSizeChanged(size, size - 1, g_iLastDeadTypeIdx);
@@ -156,8 +159,8 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
             LogMessage("[SIPool] This log only showed once.");
             log = true;
         }
-        OnPoolSizeChanged(size, size + 1, zclass_idx);
-        g_iPoolSize[zclass_idx]++;
+        OnPoolSizeChanged(0, 1, zclass_idx);
+        g_iPoolSize[zclass_idx] = 1;
     }
 
     int index = 1;
@@ -167,7 +170,7 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
         bot = g_iPoolArray[zclass_idx][size - index];
     if (index > size && !(IsValidClient(bot) && IsFakeClient(bot) && IsGhost(bot)))
     {
-        // LogMessage("[SIPool] No SI available !");
+        LogMessage("[SIPool] No SI available !");
         OnPoolSizeChanged(size, 0, zclass_idx);
         g_iPoolSize[zclass_idx] = 0;
 
@@ -193,12 +196,12 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
         event.Fire();
     }
 
-#if DEBUG
-    LogMessage("[SIPool] SI request: %d", bot);
-#endif
-
     OnPoolSizeChanged(size, size - index, zclass_idx);
     g_iPoolSize[zclass_idx] -= index;
+
+#if DEBUG
+    LogToFile(LOGFILE, "[SIPool] SI request: %d, type: %d", bot, zclass_idx + 1);
+#endif
 
     return bot;
 }
@@ -212,7 +215,7 @@ any Native_SIPool_ReturnSIBot(Handle plugin, int numParams)
         return false;
     }
 
-    g_iPoolArray[GetZombieClass(bot) - 1][g_iPoolSize[GetZombieClass(bot) - 1]++] = bot;
+    // g_iPoolArray[GetZombieClass(bot) - 1][g_iPoolSize[GetZombieClass(bot) - 1]++] = bot;
     // ResetDeadZombie(bot);
     ForcePlayerSuicide(bot);
 
@@ -226,6 +229,10 @@ any Native_SIPool_ReturnSIBot(Handle plugin, int numParams)
 void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize, int zclass_idx)
 {
     if (GetClientCount(false) >= MaxClients) return;
+
+#if DEBUG
+    LogToFile(LOGFILE, "[SIPool] SI size change: %d -> %d of %d pool", iOldPoolSize, iNewPoolSize, zclass_idx);
+#endif
 
     bool add;
     int idx_min, idx_max;
@@ -242,15 +249,27 @@ void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize, int zclass_idx)
         int bot = CreateSIBot(zclass_idx);
         if (bot == -1)
         {
-            LogMessage("[SIPool] SI create failed, maybe too many...");
-            break;
+            int max_count_class = 0;
+            for (int v = 0, count = 0; v < ZC_COUNT; v++)
+                if (count < g_iPoolSize[v])
+                {
+                    count = g_iPoolSize[v];
+                    max_count_class = v;
+                }
+            KickClient(g_iPoolArray[max_count_class][g_iPoolSize[max_count_class]--], "Kicked because client full.");
+
+            bot = CreateSIBot(zclass_idx);
+            if (bot == -1)
+            {
+                LogMessage("[SIPool] SI create failed for the unknow reason ?!");
+                break;
+            }
         }
         g_iPoolArray[zclass_idx][i] = bot;
         InitializeSpecial(bot, _, _, true);
         ResetDeadZombie(bot);
-        ForcePlayerSuicide(bot);
 #if DEBUG
-        LogMessage("[SIPool] SI create: %d", bot);
+        LogToFile(LOGFILE, "[SIPool] SI create: %d", bot);
 #endif
     }
 }
@@ -267,12 +286,11 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
     if (!(IsInfected(client) && IsFakeClient(client))) return;
 
 #if DEBUG
-    LogMessage("[SIPool] SI dead: %d", client);
+    LogToFile(LOGFILE, "[SIPool] SI dead: %d", client);
 #endif
 
     // Return bot;
-    int zclass = GetZombieClass(client);
-    g_iLastDeadTypeIdx = zclass - 1;
+    g_iLastDeadTypeIdx = GetZombieClass(client) - 1;
     g_iPoolArray[g_iLastDeadTypeIdx][g_iPoolSize[g_iLastDeadTypeIdx]++] = client;
     ResetDeadZombie(client);
 }
@@ -282,7 +300,7 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
     for (int i = 0; i < ZC_COUNT; i++)
     {
         g_iPoolSize[i] = 0;
-        for (int v = 0; v <= MAXSIZE; v++)
+        for (int v = 0; v < MAXSIZE; v++)
             g_iPoolArray[i][v] = -1;
     }
     g_iLastDeadTypeIdx = -1;
@@ -297,15 +315,15 @@ void PrepareSDKCalls()
     else
         PrepLinuxCreateBotCalls(hGameData);
 
-    StartPrepSDKCall(SDKCall_Player);
-    if (PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CTerrorPlayer::SetClass"))
-    {
-        PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-        g_hSDK_CTerrorPlayer_SetClass = EndPrepSDKCall();
-        if (g_hSDK_CTerrorPlayer_SetClass == null)
-            LogError("Failed to create SDKCall: \"CTerrorPlayer::SetClass\"");
-    }
-    else LogError("Failed to find signature: \"CTerrorPlayer::SetClass\"");
+    // StartPrepSDKCall(SDKCall_Player);
+    // if (PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CTerrorPlayer::SetClass"))
+    // {
+    //     PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+    //     g_hSDK_CTerrorPlayer_SetClass = EndPrepSDKCall();
+    //     if (g_hSDK_CTerrorPlayer_SetClass == null)
+    //         LogError("Failed to create SDKCall: \"CTerrorPlayer::SetClass\"");
+    // }
+    // else LogError("Failed to find signature: \"CTerrorPlayer::SetClass\"");
 
     StartPrepSDKCall(SDKCall_Static);
     if (PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseAbility::CreateForPlayer"))
@@ -396,7 +414,7 @@ void TestName(Address pBaseAddr)
         Address pSIStringAddr = view_as<Address>(LoadFromAddress(pCaseBase + view_as<Address>(1), NumberType_Int32));
         static char SIName[32];
         LoadStringFromAddress(pSIStringAddr, SIName, sizeof(SIName));
-        LogMessage("[SIPool] Found \"%s\"(%d) in memory.", SIName, i);
+        LogToFile(LOGFILE, "[SIPool] Found \"%s\"(%d) in memory.", SIName, i);
     }
 }
 
