@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 16:48:01
- * @Last Modified time: 2024-02-18 18:43:04
+ * @Last Modified time: 2024-03-25 19:03:25
  * @Github: https://github.com/Paimon-Kawaii
  */
 "Games"
@@ -40,6 +40,32 @@
 			{
 				"library"	"server"
 				"linux"		"@_Z22NextBotCreatePlayerBotI6HunterEPT_PKc"
+			}
+            
+			"NextBotCreatePlayerBot<Jockey>"
+			{
+				"library"	"server"
+				"linux"		"@_Z22NextBotCreatePlayerBotI6JockeyEPT_PKc"
+			}
+			"NextBotCreatePlayerBot<Spitter>"
+			{
+				"library"	"server"
+				"linux"		"@_Z22NextBotCreatePlayerBotI7SpitterEPT_PKc"
+			}
+			"NextBotCreatePlayerBot<Charger>"
+			{
+				"library"	"server"
+				"linux"		"@_Z22NextBotCreatePlayerBotI7ChargerEPT_PKc"
+			}
+			"NextBotCreatePlayerBot<Smoker>"
+			{
+				"library"	"server"
+				"linux"		"@_Z22NextBotCreatePlayerBotI6SmokerEPT_PKc"
+			}
+			"NextBotCreatePlayerBot<Boomer>"
+			{
+				"library"	"server"
+				"linux"		"@_Z22NextBotCreatePlayerBotI6BoomerEPT_PKc"
 			}
             
 			/*
