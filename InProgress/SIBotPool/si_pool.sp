@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-02-24 23:03:11
+ * @Last Modified time: 2024-03-25 19:14:34
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -13,7 +13,7 @@
 
 #define RECOVER       0
 
-#define VERSION       "2024.02.27#21"
+#define VERSION       "2024.03.25#77"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -47,54 +47,74 @@ static char g_sZombieClass[][] = {
     "Tank",
 };
 
+#define DEAD 1
 void ResetDeadZombie(int client)
 {
     SetStateTransition(client, STATE_ACTIVE);
-    CreateTimer(0.1, Timer_RestDeadZombie, client, TIMER_FLAG_NO_MAPCHANGE);
-}
-
-Action Timer_RestDeadZombie(Handle timer, int client)
-{
-    if (!IsValidClient(client)) return Plugin_Stop;
-
-    RespawnPlayer(client);
     SetEntProp(client, Prop_Send, "m_isGhost", true);
-    SetEntProp(client, Prop_Send, "m_lifeState", true);
+    SetEntProp(client, Prop_Send, "deadflag", DEAD);
+    SetEntProp(client, Prop_Send, "m_lifeState", DEAD);
+    SetEntProp(client, Prop_Send, "m_iPlayerState", DEAD);
+    SetEntProp(client, Prop_Send, "m_zombieState", DEAD);
+    SetEntProp(client, Prop_Send, "m_iObserverMode", DEAD);
     SetEntProp(client, Prop_Send, "movetype", MOVETYPE_NOCLIP);
-
-#if DEBUG
-    LogMessage("[SIPool] Dead SI(%d) reset, is alive: %d", client, IsPlayerAlive(client));
-#endif
-
-    return Plugin_Stop;
+    // CreateTimer(0.1, Timer_RestDeadZombie, client, TIMER_FLAG_NO_MAPCHANGE);
 }
 
+// Action Timer_RestDeadZombie(Handle timer, int client)
+// {
+//     if (!IsValidClient(client)) return Plugin_Stop;
+
+//     RespawnPlayer(client);
+//     SetEntProp(client, Prop_Send, "m_isGhost", true);
+//     SetEntProp(client, Prop_Send, "m_lifeState", true);
+//     SetEntProp(client, Prop_Send, "movetype", MOVETYPE_NOCLIP);
+
+// #if DEBUG
+//     LogMessage("[SIPool] Dead SI(%d) reset, is alive: %d", client, IsPlayerAlive(client));
+// #endif
+
+//     return Plugin_Stop;
+// }
+
+#define ALIVE                0
 #define FSOLID_NOT_STANDABLE 0x10
 void InitializeSpecial(int ent, const float vPos[3] = NULL_VECTOR, const float vAng[3] = NULL_VECTOR, bool bSpawn = false)
 {
-    ChangeClientTeam(ent, TEAM_INFECTED);
+    if (bSpawn) DispatchSpawn(ent);
+    else RespawnPlayer(ent);
+
+    if (GetClientTeam(ent) != TEAM_INFECTED) ChangeClientTeam(ent, TEAM_INFECTED);
     SetEntProp(ent, Prop_Send, "m_usSolidFlags", FSOLID_NOT_STANDABLE);
     SetEntProp(ent, Prop_Send, "movetype", MOVETYPE_WALK);
-    SetEntProp(ent, Prop_Send, "deadflag", false);
-    SetEntProp(ent, Prop_Send, "m_lifeState", false);
-    SetEntProp(ent, Prop_Send, "m_iObserverMode", false);
-    SetEntProp(ent, Prop_Send, "m_iPlayerState", false);
-    SetEntProp(ent, Prop_Send, "m_zombieState", false);
+    SetEntProp(ent, Prop_Send, "deadflag", ALIVE);
+    SetEntProp(ent, Prop_Send, "m_lifeState", ALIVE);
+    SetEntProp(ent, Prop_Send, "m_iObserverMode", ALIVE);
+    SetEntProp(ent, Prop_Send, "m_iPlayerState", ALIVE);
+    SetEntProp(ent, Prop_Send, "m_zombieState", ALIVE);
     SetEntProp(ent, Prop_Send, "m_isGhost", false);
-    if (bSpawn) DispatchSpawn(ent);
     TeleportEntity(ent, vPos, vAng, NULL_VECTOR);
 }
 
+#define ZC_COUNT 6
 Handle
     g_hSDK_CTerrorPlayer_SetClass,
     g_hSDK_CBaseAbility_CreateForPlayer,
     g_hSDK_CCSPlayer_State_Transition,
     g_hSDK_CTerrorPlayer_RoundRespawn,
-    g_hSDK_NextBotCreatePlayerBot_Hunter;
+    g_hSDK_NextBotCreatePlayerBot[ZC_COUNT];
 
 static SIPool g_hSIPool;
-static int g_iPoolSize;
-static int g_iPoolArray[MAXSIZE] = { -1, ... };
+static int g_iLastDeadTypeIdx;
+static int g_iPoolSize[ZC_COUNT] = { 0, ... };
+static int g_iPoolArray[ZC_COUNT][MAXSIZE] = {
+    {-1,  ...},
+    { -1, ...},
+    { -1, ...},
+    { -1, ...},
+    { -1, ...},
+    { -1, ...},
+};
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -115,43 +135,44 @@ public void OnPluginStart()
 public bool OnClientConnect(int client)
 {
     if (IsFakeClient(client)) return true;
-    if (g_iPoolSize && g_iPoolSize + GetClientCount() >= MaxClients)
+    int size = g_iPoolSize[g_iLastDeadTypeIdx];
+    if (size)
     {
-        KickClient(g_iPoolArray[g_iPoolSize - 1]);
-        OnPoolSizeChanged(g_iPoolSize, g_iPoolSize - 1);
-        g_iPoolSize--;
+        KickClient(g_iPoolArray[g_iLastDeadTypeIdx][size - 1]);
+        OnPoolSizeChanged(size, size - 1, g_iLastDeadTypeIdx);
+        g_iPoolSize[g_iLastDeadTypeIdx]--;
     }
 
     return true;
 }
 
-public void OnClientDisconnect(int client)
-{
-    if (IsFakeClient(client)) return;
+// #if RECOVER
+// public void OnClientDisconnect(int client)
+// {
+//     if (IsFakeClient(client)) return;
 
-    OnPoolSizeChanged(g_iPoolSize, g_iPoolSize + 1);
-    g_iPoolSize++;
-}
+//     OnPoolSizeChanged(g_iPoolSize, g_iPoolSize + 1);
+//     g_iPoolSize++;
+// }
 
-#if RECOVER
-void RecoverSIPool()
-{
-    OnPoolSizeChanged(0, g_iPoolSize);
-}
-#endif
+// void RecoverSIPool()
+// {
+//     OnPoolSizeChanged(0, g_iPoolSize);
+// }
+// #endif
 
 void CreateNatives()
 {
     // CreateNative("SIPool.Instance.get", Native_SIPool_Instance_get);
-    CreateNative("SIPool.SPool", Native_SIPool_Instance_get);
+    // CreateNative("SIPool.SPool", Native_SIPool_Instance_get);
     CreateNative("SIPool.Instance", Native_SIPool_Instance_get);
-    CreateNative("SIPool.Size.get", Native_SIPool_Size_get);
+    // CreateNative("SIPool.Size.get", Native_SIPool_Size_get);
 
-#if SIZABLE
-    CreateNative("SIPool.Narrow", Native_SIPool_Narrow);
-    CreateNative("SIPool.Expand", Native_SIPool_Expand);
-    CreateNative("SIPool.Resize", Native_SIPool_Resize);
-#endif
+    // #if SIZABLE
+    //     CreateNative("SIPool.Narrow", Native_SIPool_Narrow);
+    //     CreateNative("SIPool.Expand", Native_SIPool_Expand);
+    //     CreateNative("SIPool.Resize", Native_SIPool_Resize);
+    // #endif
 
     CreateNative("SIPool.RequestSIBot", Native_SIPool_RequestSIBot);
     CreateNative("SIPool.ReturnSIBot", Native_SIPool_ReturnSIBot);
@@ -162,78 +183,80 @@ any Native_SIPool_Instance_get(Handle plugin, int numParams)
     return g_hSIPool;
 }
 
-any Native_SIPool_Size_get(Handle plugin, int numParams)
-{
-    return g_iPoolSize;
-}
+// any Native_SIPool_Size_get(Handle plugin, int numParams)
+// {
+//     return g_iPoolSize;
+// }
 
-#if SIZABLE
-any Native_SIPool_Narrow(Handle plugin, int numParams)
-{
-    int narrow = GetNativeCell(2);
-    if (narrow < 1)
-    {
-        LogMessage("[SIPool] Narrow size must greater than 1 !");
-        return 0;
-    }
-    int size = g_iPoolSize - narrow;
+// #if SIZABLE
+// any Native_SIPool_Narrow(Handle plugin, int numParams)
+// {
+//     int narrow = GetNativeCell(2);
+//     if (narrow < 1)
+//     {
+//         LogMessage("[SIPool] Narrow size must greater than 1 !");
+//         return 0;
+//     }
+//     int size = g_iPoolSize - narrow;
 
-    size = size > 0 ? size : 0;
-    OnPoolSizeChanged(g_iPoolSize, size);
-    g_iPoolSize = size;
+//     size = size > 0 ? size : 0;
+//     OnPoolSizeChanged(g_iPoolSize, size);
+//     g_iPoolSize = size;
 
-    return 0;
-}
+//     return 0;
+// }
 
-any Native_SIPool_Expand(Handle plugin, int numParams)
-{
-    int expand = GetNativeCell(2);
-    if (expand < 1)
-    {
-        LogMessage("[SIPool] Expand size must greater than 1 !");
-        return 0;
-    }
+// any Native_SIPool_Expand(Handle plugin, int numParams)
+// {
+//     int expand = GetNativeCell(2);
+//     if (expand < 1)
+//     {
+//         LogMessage("[SIPool] Expand size must greater than 1 !");
+//         return 0;
+//     }
 
-    int size = g_iPoolSize + expand;
+//     int size = g_iPoolSize + expand;
 
-    if (size > MaxClients)
-    {
-        LogMessage("[SIPool] Size too much !");
-        return 0;
-    }
+//     if (size > MaxClients)
+//     {
+//         LogMessage("[SIPool] Size too much !");
+//         return 0;
+//     }
 
-    OnPoolSizeChanged(g_iPoolSize, size);
-    g_iPoolSize = size;
+//     OnPoolSizeChanged(g_iPoolSize, size);
+//     g_iPoolSize = size;
 
-    return 0;
-}
+//     return 0;
+// }
 
-any Native_SIPool_Resize(Handle plugin, int numParams)
-{
-    int size = GetNativeCell(2);
-    if (size < 0)
-    {
-        LogMessage("[SIPool] Resize must greater than 0 !");
-        return 0;
-    }
+// any Native_SIPool_Resize(Handle plugin, int numParams)
+// {
+//     int size = GetNativeCell(2);
+//     if (size < 0)
+//     {
+//         LogMessage("[SIPool] Resize must greater than 0 !");
+//         return 0;
+//     }
 
-    if (size > MAXSIZE)
-    {
-        LogMessage("[SIPool] Size too much ! %d", size);
-        return 0;
-    }
+//     if (size > MAXSIZE)
+//     {
+//         LogMessage("[SIPool] Size too much ! %d", size);
+//         return 0;
+//     }
 
-    OnPoolSizeChanged(g_iPoolSize, size);
-    g_iPoolSize = size;
+//     OnPoolSizeChanged(g_iPoolSize, size);
+//     g_iPoolSize = size;
 
-    return 0;
-}
-#endif
+//     return 0;
+// }
+// #endif
 
 any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
 {
     static bool log = false;
-    if (g_iPoolSize < 1)
+    int zclass_idx = GetNativeCell(2) - 1;
+    int size = g_iPoolSize[zclass_idx];
+    if (size < 1)
     {
         if (!log)
         {
@@ -242,20 +265,20 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
             LogMessage("[SIPool] This log only showed once.");
             log = true;
         }
-        OnPoolSizeChanged(g_iPoolSize, g_iPoolSize + 1);
-        g_iPoolSize++;
+        OnPoolSizeChanged(size, size + 1, zclass_idx);
+        g_iPoolSize[zclass_idx]++;
     }
 
     int index = 1;
-    int zclass = GetNativeCell(2);
-    int bot = g_iPoolArray[g_iPoolSize - index];
-    while (!(IsValidClient(bot) && IsFakeClient(bot)) && ++index <= g_iPoolSize)
-        bot = g_iPoolArray[g_iPoolSize - index];
-    if (index > g_iPoolSize && !(IsValidClient(bot) && IsFakeClient(bot)))
+    size = g_iPoolSize[zclass_idx];
+    int bot = g_iPoolArray[zclass_idx][size - index];
+    while (!(IsValidClient(bot) && IsFakeClient(bot) && IsGhost(bot)) && ++index <= size)
+        bot = g_iPoolArray[zclass_idx][size - index];
+    if (index > size && !(IsValidClient(bot) && IsFakeClient(bot) && IsGhost(bot)))
     {
         // LogMessage("[SIPool] No SI available !");
-        OnPoolSizeChanged(g_iPoolSize, 0);
-        g_iPoolSize = 0;
+        OnPoolSizeChanged(size, 0, zclass_idx);
+        g_iPoolSize[zclass_idx] = 0;
 
         return -1;
     }
@@ -269,22 +292,22 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
     else if (bPos) InitializeSpecial(bot, origin);
     else if (bAngle) InitializeSpecial(bot, _, angle);
     else InitializeSpecial(bot);
-    SetClass(bot, zclass);
-    SetClientName(bot, g_sZombieClass[zclass - 1]);
+    // SetClass(bot, zclass_idx + 1);
+    SetClientName(bot, g_sZombieClass[zclass_idx]);
 
-    Event event = CreateEvent("player_spawn");
+    Event event = CreateEvent("player_spawn", true);
     if (event != INVALID_HANDLE)
     {
         event.SetInt("userid", GetClientUserId(bot));
-        FireEvent(event);
+        event.Fire();
     }
 
 #if DEBUG
     LogMessage("[SIPool] SI request: %d", bot);
 #endif
 
-    OnPoolSizeChanged(g_iPoolSize, g_iPoolSize - index);
-    g_iPoolSize -= index;
+    OnPoolSizeChanged(size, size - index, zclass_idx);
+    g_iPoolSize[zclass_idx] -= index;
 
     return bot;
 }
@@ -298,8 +321,9 @@ any Native_SIPool_ReturnSIBot(Handle plugin, int numParams)
         return false;
     }
 
-    ResetDeadZombie(bot);
-    g_iPoolArray[g_iPoolSize++] = bot;
+    g_iPoolArray[GetZombieClass(bot) - 1][g_iPoolSize[GetZombieClass(bot) - 1]++] = bot;
+    // ResetDeadZombie(bot);
+    ForcePlayerSuicide(bot);
 
     // Return bot dont need to resize...
     // OnPoolSizeChanged(g_iPoolSize, g_iPoolSize + 1);
@@ -308,7 +332,7 @@ any Native_SIPool_ReturnSIBot(Handle plugin, int numParams)
     return true;
 }
 
-void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize)
+void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize, int zclass_idx)
 {
     if (GetClientCount(false) >= MaxClients) return;
 
@@ -324,14 +348,16 @@ void OnPoolSizeChanged(int iOldPoolSize, int iNewPoolSize)
 
     for (int i = idx_min; i < idx_max; i++)
     {
-        int bot = CreateSIBot();
+        int bot = CreateSIBot(zclass_idx);
         if (bot == -1)
         {
             LogMessage("[SIPool] SI create failed, maybe too many...");
             break;
         }
-        g_iPoolArray[i] = bot;
+        g_iPoolArray[zclass_idx][i] = bot;
         InitializeSpecial(bot, _, _, true);
+        ResetDeadZombie(bot);
+        ForcePlayerSuicide(bot);
 #if DEBUG
         LogMessage("[SIPool] SI create: %d", bot);
 #endif
@@ -356,8 +382,10 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 #endif
 
     // Return bot;
+    int zclass = GetZombieClass(client);
+    g_iLastDeadTypeIdx = zclass - 1;
+    g_iPoolArray[g_iLastDeadTypeIdx][g_iPoolSize[g_iLastDeadTypeIdx]++] = client;
     ResetDeadZombie(client);
-    g_iPoolArray[g_iPoolSize++] = client;
 }
 
 #if RECOVER
@@ -419,48 +447,106 @@ void PrepareSDKCalls()
     delete hGameData;
 }
 
+// #define HUNTER_ADDR  0
+// #define JOCKEY_ADDR  12
+// #define SPITTER_ADDR 24
+// #define CHARGER_ADDR 36
+// #define SMOKER_ADDR  48
+// #define BOOMER_ADDR  60
+// #define TANK_ADDR    72
+static int g_iZombieAddr[ZC_COUNT] = {
+    48, 60, 0, 24, 12, 36
+};
 void PrepWindowsCreateBotCalls(Address pBaseAddr)
 {
-    Address pFuncRefAddr = pBaseAddr + view_as<Address>(6);
-    int funcRelOffset = LoadFromAddress(pFuncRefAddr, NumberType_Int32);
-    Address pCallOffsetBase = pBaseAddr + view_as<Address>(10);
-    Address pNextBotCreatePlayerBotTAddr = pCallOffsetBase + view_as<Address>(funcRelOffset);
+#if DEBUG
+    TestName(pBaseAddr);
+#endif
+    for (int i = 0; i < ZC_COUNT; i++)
+    {
+        Address pJumpAddr = pBaseAddr + view_as<Address>(g_iZombieAddr[i]);
+        Address pFuncRefAddr = pJumpAddr + view_as<Address>(6);
+        int funcRelOffset = LoadFromAddress(pFuncRefAddr, NumberType_Int32);
+        Address pCallOffsetBase = pJumpAddr + view_as<Address>(10);
+        Address pNextBotCreatePlayerBotTAddr = pCallOffsetBase + view_as<Address>(funcRelOffset);
 
-    StartPrepSDKCall(SDKCall_Static);
-    if (!PrepSDKCall_SetAddress(pNextBotCreatePlayerBotTAddr))
-        SetFailState("Unable to find NextBotCreatePlayer<Hunter> address in memory.");
-    PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
-    PrepSDKCall_SetReturnInfo(SDKType_CBasePlayer, SDKPass_Pointer);
-    g_hSDK_NextBotCreatePlayerBot_Hunter = EndPrepSDKCall();
+        StartPrepSDKCall(SDKCall_Static);
+        if (!PrepSDKCall_SetAddress(pNextBotCreatePlayerBotTAddr))
+            SetFailState("Unable to find NextBotCreatePlayer<Jockey> address in memory.");
+        PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
+        PrepSDKCall_SetReturnInfo(SDKType_CBasePlayer, SDKPass_Pointer);
+        g_hSDK_NextBotCreatePlayerBot[i] = EndPrepSDKCall();
+    }
 }
 
 void PrepLinuxCreateBotCalls(GameData hGameData = null)
 {
-    StartPrepSDKCall(SDKCall_Static);
-    if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "NextBotCreatePlayerBot<Hunter>"))
-        SetFailState("Failed to find signature: %s", "NextBotCreatePlayerBot<Hunter>");
-    PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
-    PrepSDKCall_SetReturnInfo(SDKType_CBasePlayer, SDKPass_Pointer);
-    g_hSDK_NextBotCreatePlayerBot_Hunter = EndPrepSDKCall();
-}
-
-void SetClass(int client, int zombieClass)
-{
-    int weapon = GetPlayerWeaponSlot(client, 0);
-    if (weapon != -1)
+    static char signature_name[32];
+    for (int i = 0; i < ZC_COUNT; i++)
     {
-        RemovePlayerItem(client, weapon);
-        RemoveEntity(weapon);
+        Format(signature_name, sizeof(signature_name), "NextBotCreatePlayerBot<%s>", g_sZombieClass[i]);
+        StartPrepSDKCall(SDKCall_Static);
+        if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, signature_name))
+            SetFailState("Failed to find signature: %s", signature_name);
+        PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
+        PrepSDKCall_SetReturnInfo(SDKType_CBasePlayer, SDKPass_Pointer);
+        g_hSDK_NextBotCreatePlayerBot[i] = EndPrepSDKCall();
     }
-
-    int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
-    if (ability != -1) RemoveEntity(ability);
-
-    SDKCall(g_hSDK_CTerrorPlayer_SetClass, client, zombieClass);
-
-    ability = SDKCall(g_hSDK_CBaseAbility_CreateForPlayer, client);
-    if (ability != -1) SetEntPropEnt(client, Prop_Send, "m_customAbility", ability);
 }
+
+#if DEBUG
+void TestName(Address pBaseAddr)
+{
+    for (int i = 0; i < 7; i++)
+    {
+        Address pCaseBase = pBaseAddr + view_as<Address>(i * 12);
+        Address pSIStringAddr = view_as<Address>(LoadFromAddress(pCaseBase + view_as<Address>(1), NumberType_Int32));
+        static char SIName[32];
+        LoadStringFromAddress(pSIStringAddr, SIName, sizeof(SIName));
+        LogMessage("[SIPool] Found \"%s\"(%d) in memory.", SIName, i);
+    }
+}
+
+void LoadStringFromAddress(Address pAddr, char[] buffer, int maxlength)
+{
+    int i;
+    char val;
+    while (i < maxlength)
+    {
+        val = LoadFromAddress(pAddr + view_as<Address>(i), NumberType_Int8);
+        if (val == 0)
+        {
+            buffer[i] = '\0';
+            break;
+        }
+        buffer[i++] = val;
+    }
+    buffer[maxlength - 1] = '\0';
+}
+#endif
+
+// #define ABILITY_TRYTIMES 3
+// void SetClass(int client, int zombieClass)
+// {
+//     int weapon = GetPlayerWeaponSlot(client, 0);
+//     if (weapon != -1)
+//     {
+//         RemovePlayerItem(client, weapon);
+//         RemoveEntity(weapon);
+//     }
+
+//     int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
+//     if (ability != -1) RemoveEntity(ability);
+//     ability = -1;
+
+//     SDKCall(g_hSDK_CTerrorPlayer_SetClass, client, zombieClass);
+
+//     for (int count = 0; count < ABILITY_TRYTIMES && ability == -1; count++)
+//         ability = SDKCall(g_hSDK_CBaseAbility_CreateForPlayer, client);
+
+//     if (ability != -1) SetEntPropEnt(client, Prop_Send, "m_customAbility", ability);
+//     else LogMessage("[SIPool] Failed to create ability for %N after %d times tried.", client, ABILITY_TRYTIMES);
+// }
 
 void SetStateTransition(int client, int state)
 {
@@ -472,7 +558,7 @@ void RespawnPlayer(int client)
     SDKCall(g_hSDK_CTerrorPlayer_RoundRespawn, client);
 }
 
-int CreateSIBot()
+int CreateSIBot(int zclass_idx)
 {
-    return SDKCall(g_hSDK_NextBotCreatePlayerBot_Hunter, "Hunter");
+    return SDKCall(g_hSDK_NextBotCreatePlayerBot[zclass_idx], g_sZombieClass[zclass_idx]);
 }
