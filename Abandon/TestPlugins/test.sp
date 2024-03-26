@@ -64,6 +64,7 @@ Action Cmd_ESC(int client, int args)
 //特感连跳
 public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
 {
+    if (IsSurvivor(client)) SetPlayerHealth(client, 1000);
     if (!IsValidClient(client) || IsFakeClient(client)) return Plugin_Continue;
 
     if ((buttons & IN_JUMP) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
