@@ -2,7 +2,7 @@
  * @Author:             我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date:        2023-06-01 14:25:29
- * @Last Modified time: 2024-02-04 18:01:31
+ * @Last Modified time: 2024-03-26 11:39:55
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -62,15 +62,20 @@ Action Cmd_ESC(int client, int args)
 }
 
 //特感连跳
-// public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
-// {
-//     if (!IsValidClient(client) || IsFakeClient(client)) return Plugin_Continue;
+public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
+{
+    if (!IsValidClient(client) || IsFakeClient(client)) return Plugin_Continue;
 
-//     if ((buttons & IN_JUMP) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
-//         buttons &= ~IN_JUMP;
+    if ((buttons & IN_JUMP) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
+        buttons &= ~IN_JUMP;
 
-//     return Plugin_Changed;
-// }
+    if ((buttons & IN_USE))
+        for (int i = 1; i <= MaxClients; i++)
+            if (IsInfected(i) && !IsGhost(i))
+                ForcePlayerSuicide(i);
+
+    return Plugin_Changed;
+}
 
 // void test()
 // {
