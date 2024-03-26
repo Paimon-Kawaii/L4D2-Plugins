@@ -2,19 +2,19 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-03-26 12:35:32
+ * @Last Modified time: 2024-03-26 12:38:12
  * @Github: https://github.com/Paimon-Kawaii
  */
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
     #define LOGFILE "addons/sourcemod/logs/si_pool_log.txt"
 #endif
 
-#define VERSION       "2024.03.26#103"
+#define VERSION       "2024.03.26#107"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
