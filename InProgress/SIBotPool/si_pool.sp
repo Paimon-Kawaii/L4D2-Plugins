@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-04-01 22:49:03
+ * @Last Modified time: 2024-04-03 13:11:54
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -15,13 +15,14 @@
     #define LOGFILE "addons/sourcemod/logs/si_pool_log.txt"
 #endif
 
-#define VERSION       "2024.04.01#124"
+#define VERSION       "2024.04.03#136"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
 
 #include <si_pool>
 
+#include <dhooks>
 #include <sdktools>
 #include <sourcemod>
 
@@ -48,6 +49,10 @@ static const char g_sZombieClass[][] = {
     "Witch",
     "Tank",
 };
+
+DynamicDetour g_ddConnectClient;
+
+ConVar g_cvarSvMaxPlayers;
 
 #define DEAD 1
 void ResetDeadZombie(int client)
@@ -115,25 +120,19 @@ public void OnPluginStart()
 
     HookEvents();
     PrepareSDKCalls();
+
+    g_cvarSvMaxPlayers = FindConVar("sv_maxplayers");
 }
 
 public bool OnClientConnect(int client)
 {
-    if (GetClientCount(false) < MaxClients - 1) return true;
-    if (g_iLastDeadTypeIdx == -1) return true;
+    int count = MaxClients;
+    int target_cnt = GetClientCount(false);
+    if (g_cvarSvMaxPlayers != null) count = g_cvarSvMaxPlayers.IntValue - 1;
+    if (target_cnt < count) return true;
+    // if (g_iLastDeadTypeIdx == -1) return true;
 
-    int size = g_iPoolSize[g_iLastDeadTypeIdx];
-    if (size > 0)
-    {
-        int index = 1;
-        int bot = g_iPoolArray[g_iLastDeadTypeIdx][size - index];
-        while (!IsInfected(bot))
-            bot = g_iPoolArray[g_iLastDeadTypeIdx][size - (++index)];
-
-        if (IsInfected(bot)) KickClient(bot);
-        OnPoolSizeChanged(size, size - index, g_iLastDeadTypeIdx);
-        g_iPoolSize[g_iLastDeadTypeIdx] -= index;
-    }
+    KickClientOnServerFull(target_cnt, count);
 
     return true;
 }
@@ -324,12 +323,12 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 void PrepareSDKCalls()
 {
-    GameData hGameData = new GameData(GAMEDATA_FILE);
-    Address pReplaceWithBot = hGameData.GetAddress("NextBotCreatePlayerBot.jumptable");
+    GameData gameData = new GameData(GAMEDATA_FILE);
+    Address pReplaceWithBot = gameData.GetAddress("NextBotCreatePlayerBot.jumptable");
     if (pReplaceWithBot != Address_Null && LoadFromAddress(pReplaceWithBot, NumberType_Int8) == 0x68)
         PrepWindowsCreateBotCalls(pReplaceWithBot);
     else
-        PrepLinuxCreateBotCalls(hGameData);
+        PrepLinuxCreateBotCalls(gameData);
 
     // StartPrepSDKCall(SDKCall_Player);
     // if (PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CTerrorPlayer::SetClass"))
@@ -342,7 +341,7 @@ void PrepareSDKCalls()
     // else LogError("Failed to find signature: \"CTerrorPlayer::SetClass\"");
 
     StartPrepSDKCall(SDKCall_Static);
-    if (PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseAbility::CreateForPlayer"))
+    if (PrepSDKCall_SetFromConf(gameData, SDKConf_Signature, "CBaseAbility::CreateForPlayer"))
     {
         PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
         PrepSDKCall_SetReturnInfo(SDKType_CBaseEntity, SDKPass_Pointer);
@@ -353,7 +352,7 @@ void PrepareSDKCalls()
     else LogError("Failed to find signature: \"CBaseAbility::CreateForPlayer\"");
 
     StartPrepSDKCall(SDKCall_Player);
-    if (PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CCSPlayer::State_Transition"))
+    if (PrepSDKCall_SetFromConf(gameData, SDKConf_Signature, "CCSPlayer::State_Transition"))
     {
         PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
         g_hSDK_CCSPlayer_State_Transition = EndPrepSDKCall();
@@ -363,7 +362,7 @@ void PrepareSDKCalls()
     else LogError("Failed to find signature: \"CCSPlayer::State_Transition\"");
 
     StartPrepSDKCall(SDKCall_Player);
-    if (PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CTerrorPlayer::RoundRespawn"))
+    if (PrepSDKCall_SetFromConf(gameData, SDKConf_Signature, "CTerrorPlayer::RoundRespawn"))
     {
         g_hSDK_CTerrorPlayer_RoundRespawn = EndPrepSDKCall();
         if (g_hSDK_CTerrorPlayer_RoundRespawn == null)
@@ -371,7 +370,57 @@ void PrepareSDKCalls()
     }
     else LogError("Failed to find signature: \"CTerrorPlayer::RoundRespawn\"");
 
-    delete hGameData;
+    CreateDetour(gameData, g_ddConnectClient, DTR_CBaseServer_ConnectClient, "L4D2::CBaseServer::ConnectClient");
+
+    delete gameData;
+}
+
+MRESReturn DTR_CBaseServer_ConnectClient()
+{
+#if DEBUG
+    PrintToServer("[SIPool] Detour CBaseServer::ConnectClient");
+    LogToFile(LOGFILE, "[SIPool] Detour CBaseServer::ConnectClient");
+#endif
+    int count = MaxClients;
+    int target_cnt = GetClientCount(false);
+    if (g_cvarSvMaxPlayers != null) count = g_cvarSvMaxPlayers.IntValue - 1;
+    if (target_cnt < count) return MRES_Ignored;
+    // if (g_iLastDeadTypeIdx == -1) return MRES_Ignored;
+
+    KickClientOnServerFull(target_cnt, count);
+
+    return MRES_Ignored;
+}
+
+void KickClientOnServerFull(int target_cnt, int count)
+{
+    int target_cls = g_iLastDeadTypeIdx;
+    int size = g_iPoolSize[target_cls];
+    if (size == 0) target_cls = 0;
+
+    int index = 1;
+    for (int kick_cnt = target_cnt - count + 1; kick_cnt > 0; kick_cnt--)
+    {
+        while (target_cls < ZC_COUNT && (size = g_iPoolSize[target_cls]) == 0)
+            target_cls++;
+        if (target_cls >= ZC_COUNT) break;
+        int bot = g_iPoolArray[target_cls][size - index];
+        while (!IsInfected(bot))
+            bot = g_iPoolArray[target_cls][size - (++index)];
+
+        if (IsInfected(bot))
+        {
+#if DEBUG
+            PrintToServer("[SIPool] Kick %N due to SERVER FULL", bot);
+            LogToFile(LOGFILE, "[SIPool] Kick %N due to SERVER FULL", bot);
+#endif
+
+            KickClient(bot);
+        }
+
+        OnPoolSizeChanged(size, size - index, g_iLastDeadTypeIdx);
+        g_iPoolSize[g_iLastDeadTypeIdx] -= index;
+    }
 }
 
 // #define HUNTER_ADDR  0
@@ -488,4 +537,13 @@ void RespawnPlayer(int client)
 int CreateSIBot(int zclass_idx)
 {
     return SDKCall(g_hSDK_NextBotCreatePlayerBot[zclass_idx], g_sZombieClass[zclass_idx]);
+}
+
+void CreateDetour(GameData gamedata, DynamicDetour &detour, DHookCallback callback, const char[] name, bool post = false)
+{
+    detour = DynamicDetour.FromConf(gamedata, name);
+    if (!detour) LogError("Failed to load detour \"%s\" signature.", name);
+
+    if (callback != INVALID_FUNCTION && !detour.Enable(post ? Hook_Post : Hook_Pre, callback))
+        LogError("Failed to detour \"%s\".", name);
 }
