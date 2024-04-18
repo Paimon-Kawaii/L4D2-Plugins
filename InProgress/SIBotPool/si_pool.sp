@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by: 我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-04-18 11:16:39
+ * @Last Modified time: 2024-04-18 14:20:17
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -126,9 +126,9 @@ public void OnPluginStart()
 
 public bool OnClientConnect(int client)
 {
-    int count = MaxClients;
+    int count = MaxClients - 2;
     int target_cnt = GetClientCount(false);
-    if (g_cvarSvMaxPlayers != null) count = g_cvarSvMaxPlayers.IntValue - 1;
+    if (g_cvarSvMaxPlayers != null) count -= g_cvarSvMaxPlayers.IntValue;
     if (target_cnt < count) return true;
     // if (g_iLastDeadTypeIdx == -1) return true;
 
@@ -177,13 +177,13 @@ any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
     int bot = g_iPoolArray[zclass_idx][size - index];
 #if DEBUG
     LogToFile(LOGFILE, "[SIPool] Start request (%s)pool, current size: %d", g_sZombieClass[zclass_idx], size);
-    LogToFile(LOGFILE, "[SIPool] %d is ghost:(%d), isalive:(%d)?", bot, IsGhost(bot), IsValidClient(bot) && IsPlayerAlive(bot));
+    LogToFile(LOGFILE, "[SIPool] %d is ghost:(%d), is alive:(%d)?", bot, IsGhost(bot), IsValidClient(bot) && IsPlayerAlive(bot));
 #endif
     while (!(IsValidClient(bot) && IsFakeClient(bot) && !IsPlayerAlive(bot)) && ++index <= size)
     {
         bot = g_iPoolArray[zclass_idx][size - index];
 #if DEBUG
-        LogToFile(LOGFILE, "[SIPool] %d is ghost:(%d), isalive:(%d)?", bot, IsGhost(bot), IsValidClient(bot) && IsPlayerAlive(bot));
+        LogToFile(LOGFILE, "[SIPool] %d is ghost:(%d), is alive:(%d)?", bot, IsGhost(bot), IsValidClient(bot) && IsPlayerAlive(bot));
 #endif
     }
     if (index > size && !(IsValidClient(bot) && IsFakeClient(bot) && !IsPlayerAlive(bot)))
@@ -314,7 +314,7 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 
 #if DEBUG
     LogToFile(LOGFILE, "[SIPool] SI dead: %d, (%s)pool sized(%d -> %d)", client, g_sZombieClass[g_iLastDeadTypeIdx], g_iPoolSize[g_iLastDeadTypeIdx] - 1, g_iPoolSize[g_iLastDeadTypeIdx]);
-    LogToFile(LOGFILE, "[SIPool] %d is ghost:(%d), isalive:(%d)?", client, IsGhost(client), IsPlayerAlive(client));
+    LogToFile(LOGFILE, "[SIPool] %d is ghost:(%d), is alive:(%d)?", client, IsGhost(client), IsPlayerAlive(client));
 #endif
 }
 
