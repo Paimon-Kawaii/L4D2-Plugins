@@ -17,6 +17,49 @@
                 "callconv"      "thiscall"
                 "return"        "void"
                 "this"          "ignore"
+                "arguments"
+                {
+                    "a1"
+                    {
+                        "type"    "objectptr"
+                    }
+	                "a2"
+	                {
+                        "type"    "int"
+                    }
+                    "a3"
+                    {
+                        "type"    "int"
+                    }
+                    "a4"
+                    {
+                        "type"    "int"
+                    }
+                    "a5"
+                    {
+                        "type"    "charptr"
+                    }
+                    "a6"
+                    {
+                        "type"    "int"
+                    }
+                    "a7"
+                    {
+                        "type"    "charptr"
+                    }
+                    "a8"
+                    {
+                        "type"    "int"
+                    }
+                    "a9"
+                    {
+                        "type"    "int"
+                    }
+                    "a10"
+                    {
+                        "type"    "int"
+                    }
+                }
             }
         }
         "Addresses"
