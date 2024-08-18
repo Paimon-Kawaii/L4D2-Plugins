@@ -84,7 +84,7 @@ methodmap SIPool __nullable__
      * Bot will automatically return after dead
      *
      * @param client    Zombie Bot to return
-     * @return          True is success, false otherwise
+     * @return          True if success, false otherwise
      */
     public native bool ReturnSIBot(int client);
 }
