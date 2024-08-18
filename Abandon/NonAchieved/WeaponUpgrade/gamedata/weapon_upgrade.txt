@@ -1,0 +1,23 @@
+/*
+ * @Author: 我是派蒙啊
+ * @Last Modified by: 我是派蒙啊
+ * @Create Date: 2024-02-17 16:48:01
+ * @Last Modified time: 2024-04-03 10:29:06
+ * @Github: https://github.com/Paimon-Kawaii
+ */
+"Games"
+{
+    "left4dead2"
+    {
+        "Signatures"
+        {
+            "CTerrorGun::AddUpgrade"
+            {
+                "library"        "server"
+                "linux"        "@_ZN10CTerrorGun10AddUpgradeE19SurvivorUpgradeType"
+                "windows"    "\x55\x8B\xEC\x53\x56\x57\x8B\x7D\x08\x57\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x8B\xD8"
+                /* 55 8B EC 53 56 57 8B 7D 08 57 8B F1 E8 ? ? ? ? 8B D8 */
+            }
+        }
+    }
+}
