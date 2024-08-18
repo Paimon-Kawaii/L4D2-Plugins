@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date: 2024-08-13 12:46:49
- * @Last Modified time: 2024-08-17 08:17:32
+ * @Last Modified time: 2024-08-18 23:06:40
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -13,7 +13,7 @@
 
 #include <paiutils>
 
-#define VERSION "2024.08.16#22"
+#define VERSION "2024.08.18#23"
 
 public Plugin myinfo =
 {
@@ -30,10 +30,12 @@ public Plugin myinfo =
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
-Handle g_hSDK_CCSPlayer_Weapon_Switch;
+Handle
+    g_hSDK_CCSPlayer_Weapon_Switch;
 
 #if DEBUG
-DynamicDetour g_ddWeaponSwitch;
+DynamicDetour
+    g_ddWeaponSwitch;
 #endif
 
 bool
@@ -133,7 +135,7 @@ void UpdatePanel()
 
 int Panel_SwitchWeaponHandler(Handle menu, MenuAction action, int client, int select)
 {
-    if (select < 0 || select > 5) return 1;
+    if (select > 5 || select < 1) return 1;
     int weapon = GetPlayerWeaponSlot(client, select - 1);
 #if DEBUG
     PrintToChatAll("%d %d", weapon, IsValidEdict(weapon));
