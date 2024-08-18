@@ -1,0 +1,37 @@
+"Games"
+{
+    "left4dead2"
+    {
+        "Functions"
+        {
+            "L4D2::CCSPlayer::Weapon_Switch"
+            {
+                "signature"     "CCSPlayer::Weapon_Switch"
+                "callconv"      "thiscall"
+                "return"        "bool"
+                "this"          "entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+					"a2"
+					{
+						"type"	"int"
+					}
+				}
+            }
+        }
+        "Signatures"
+        {
+            "CCSPlayer::Weapon_Switch"
+            {
+                "library"        "server"
+                "linux"        "@_ZN9CCSPlayer13Weapon_SwitchEP17CBaseCombatWeaponi"
+                "windows"    "\x55\x8B\xEC\x8B\x45\x0C\x56\x8B\xF1\x8B\x4D\x08\x50\x51\x8B\xCE\xE8\x2A\x2A\x2A\x2A\x84\xC0"
+                /* 55 8B EC 8B 45 0C 56 8B F1 8B 4D 08 50 51 8B CE E8 ? ? ? ? 84 C0 */
+            }
+        }
+    }
+}
