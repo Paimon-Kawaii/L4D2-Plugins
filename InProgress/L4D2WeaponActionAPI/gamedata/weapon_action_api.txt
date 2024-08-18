@@ -1,0 +1,68 @@
+"Games"
+{
+    "left4dead2"
+    {
+        "Functions"
+        {
+            "L4D2::CCSPlayer::Weapon_Switch"
+            {
+                "signature"     "CCSPlayer::Weapon_Switch"
+                "callconv"      "thiscall"
+                "return"        "bool"
+                "this"          "entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+					"a2"
+					{
+						"type"	"int"
+					}
+				}
+            }
+            "L4D2::CCSPlayer::Weapon_Equip"
+            {
+                "signature"     "CCSPlayer::Weapon_Equip"
+                "callconv"      "thiscall"
+                "return"        "bool"
+                "this"          "entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+            }
+        }
+        "Signatures"
+        {
+            /* CCSPlayer::Weapon_Switch(CBaseCombatWeapon *, int) */
+            "CCSPlayer::Weapon_Switch"
+            {
+                "library"        "server"
+                "linux"        "@_ZN9CCSPlayer13Weapon_SwitchEP17CBaseCombatWeaponi"
+                "windows"    "\x55\x8B\xEC\x8B\x45\x0C\x56\x8B\xF1\x8B\x4D\x08\x50\x51\x8B\xCE\xE8\x2A\x2A\x2A\x2A\x84\xC0"
+                /* 55 8B EC 8B 45 0C 56 8B F1 8B 4D 08 50 51 8B CE E8 ? ? ? ? 84 C0 */
+            }
+            /* CCSPlayer::Weapon_Equip(CBaseCombatWeapon *) */
+            "CCSPlayer::Weapon_Equip"
+            {
+                "library"        "server"
+                "linux"        "@_ZN9CCSPlayer12Weapon_EquipEP17CBaseCombatWeapon"
+                "windows"    "\x55\x8B\xEC\x53\x8B\x5D\x08\x56\x57\x6A\x00\x68\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x6A\x00\x53\x8B\xF9"
+                /* 55 8B EC 53 8B 5D 08 56 57 6A 00 68 ? ? ? ? 68 ? ? ? ? 6A 00 53 8B F9 */
+            }
+            /* CTerrorPlayer::Weapon_Drop(CBaseCombatWeapon *, Vector const*, Vector const*) */
+            "CTerrorPlayer::Weapon_Drop"
+            {
+                "library"        "server"
+                "linux"        "@_ZN13CTerrorPlayer11Weapon_DropEP17CBaseCombatWeaponPK6VectorS4_ proc"
+                "windows"    "\x55\x8B\xEC\x8B\x45\x10\x53\x56\x57"
+                /* 55 8B EC 8B 45 10 53 56 57 */
+            }
+        }
+    }
+}
