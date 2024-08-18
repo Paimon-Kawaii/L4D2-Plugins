@@ -1,8 +1,8 @@
 /*
  * @Author: 我是派蒙啊
- * @Last Modified by: 我是派蒙啊
+ * @Last Modified by:   我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-04-18 14:20:17
+ * @Last Modified time: 2024-08-15 23:45:46
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -15,7 +15,7 @@
     #define LOGFILE "addons/sourcemod/logs/si_pool_log.txt"
 #endif
 
-#define VERSION       "2024.04.18#145"
+#define VERSION       "2024.08.12#172"
 
 #define LIBRARY_NAME  "si_pool"
 #define GAMEDATA_FILE "si_pool"
@@ -69,21 +69,21 @@ void ResetDeadZombie(int client)
 
 #define ALIVE                0
 #define FSOLID_NOT_STANDABLE 0x10
-void InitializeSpecial(int ent, const float vPos[3] = NULL_VECTOR, const float vAng[3] = NULL_VECTOR, bool bSpawn = false)
+void InitializeSpecial(int entity, const float position[3] = NULL_VECTOR, const float angle[3] = NULL_VECTOR, bool first_spawn = false)
 {
-    if (bSpawn) DispatchSpawn(ent);
-    else RespawnPlayer(ent);
+    if (first_spawn) DispatchSpawn(entity);
+    else RespawnPlayer(entity);
 
-    if (GetClientTeam(ent) != TEAM_INFECTED) ChangeClientTeam(ent, TEAM_INFECTED);
-    SetEntProp(ent, Prop_Send, "m_usSolidFlags", FSOLID_NOT_STANDABLE);
-    SetEntProp(ent, Prop_Send, "movetype", MOVETYPE_WALK);
-    SetEntProp(ent, Prop_Send, "deadflag", ALIVE);
-    SetEntProp(ent, Prop_Send, "m_lifeState", ALIVE);
-    SetEntProp(ent, Prop_Send, "m_iObserverMode", ALIVE);
-    SetEntProp(ent, Prop_Send, "m_iPlayerState", ALIVE);
-    SetEntProp(ent, Prop_Send, "m_zombieState", ALIVE);
-    SetEntProp(ent, Prop_Send, "m_isGhost", false);
-    TeleportEntity(ent, vPos, vAng, NULL_VECTOR);
+    if (GetClientTeam(entity) != TEAM_INFECTED) ChangeClientTeam(entity, TEAM_INFECTED);
+    SetEntProp(entity, Prop_Send, "m_usSolidFlags", FSOLID_NOT_STANDABLE);
+    SetEntProp(entity, Prop_Send, "movetype", MOVETYPE_WALK);
+    SetEntProp(entity, Prop_Send, "deadflag", ALIVE);
+    SetEntProp(entity, Prop_Send, "m_lifeState", ALIVE);
+    SetEntProp(entity, Prop_Send, "m_iObserverMode", ALIVE);
+    SetEntProp(entity, Prop_Send, "m_iPlayerState", ALIVE);
+    SetEntProp(entity, Prop_Send, "m_zombieState", ALIVE);
+    SetEntProp(entity, Prop_Send, "m_isGhost", false);
+    TeleportEntity(entity, position, angle, NULL_VECTOR);
 }
 
 #define ZC_COUNT 6
@@ -402,8 +402,7 @@ MRESReturn DTR_CBaseServer_ConnectClient()
 
 void KickClientOnServerFull(int target_cnt, int count)
 {
-    int target_cls = g_iLastDeadTypeIdx;
-    if (target_cls < 0) target_cls = 0;
+    int target_cls = GetMaxCountClass();
     int size = g_iPoolSize[target_cls];
     if (size <= 0) target_cls = 0;
     int kick_cnt = target_cnt - count + 1;
@@ -435,6 +434,21 @@ void KickClientOnServerFull(int target_cnt, int count)
     }
 }
 
+int GetMaxCountClass()
+{
+    int result = g_iLastDeadTypeIdx > 0 ? g_iLastDeadTypeIdx : 0;
+    int cnt = g_iPoolSize[result];
+    for (int i = 0; i < ZC_COUNT; i++)
+    {
+        if (cnt >= g_iPoolSize[i]) continue;
+
+        cnt = g_iPoolSize[i];
+        result = i;
+    }
+
+    return result;
+}
+
 // #define HUNTER_ADDR  0
 // #define JOCKEY_ADDR  12
 // #define SPITTER_ADDR 24
@@ -460,7 +474,7 @@ void PrepWindowsCreateBotCalls(Address pBaseAddr)
 
         StartPrepSDKCall(SDKCall_Static);
         if (!PrepSDKCall_SetAddress(pNextBotCreatePlayerBotTAddr))
-            SetFailState("Unable to find NextBotCreatePlayer<Jockey> address in memory.");
+            SetFailState("Unable to find NextBotCreatePlayer<%s> address in memory.", g_sZombieClass[i]);
         PrepSDKCall_AddParameter(SDKType_String, SDKPass_Pointer);
         PrepSDKCall_SetReturnInfo(SDKType_CBasePlayer, SDKPass_Pointer);
         g_hSDK_NextBotCreatePlayerBot[i] = EndPrepSDKCall();
