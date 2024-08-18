@@ -1,8 +1,8 @@
 /*
  * @Author:             派蒙
- * @Last Modified by: 我是派蒙啊
+ * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2024-02-04 12:19:46
+ * @Last Modified time: 2024-08-16 22:56:03
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -17,14 +17,26 @@
 #endif
 #define _paiutils_included
 
+#include <dhooks>
+#include <sdktools>
+#include <sdkhooks>
+#include <sourcemod>
+
 // #define int(%1) view_as<int>(%1)
 // #define float(%1) view_as<float>(%1)
 // #define bool(%1) view_as<bool>(%1)
 // #define char(%1) view_as<char>(%1)
 
-#define TEAM_SPECTATOR 1
-#define TEAM_SURVIVOR  2
-#define TEAM_INFECTED  3
+#define WEPUPGFLAG_NONE                  (0 << 0)
+#define WEPUPGFLAG_INCENDIARY      (1 << 0)
+#define WEPUPGFLAG_EXPLOSIVE         (1 << 1)
+#define WEPUPGFLAG_LASER                 (1 << 2) 
+
+#define Pai     3.14159265358979323846
+
+#define TEAM_SPECTATOR     1
+#define TEAM_SURVIVOR       2
+#define TEAM_INFECTED       3
 
 #define ZC_SMOKER      1
 #define ZC_BOOMER      2
@@ -478,11 +490,12 @@ stock int GetPlayerHealth(int client, bool temp_heal = false, bool total_heal = 
     if (!IsValidClient(client)) return -1;
     if (!IsPlayerAlive(client)) return 0;
 
-    if (total_heal) temp_heal = false;
+    if (total_heal) temp_heal = true;
     if (!IsSurvivor(client)) temp_heal = total_heal = false;
 
     int temp = 0, health = GetEntProp(client, Prop_Send, "m_iHealth");
     if (temp_heal) temp = RoundToCeil(GetEntPropFloat(client, Prop_Send, "m_healthBuffer") - ((GetGameTime() - GetEntPropFloat(client, Prop_Send, "m_healthBufferTime")) * FindConVar("pain_pills_decay_rate").FloatValue)) - 1;
+    if(temp < 0) temp = 0;
     int result = !total_heal ? (temp_heal ? temp : health) : health + temp;
 
     return result;
@@ -886,4 +899,13 @@ stock bool IsMissionFinal()
         count++;
 
     return count < 2 && FindEntityByClassname(0, "trigger_finale") > 0;
+}
+
+stock void CreateDetour(GameData gamedata, DynamicDetour &detour, DHookCallback callback, const char[] name, bool post = false)
+{
+    detour = DynamicDetour.FromConf(gamedata, name);
+    if (!detour) LogError("Failed to load detour \"%s\" signature.", name);
+
+    if (callback != INVALID_FUNCTION && !detour.Enable(post ? Hook_Post : Hook_Pre, callback))
+        LogError("Failed to detour \"%s\".", name);
 }
