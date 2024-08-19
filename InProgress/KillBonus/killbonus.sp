@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date: 2024-08-17 20:15:07
- * @Last Modified time: 2024-08-17 21:08:26
+ * @Last Modified time: 2024-08-19 16:40:50
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -64,10 +64,11 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBoardcast)
 void CreateBonusBar(int client)
 {
     DataPack dp = new DataPack();
-    int clip = 1;
+    int clip = 2;
     int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
     if (HasEntProp(weapon, Prop_Send, "m_iClip1"))
         clip = GetEntProp(weapon, Prop_Send, "m_iClip1");
+    if (clip < 2) clip = 2;
     dp.WriteCell(client);
     dp.WriteFloat(BONUS_TIME);
     dp.WriteFloat(BONUS_TIME);
@@ -104,12 +105,12 @@ void HandleBonusBar(DataPack data)
     if (IsValidEntity(weapon) && HasEntProp(weapon, Prop_Send, "m_upgradeBitVec"))
     {
         // m_upgradeBitVec
-        // 燃烧：0x001
-        // 高爆：0x010
-        // 激光：0x100
+        // 燃烧：0b001
+        // 高爆：0b010
+        // 激光：0b100
         SetEntProp(weapon, Prop_Send, "m_iClip1", clip);
-        SetEntProp(weapon, Prop_Send, "m_upgradeBitVec", view_as<int>(0x111));
-        SetEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded", view_as<int>(0x1));
+        SetEntProp(weapon, Prop_Send, "m_upgradeBitVec", view_as<int>(0b111));
+        SetEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded", clip);
     }
     duration -= GetGameTime() - last_time;
     data.WriteCell(client);
