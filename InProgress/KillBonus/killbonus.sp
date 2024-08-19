@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date: 2024-08-17 20:15:07
- * @Last Modified time: 2024-08-19 16:40:50
+ * @Last Modified time: 2024-08-19 16:43:18
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -109,7 +109,7 @@ void HandleBonusBar(DataPack data)
         // 高爆：0b010
         // 激光：0b100
         SetEntProp(weapon, Prop_Send, "m_iClip1", clip);
-        SetEntProp(weapon, Prop_Send, "m_upgradeBitVec", view_as<int>(0b111));
+        SetEntProp(weapon, Prop_Send, "m_upgradeBitVec", view_as<int>(0b101));
         SetEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded", clip);
     }
     duration -= GetGameTime() - last_time;
