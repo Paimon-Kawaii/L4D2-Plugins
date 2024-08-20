@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date: 2024-02-17 11:15:10
- * @Last Modified time: 2024-08-15 23:45:46
+ * @Last Modified time: 2024-08-20 13:46:58
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -21,11 +21,6 @@
 #define GAMEDATA_FILE "si_pool"
 
 #include <si_pool>
-
-#include <dhooks>
-#include <sdktools>
-#include <sourcemod>
-
 #include <paiutils>
 
 public Plugin myinfo =
@@ -153,7 +148,7 @@ any Native_SIPool_Instance_get(Handle plugin, int numParams)
 any Native_SIPool_RequestSIBot(Handle plugin, int numParams)
 {
     int zclass_idx = GetNativeCell(2) - 1;
-    if (zclass_idx < 0) return -1;
+    if (zclass_idx < 0 || zclass_idx > ZC_COUNT) return -1;
 
     int size = g_iPoolSize[zclass_idx];
     if (size < 1)
@@ -563,13 +558,4 @@ void RespawnPlayer(int client)
 int CreateSIBot(int zclass_idx)
 {
     return SDKCall(g_hSDK_NextBotCreatePlayerBot[zclass_idx], g_sZombieClass[zclass_idx]);
-}
-
-void CreateDetour(GameData gamedata, DynamicDetour &detour, DHookCallback callback, const char[] name, bool post = false)
-{
-    detour = DynamicDetour.FromConf(gamedata, name);
-    if (!detour) LogError("Failed to load detour \"%s\" signature.", name);
-
-    if (callback != INVALID_FUNCTION && !detour.Enable(post ? Hook_Post : Hook_Pre, callback))
-        LogError("Failed to detour \"%s\".", name);
 }
