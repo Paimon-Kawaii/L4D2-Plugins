@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date: 2024-08-13 12:46:49
- * @Last Modified time: 2024-08-18 23:06:40
+ * @Last Modified time: 2024-08-22 13:37:11
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -42,40 +42,37 @@ bool
     g_bReadyUpAvailable,
     g_bShowPanel[MAXSIZE] = { true, ... };
 
-int
-    g_iHintIdx = 0;
-
-Handle
-    g_hUpdatePanelTimer;
+Panel
+    g_hPanel;
 
 public void OnPluginStart()
 {
     PrepareSDKCalls();
 
-    HookEvent("player_hurt", Event_OnTrigger, EventHookMode_PostNoCopy);
-    HookEvent("round_start", Event_OnTrigger, EventHookMode_PostNoCopy);
-    HookEvent("player_death", Event_OnTrigger, EventHookMode_PostNoCopy);
-    AddCommandListener(Vote_Callback, "Vote");
+    HookEvent("player_hurt", Event_OnTrigger);
+    HookEvent("player_death", Event_OnTrigger);
 
-    g_hUpdatePanelTimer = CreateTimer(0.1, Timer_UpdatePanel, _, TIMER_REPEAT);
+    HookEvent("pills_used", Event_OnTrigger);
+    HookEvent("heal_success", Event_OnTrigger);
+    HookEvent("adrenaline_used", Event_OnTrigger);
+    HookEvent("defibrillator_used", Event_OnTrigger);
+
+    HookEvent("player_first_spawn", Event_OnTrigger);
+    AddCommandListener(Vote_Callback, "Vote");
 }
 
 void Event_OnTrigger(Event event, const char[] name, bool dontBroadcast)
 {
-    TriggerTimer(g_hUpdatePanelTimer, true);
-}
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (!IsSurvivor(client)) return;
 
-Action Timer_UpdatePanel(Handle timer)
-{
-    if (!(g_bReadyUpAvailable && IsInReady()))
-        RequestFrame(UpdatePanel);
-
-    return Plugin_Continue;
+    RequestFrame(UpdatePanel);
 }
 
 Action Vote_Callback(int client, const char[] command, int argc)
 {
-    if (g_bReadyUpAvailable && IsInReady()) return Plugin_Continue;
+    if (g_bReadyUpAvailable && IsInReady())
+        return Plugin_Continue;
 
     char sArg[8];
     GetCmdArg(1, sArg, sizeof(sArg));
@@ -84,6 +81,9 @@ Action Vote_Callback(int client, const char[] command, int argc)
     else if (strcmp(sArg, "No", false) == 0)
         g_bShowPanel[client] = false;
 
+    if (g_bShowPanel[client])
+        g_hPanel.Send(client, Panel_SwitchWeaponHandler, MENU_TIME_FOREVER);
+
     return Plugin_Continue;
 }
 
@@ -91,30 +91,19 @@ void UpdatePanel()
 {
     if (g_bReadyUpAvailable && IsInReady()) return;
 
-    static char hint[128];
+    delete g_hPanel;
+    static char hint[64];
     static char buffer[2048];
-    Panel panel = new Panel(GetMenuStyleHandle(MenuStyle_Radio));
+    g_hPanel = new Panel(GetMenuStyleHandle(MenuStyle_Radio));
     Format(buffer, sizeof(buffer), "▼ 玩家列表: (%d/%d)", GetTeamClientCount(TEAM_SURVIVOR), FindConVar("sv_maxplayers").IntValue);
-    panel.DrawText(buffer);
-    panel.DrawText(" ▶ 使用 F1/F2 开/关面板");
+    g_hPanel.DrawText(buffer);
+    g_hPanel.DrawText(" ▶ 使用 F1/F2 开/关面板");
     int count = 0;
     for (int i = 1; i <= MaxClients; i++)
     {
         if (!IsSurvivor(i)) continue;
         GetClientName(i, buffer, sizeof(buffer));
-        if (!IsPlayerAlive(i))
-        {
-            switch (g_iHintIdx)
-            {
-                case 0:
-                    strcopy(hint, sizeof(hint), " 传奇飞行员 ");
-                case 1:
-                    strcopy(hint, sizeof(hint), " 牢大着陆中 ");
-                case 2:
-                    strcopy(hint, sizeof(hint), " 已抵达天国 ");
-            }
-        }
-        else
+        if (IsPlayerAlive(i))
         {
             Format(hint, sizeof(hint), " %03d HP ", GetPlayerHealth(i, _, true));
             if (IsPlayerIncap(i))
@@ -122,20 +111,21 @@ void UpdatePanel()
             else if (IsPlayerOnThirdStrike(i))
                 Format(buffer, sizeof(buffer), "%s(即将登机)", buffer);
         }
+        else strcopy(hint, sizeof(hint), " 已抵达天国 ");
         Format(buffer, sizeof(buffer), " ▶ [%s] %s", hint, buffer);
-        panel.DrawText(buffer);
+        g_hPanel.DrawText(buffer);
         if (++count >= 15) break;
     }
     for (int i = 1; i <= MaxClients; i++)
         if (IsValidClient(i) && !IsFakeClient(i) && g_bShowPanel[i])
-            panel.Send(i, Panel_SwitchWeaponHandler, 1);
-    g_iHintIdx = (g_iHintIdx + 1) % 3;
-    delete panel;
+            g_hPanel.Send(i, Panel_SwitchWeaponHandler, MENU_TIME_FOREVER);
 }
 
-int Panel_SwitchWeaponHandler(Handle menu, MenuAction action, int client, int select)
+int Panel_SwitchWeaponHandler(Handle panel, MenuAction action, int client, int select)
 {
-    if (select > 5 || select < 1) return 1;
+    if (g_bShowPanel[client] && IsValidClient(client))
+        g_hPanel.Send(client, Panel_SwitchWeaponHandler, MENU_TIME_FOREVER);
+    if (select > 5 || select < 1 || action == MenuAction_Cancel) return 1;
     int weapon = GetPlayerWeaponSlot(client, select - 1);
 #if DEBUG
     PrintToChatAll("%d %d", weapon, IsValidEdict(weapon));
