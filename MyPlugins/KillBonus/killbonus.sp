@@ -2,7 +2,7 @@
  * @Author: 我是派蒙啊
  * @Last Modified by:   我是派蒙啊
  * @Create Date: 2024-08-17 20:15:07
- * @Last Modified time: 2024-08-22 12:29:23
+ * @Last Modified time: 2024-08-22 21:58:35
  * @Github: https://github.com/Paimon-Kawaii
  */
 
@@ -56,7 +56,8 @@ public void OnClientDisconnect(int client)
 Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype,
                     int &weapon, float damageForce[3], float damagePosition[3])
 {
-    if (victim == attacker && damagetype == -1602224054) return Plugin_Handled;
+    if (victim == attacker && (damagetype & DMG_BLAST) && (damagetype & DMG_BURN))
+        return Plugin_Handled;
 
     return Plugin_Continue;
 }
@@ -92,6 +93,12 @@ void CreateBonusBar(int client)
     if (HasEntProp(weapon, Prop_Send, "m_iClip1"))
         clip = GetEntProp(weapon, Prop_Send, "m_iClip1");
     if (clip < 2) clip = 2;
+
+    float time = GetGameTime() + 0.1;
+    SetEntPropFloat(weapon, Prop_Send, "m_flNextPrimaryAttack", time);
+    SetEntPropFloat(client, Prop_Send, "m_flNextAttack", time);
+    SetEntPropFloat(client, Prop_Send, "m_flPlaybackRate", 10.0);
+
     dp.WriteCell(client);
     dp.WriteFloat(BONUS_TIME);
     dp.WriteFloat(BONUS_TIME);
@@ -126,7 +133,7 @@ void HandleBonusBar(DataPack data)
         // 高爆：0b010
         // 激光：0b100
         SetEntProp(weapon, Prop_Send, "m_iClip1", clip);
-        SetEntProp(weapon, Prop_Send, "m_upgradeBitVec", 0b111);
+        SetEntProp(weapon, Prop_Send, "m_upgradeBitVec", view_as<int>(0b111));
         SetEntProp(weapon, Prop_Send, "m_nUpgradedPrimaryAmmoLoaded", clip);
     }
 
