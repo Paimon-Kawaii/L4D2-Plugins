@@ -11,7 +11,7 @@
 #define PL_NAME    "Server Mix"
 #define PL_AUTHOR  "我是派蒙啊"
 #define PL_DESC    " "
-#define PL_VERSION "0.0.1.1"
+#define PL_VERSION "0.0.1.4"
 #define PL_URL     "https://github.com/Paimon-Kawaii"
 
 #pragma semicolon 1
