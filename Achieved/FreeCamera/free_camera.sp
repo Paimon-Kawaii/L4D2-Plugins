@@ -1,8 +1,8 @@
 /*
  * @Author:             我是派蒙啊
- * @Last Modified by: 我是派蒙啊
+ * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-03-18 22:22:37
- * @Last Modified time: 2024-01-26 12:09:23
+ * @Last Modified time: 2024-10-28 16:19:55
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
@@ -18,7 +18,7 @@
 #undef REQUIRE_PLUGIN
 #include <fnemotes>
 
-#define VERSION                  "2023.04.29"
+#define VERSION                  "2024.10.28"
 #define MAXSIZE                  MAXPLAYERS + 1
 
 #define CAMERA_MODEL             "models/editor/camera.mdl"
@@ -177,11 +177,12 @@ void Event_PlayerDead(Event event, const char[] name, bool dontBroadcast)
 
 public void OnClientPutInServer(int client)
 {
-    if (!IsValidClient(client) || !AreClientCookiesCached(client))
+    if (!IsValidClient(client))
         return;
 
     SDKHook(client, SDKHook_TraceAttack, TraceAttack);
-    GetClientCameraCookies(client);
+
+    if (AreClientCookiesCached(client)) GetClientCameraCookies(client);
 }
 
 public void OnClientDisconnect(int client)
@@ -284,7 +285,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse,
 public void fnemotes_OnEmote_Pre(int client)
 {
     if (IsSurvivor(client) && g_hFreeCamera.BoolValue)
-        if (g_bAutoCamera[client])
+        if (g_bAutoCamera[client] && !g_bIsCameraActive[client])
         {
             EnableFreeCamera(client);
             g_bIsDancing[client] = true;
@@ -294,11 +295,13 @@ public void fnemotes_OnEmote_Pre(int client)
         }
 }
 
-Action TraceAttack(int victim)
+Action TraceAttack(int victim, int& attacker)
 {
     // Prevent god mode
     if (IsSurvivor(victim))
-        DisableFreeCamera(victim);
+        DisableFreeCamera(victim, true);
+    if (IsSurvivor(attacker))
+        DisableFreeCamera(attacker, true);
 
     return Plugin_Continue;
 }
@@ -342,14 +345,14 @@ void MoveCamera(int client, int camera, int buttons)
 
 Action Cmd_FreeCamera(int client, any args)
 {
-    if (g_hFreeCamera.BoolValue /* && g_hFreeCamSwitch.BoolValue*/)
+    if (g_hFreeCamera.BoolValue && !g_bIsCameraActive[client])
         EnableFreeCamera(client);
     return Plugin_Handled;
 }
 
 Action Cmd_KillFreeCamera(int client, any args)
 {
-    if (g_hFreeCamera.BoolValue /* && g_hFreeCamSwitch.BoolValue*/)
+    if (g_hFreeCamera.BoolValue && g_bIsCameraActive[client])
     {
         g_bIsDancing[client] = false;
         DisableFreeCamera(client);
@@ -519,7 +522,7 @@ int CreateFreeCamera(int target)
     // grenade_launcher_projectile : You could see smoke above.
     // molotov_projectile: You could see a fire ball above.
     // pipe_bomb_projectile : You could see red flash light.
-    // vomitjar_projectile: : Seems the best choice, no particle, no flash, no effect,
+    // vomitjar_projectile: Seems the best choice, no particle, no flash, no effect,
     //              no auto destroy, wont be hooked...Perfect!!!
     camera = GetClientCamera(target);
     if (!IsValidEntity(camera))
