@@ -2,30 +2,20 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2024-09-05 22:46:14
+ * @Last Modified time: 2024-09-16 00:23:18
  * @Github:             http://github.com/PaimonQwQ
  */
-
-/* #################################################################### *
-                              Paimon Utils
-                            Author: 我是派蒙啊
-                           Version: 2023.07.15
- * #################################################################### */
 
 #if defined _paiutils_included
     #endinput
 #endif
 #define _paiutils_included
 
+#include <regex>
 #include <dhooks>
 #include <sdktools>
 #include <sdkhooks>
 #include <sourcemod>
-
-// #define int(%1) view_as<int>(%1)
-// #define float(%1) view_as<float>(%1)
-// #define bool(%1) view_as<bool>(%1)
-// #define char(%1) view_as<char>(%1)
 
 #define WEPUPGFLAG_NONE                  (0 << 0)
 #define WEPUPGFLAG_INCENDIARY      (1 << 0)
