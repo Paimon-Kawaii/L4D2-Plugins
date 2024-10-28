@@ -1,16 +1,14 @@
 /*
  * @Author:             我是派蒙啊
- * @Last Modified by: 我是派蒙啊
+ * @Last Modified by:   我是派蒙啊
  * @Create Date:        2023-06-01 14:25:29
- * @Last Modified time: 2024-03-26 11:39:55
+ * @Last Modified time: 2024-09-15 01:05:17
  * @Github:             https://github.com/Paimon-Kawaii
  */
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#include <sdktools>
-#include <sourcemod>
 #include <paiutils>
 #include <left4dhooks>
 
@@ -24,36 +22,13 @@ public Plugin myinfo =
     url = ""
 };
 
-// void Test()
+// public void OnPluginStart()
 // {
-//     GetVectorAngles()
+//     RegConsoleCmd("sm_esc", Cmd_ESC);
 // }
-public void OnPluginStart()
+
+stock Action Cmd_ESC(int client, int args)
 {
-    RegConsoleCmd("sm_esc", Cmd_ESC);
-}
-
-// public void OnClientConnected(int client)
-// {
-//     PrintToChatAll("%N", client);
-//     ClientCommand(client, "bind \"ESCAPE\" \"sm_esc\"");
-// }
-
-// public void OnClientDisconnect(int client)
-// {
-//     PrintToChatAll("%N", client);
-//     ClientCommand(client, "bind \"ESCAPE\" \"cancelselect\"");
-// }
-
-Action Cmd_ESC(int client, int args)
-{
-    // char buffer[32], prop[32], type[4], data[16];
-    // GetCmdArg(1, prop, sizeof(prop));
-    // GetCmdArg(1, prop, sizeof(prop));
-    // GetCmdArg(2, data, sizeof(data));
-    // int iData = StringToInt(data);
-
-    // SetEntProp(client, Prop_Send, prop, iData);
     for (int i = 1; i <= MaxClients; i++)
         if (IsSurvivor(i))
             SetEntProp(i, Prop_Send, "m_CollisionGroup", 17);
@@ -61,45 +36,122 @@ Action Cmd_ESC(int client, int args)
     return Plugin_Continue;
 }
 
-//特感连跳
-public Action OnPlayerRunCmd(int client, int &buttons, int &impuls)
+public void OnPlayerRunCmdPre(int client, int buttons)
 {
-    if (IsSurvivor(client)) SetPlayerHealth(client, 1000);
-    if (!IsValidClient(client) || IsFakeClient(client)) return Plugin_Continue;
+    if (!IsSurvivor(client)) return;
 
-    if ((buttons & IN_JUMP) && GetEntPropEnt(client, Prop_Send, "m_hGroundEntity") == -1)
-        buttons &= ~IN_JUMP;
+    if (!(buttons & IN_ATTACK)) return;
 
-    if ((buttons & IN_USE))
-        for (int i = 1; i <= MaxClients; i++)
-            if (IsInfected(i) && !IsGhost(i))
-                ForcePlayerSuicide(i);
+    for (int i = 0; i <= 2048; i++)
+    {
+        if (!IsValidEntity(i)) continue;
 
-    return Plugin_Changed;
+        bool is_viewmodel = HasEntProp(i, Prop_Send, "m_hWeapon");
+        if (!is_viewmodel) continue;
+
+        // static char cls_name[32];
+        // GetEntityClassname(i, cls_name, sizeof(cls_name));
+        // PrintToChatAll("%s", cls_name);
+
+        int weapon = GetEntPropEnt(i, Prop_Send, "m_hWeapon");
+        if (!IsValidEntity(weapon)) continue;
+        SetEntProp(weapon, Prop_Data, "m_bLagCompensate", 0);
+        SetEntProp(client, Prop_Data, "m_bLagCompensate", 0);
+        SetEntProp(client, Prop_Data, "m_bPredictWeapons", 0);
+        SetEntProp(i, Prop_Data, "m_bLagCompensate", 0);
+    }
 }
 
-// void test()
-// {
-//     CreateEntityByName("")
-// }
+#include <left4dhooks>
+stock bool IsWeaponReadyToFire(int weapon)
+{
+    float game_time = GetGameTime();
+    float atk_time = GetEntPropFloat(weapon, Prop_Send, "m_flNextPrimaryAttack");
+    float interval = atk_time - game_time;
 
-// L4D2_Charger_StartCarryingVictim
-// L4D2_Charger_EndPummel
+    static char weapon_name[32];
+    GetEntityClassname(weapon, weapon_name, sizeof(weapon_name));
+    float cycle = L4D2_GetFloatWeaponAttribute(weapon_name, L4D2FWA_CycleTime);
+    bool is_ready_to_fire = interval <= cycle;
 
-// public Action L4D2_OnStartCarryingVictim(int victim, int attacker)
-// {
-//     if(!IsSurvivor(victim) || !IsInfected(attacker))
-//         return Plugin_Continue;
+    // PrintToChatAll("%.2f %.2f %.2f %.2f %d", game_time, atk_time, interval, cycle, is_ready_to_fire);
 
-//     carried[attacker] = victim;
-//     CreateTimer(0.5, Timer_Release, attacker, TIMER_FLAG_NO_MAPCHANGE);
+    return is_ready_to_fire;
+}
+ConVar PrimarySlot;
 
-//     return Plugin_Continue;
-// }
+static char weapons_cls[17][32] = {
+    "weapon_smg",
+    "weapon_smg_silenced",
+    "weapon_smg_mp5",
+    "weapon_shotgun_chrome",
+    "weapon_pumpshotgun",
+    "weapon_rifle_ak47",
+    "weapon_rifle_desert",
+    "weapon_rifle_m60",
+    "weapon_rifle_sg552",
+    "weapon_rifle",
+    "weapon_sniper_awp",
+    "weapon_sniper_scout",
+    "weapon_sniper_military",
+    "weapon_hunting_rifle",
+    "weapon_autoshotgun",
+    "weapon_shotgun_spas",
+    "weapon_grenade_launcher",
+};
 
-// Action Timer_Release(Handle timer, int client)
-// {
-//     L4D2_Charger_EndPummel(carried[client], client);
+stock void GiveRandomWeapon(int client)
+{
+    static char weapon_char[64];
+    GetConVarString(PrimarySlot, weapon_char, sizeof(weapon_char));
+    if (strcmp(weapon_char, "random") != 0) return;
+    if (HaveGLorM60(client)) return;
 
-//     return Plugin_Stop;
-// }
+    int current_weapon = GetPlayerWeaponSlot(client, 0);
+    if (current_weapon > -1)
+        RemovePlayerItem(client, current_weapon);
+
+    int idx = GetRandomInt(0, 16);
+    ExecuteCommand(client, "give %s", weapons_cls[idx]);
+}
+
+stock bool HaveGLorM60(int client)
+{
+    char weapon_name[32];
+    int weapon = GetPlayerWeaponSlot(client, 0);    // Get weapon ID in primary slot
+
+    if (weapon == -1) return false;
+    GetEntityClassname(weapon, weapon_name, sizeof(weapon_name));    // Get weapon class name
+
+    return strcmp(weapon_name, "weapon_rifle_m60") == 0 || strcmp(weapon_name, "weapon_grenade_launcher") == 0;
+}
+
+static char target_str[1];
+
+#include <regex>
+Regex g_hMyRegex;
+
+public void OnPluginStart()
+{
+    g_hMyRegex = new Regex("^STEAM_[0-5]:[01]:\\d+$");
+}
+
+stock void RegexTest()
+{
+    // firstly, check if available or not
+    if (g_hMyRegex == null) return;
+
+    int result = g_hMyRegex.MatchAll(target_str);
+    switch (result)
+    {
+        case -1:
+            PrintToServer("Failed to match");
+        case 0:
+            PrintToServer("No match found");
+        default:
+            PrintToServer("Found %d matches", result);
+    }
+
+    // if you decide that you will never use it again, remember to delete it otherwise it will case memory leak.
+    // delete g_hMyRegex;
+}
