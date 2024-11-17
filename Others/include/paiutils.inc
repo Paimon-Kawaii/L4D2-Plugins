@@ -2,7 +2,7 @@
  * @Author:             派蒙
  * @Last Modified by:   我是派蒙啊
  * @Create Date:        2022-01-14 11:54:43
- * @Last Modified time: 2024-09-16 00:23:18
+ * @Last Modified time: 2024-11-15 22:14:34
  * @Github:             http://github.com/PaimonQwQ
  */
 
@@ -44,6 +44,7 @@
 
 enum
 {
+    Team_All = -1,
     Team_Spectator = 1,
     Team_Survivor,
     Team_Infected
